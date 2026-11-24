@@ -146,6 +146,16 @@ const pathSeg = (url: URL, index: number) =>
 
 const mockUploadDeclared = new Map<string, number>();
 
+const mockMemePacks = [
+  {
+    pack_id: 'default-pack',
+    name: '通用表情包',
+    member_count: 1,
+    tagged_count: 1,
+    bound_personas: [] as string[],
+  },
+];
+
 let mockPluginPrefs: { recent_plugins: string[]; last_edited_plugin: string } = {
   recent_plugins: ['GenshinUID', 'ZZZeroUID', 'StarRailUID', 'SayuStock'],
   last_edited_plugin: 'GenshinUID',
@@ -1037,15 +1047,23 @@ const routes: Route[] = [
   {
     m: 'GET',
     re: /^\/api\/meme\/packs$/,
-    h: () => [
-      {
-        pack_id: 'default-pack',
-        name: '通用表情包',
-        member_count: 1,
-        tagged_count: 1,
+    h: () => mockMemePacks,
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/meme\/packs$/,
+    h: ({ body }) => {
+      const name = String((body as { name?: string } | null)?.name ?? '').trim();
+      const created = {
+        pack_id: `demo-pack-${Date.now()}`,
+        name: name || '新表情包',
+        member_count: 0,
+        tagged_count: 0,
         bound_personas: [],
-      },
-    ],
+      };
+      mockMemePacks.push(created);
+      return { pack_id: created.pack_id, name: created.name };
+    },
   },
   {
     m: 'GET',

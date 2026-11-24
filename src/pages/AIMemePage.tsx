@@ -16,6 +16,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -50,6 +51,7 @@ import {
   Trash2,
   RefreshCw,
   FolderOpen,
+  FolderPlus,
   Clock,
   Users,
   FileImage,
@@ -916,29 +918,43 @@ function MemeDetailDialog({
 // Upload Dialog (unified: supports images + .meme batch)
 // ============================================================================
 
+const CREATE_NEW_PACK = '__create_new__';
+
 function UploadDialog({
   open,
   onClose,
   onSuccess,
   personas,
+  onPackCreated,
 }: {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
   personas: MemePersona[];
+  onPackCreated?: (pack: MemePersona) => void;
 }) {
   const { t } = useLanguage();
   const [files, setFiles] = useState<File[]>([]);
-  // Target persona for this upload. We store the literal `persona_hint` value
-  // (`'common'` or any real persona name) directly; the `<Select>` it feeds
-  // uses unique non-empty string values, so no Radix sentinel dance is needed
-  // here. Defaults to `common` (public).
+  // Target pack for this upload: 'common', an existing pack_id, or CREATE_NEW_PACK.
   const [personaHint, setPersonaHint] = useState('common');
+  const [newPackName, setNewPackName] = useState('');
+  const [isCreatingPack, setIsCreatingPack] = useState(false);
   const [autoTag, setAutoTag] = useState(true);
   const [skipExisting, setSkipExisting] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const newPackInputRef = useRef<HTMLInputElement>(null);
+
+  const isCreatingNew = personaHint === CREATE_NEW_PACK;
+
+  useEffect(() => {
+    if (isCreatingNew) {
+      // Wait one tick so the Select portal closes before focusing the input.
+      const timer = setTimeout(() => newPackInputRef.current?.focus(), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isCreatingNew]);
 
   const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
@@ -971,22 +987,65 @@ function UploadDialog({
     }
   };
 
+  const handleCreatePackNow = async () => {
+    const trimmed = newPackName.trim();
+    if (!trimmed) {
+      toast.error(t('aiMeme.upload.newPackNameRequired'));
+      newPackInputRef.current?.focus();
+      return;
+    }
+    try {
+      setIsCreatingPack(true);
+      const created = await memeApi.createPack(trimmed);
+      onPackCreated?.({
+        persona_hint: created.pack_id,
+        count: 0,
+        folder: created.name,
+      });
+      setPersonaHint(created.pack_id);
+      setNewPackName('');
+      toast.success(t('aiMeme.upload.createPackSuccess', { name: created.name }));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('aiMeme.upload.createPackFailed')));
+    } finally {
+      setIsCreatingPack(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (files.length === 0) return;
-    setIsUploading(true);
+
+    let packId: string | undefined;
+    if (isCreatingNew) {
+      const trimmed = newPackName.trim();
+      if (!trimmed) {
+        toast.error(t('aiMeme.upload.newPackNameRequired'));
+        newPackInputRef.current?.focus();
+        return;
+      }
+      setIsUploading(true);
+      try {
+        const created = await memeApi.createPack(trimmed);
+        packId = created.pack_id;
+        onPackCreated?.({
+          persona_hint: created.pack_id,
+          count: 0,
+          folder: created.name,
+        });
+      } catch (error) {
+        setIsUploading(false);
+        toast.error(getApiErrorMessage(error, t('aiMeme.upload.createPackFailed')));
+        return;
+      }
+    } else {
+      setIsUploading(true);
+      const persona = personaHint.trim();
+      packId = persona && persona !== 'common' ? persona : undefined;
+    }
+
     let success = 0;
     let failed = 0;
 
-    // Normalize the persona value the user picked. We never send an empty
-    // string to the backend - empty means "no preference" for image upload
-    // (the original backend behaviour when `folder` is omitted) and is
-    // handled accordingly below.
-    const persona = personaHint.trim();
-    const packId = persona && persona !== 'common' ? persona : undefined;
-
-    // Upload images one by one. For images the backend takes a `folder`
-    // parameter; we map our persona selection onto it (folder ↔ persona_hint
-    // is bijective on the server side).
     for (const f of imageFiles) {
       try {
         await memeApi.upload(f, 'common', autoTag, packId);
@@ -996,10 +1055,6 @@ function UploadDialog({
       }
     }
 
-    // Import .meme files one by one. Pass the persona hint through to the
-    // import endpoint so all memes in the archive land in the chosen
-    // persona's folder. An empty `persona` leaves backend behaviour intact
-    // (use the original metadata.json folder / persona_hint).
     for (const f of memeFiles) {
       try {
         await memeApi.importMemes(f, skipExisting, autoTag, undefined, packId);
@@ -1023,6 +1078,7 @@ function UploadDialog({
   const handleClose = () => {
     setFiles([]);
     setPersonaHint('common');
+    setNewPackName('');
     setAutoTag(true);
     setSkipExisting(true);
     onClose();
@@ -1125,43 +1181,91 @@ function UploadDialog({
             )}
           </div>
 
-          {/* Target Persona - shown for both image and .meme uploads. The
-              default `common` means "public memes". Users can pick from the
-              existing personas (provided by /api/meme/personas) or type a
-              brand-new persona name; the backend creates the folder on demand
-              and keeps folder ↔ persona_hint bijective. The `common` entry is
-              deduplicated against the personas list so the dropdown only shows
-              it once even when the backend reports it as the top result. */}
           {(imageFiles.length > 0 || hasMeme) && (
             <div className="space-y-2 min-w-0">
               <Label className="text-sm flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <span className="truncate">{t('aiMeme.upload.targetPersona')}</span>
               </Label>
-              <Select value={personaHint} onValueChange={setPersonaHint}>
-                <SelectTrigger className="w-full min-w-0 h-9 text-sm [&>span]:min-w-0 [&>span]:truncate">
-                  <SelectValue placeholder={t('aiMeme.upload.targetPersona')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="common">{t('aiMeme.filter.commonPersona')}</SelectItem>
-                  {personas
-                    .filter((p) => p.persona_hint !== 'common')
-                    .map((p) => (
-                      <SelectItem key={p.persona_hint} value={p.persona_hint}>
-                        <span className="flex items-center gap-2 min-w-0">
-                          <span className="truncate max-w-[200px]">
-                            {p.folder || p.persona_hint}
+              <div className="flex items-center gap-2 min-w-0">
+                <Select value={personaHint} onValueChange={setPersonaHint}>
+                  <SelectTrigger className="flex-1 min-w-0 h-9 text-sm [&>span]:min-w-0 [&>span]:truncate">
+                    <SelectValue placeholder={t('aiMeme.upload.targetPersona')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="common">{t('aiMeme.filter.commonPersona')}</SelectItem>
+                    {personas
+                      .filter((p) => p.persona_hint !== 'common')
+                      .map((p) => (
+                        <SelectItem key={p.persona_hint} value={p.persona_hint}>
+                          <span className="flex items-center gap-2 min-w-0">
+                            <span className="truncate max-w-[200px]">
+                              {p.folder || p.persona_hint}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                              {p.count}
+                            </span>
                           </span>
-                          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
-                            {p.count}
-                          </span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                        </SelectItem>
+                      ))}
+                    <SelectSeparator />
+                    <SelectItem value={CREATE_NEW_PACK}>
+                      <span className="flex items-center gap-1.5 text-primary font-medium">
+                        <FolderPlus className="w-3.5 h-3.5 shrink-0" />
+                        <span>{t('aiMeme.upload.createNewPack')}</span>
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant={isCreatingNew ? 'secondary' : 'outline'}
+                  size="sm"
+                  className="h-9 shrink-0 gap-1.5 px-3"
+                  disabled={isUploading}
+                  onClick={() => setPersonaHint(isCreatingNew ? 'common' : CREATE_NEW_PACK)}
+                >
+                  <FolderPlus className="w-3.5 h-3.5" />
+                  <span>{t('aiMeme.upload.createNewPackBtn')}</span>
+                </Button>
+              </div>
+              {isCreatingNew && (
+                <div className="flex items-center gap-2 min-w-0 pt-0.5">
+                  <Input
+                    ref={newPackInputRef}
+                    value={newPackName}
+                    onChange={(e) => setNewPackName(e.target.value)}
+                    maxLength={64}
+                    disabled={isUploading || isCreatingPack}
+                    placeholder={t('aiMeme.upload.newPackPlaceholder')}
+                    className="h-9 flex-1 min-w-0 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void handleCreatePackNow();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0 px-3"
+                    disabled={!newPackName.trim() || isCreatingPack || isUploading}
+                    onClick={() => void handleCreatePackNow()}
+                  >
+                    {isCreatingPack ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      t('aiMeme.upload.createPackNow')
+                    )}
+                  </Button>
+                </div>
+              )}
               <p className="text-[10px] text-muted-foreground">
-                {t('aiMeme.upload.targetPersonaDesc')}
+                {isCreatingNew
+                  ? t('aiMeme.upload.newPackHint')
+                  : t('aiMeme.upload.targetPersonaDesc')}
               </p>
             </div>
           )}
@@ -1199,10 +1303,15 @@ function UploadDialog({
         </div>
 
         <DialogFooter className="shrink-0 gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} disabled={isUploading}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleUpload} disabled={!hasFiles || isUploading}>
+          <Button
+            onClick={handleUpload}
+            disabled={
+              !hasFiles || isUploading || isCreatingPack || (isCreatingNew && !newPackName.trim())
+            }
+          >
             {isUploading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
@@ -1211,7 +1320,7 @@ function UploadDialog({
             ) : (
               <>
                 <Upload className="w-4 h-4 mr-1.5" />
-                {t('aiMeme.upload.selectFile')} ({fileCount})
+                {t('aiMeme.upload.uploadNow')} ({fileCount})
               </>
             )}
           </Button>
@@ -2151,6 +2260,11 @@ export default function AIMemePage() {
         onClose={() => setUploadOpen(false)}
         onSuccess={handleUploadSuccess}
         personas={personas}
+        onPackCreated={(pack) => {
+          setPersonas((prev) =>
+            prev.some((p) => p.persona_hint === pack.persona_hint) ? prev : [...prev, pack],
+          );
+        }}
       />
 
       {/* Batch Delete Confirm Dialog */}

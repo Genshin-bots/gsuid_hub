@@ -170,6 +170,7 @@ export function PersonaResetDialog({
         items: selection.checked,
         confirm_name: confirmText,
         backup,
+        confirm_global: selection.globalConfirmed,
       });
       track(res.job_id);
       setPhase('progress');

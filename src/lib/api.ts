@@ -3479,7 +3479,12 @@ export const personaResetApi = {
 
   startReset: (
     name: string,
-    body: { items: PersonaResetItemKey[]; confirm_name: string; backup: boolean },
+    body: {
+      items: PersonaResetItemKey[];
+      confirm_name: string;
+      backup: boolean;
+      confirm_global: boolean;
+    },
   ) => api.post<{ job_id: string }>(`${personaResetBase(name)}/reset`, body),
 
   getActiveJob: (name: string) =>
@@ -5613,6 +5618,9 @@ export const memeApi = {
   getPersonas: () => api.get<MemePersona[]>('/api/meme/personas'),
 
   getPacks: () => api.get<MemePackSummary[]>('/api/meme/packs'),
+
+  createPack: (name: string) =>
+    api.post<{ pack_id: string; name: string }>('/api/meme/packs', { name }),
 
   listPackMembers: (packId: string, params: MemeListParams = {}) => {
     const searchParams = new URLSearchParams();
