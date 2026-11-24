@@ -2600,16 +2600,22 @@ export default function PersonaConfigPage() {
                       </GlassAlert>
                     )}
                     <div className="relative">
+                      {/* 零高 sticky 锚点：文本域内滚动或页面外滚动时都稳在右上角 */}
+                      <div className="pointer-events-none sticky top-3 z-10 flex h-0 items-start justify-end pr-3.5">
+                        <Badge
+                          variant="secondary"
+                          className="mt-2.5 h-6 select-none px-2 font-sans text-xs font-medium tabular-nums shadow-sm backdrop-blur-md"
+                        >
+                          {t('personaConfig.charCount', { count: [...editContent].length })}
+                        </Badge>
+                      </div>
                       <Textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         readOnly={builtinPersona || managedPersona}
-                        className="min-h-[360px] h-[54vh] sm:min-h-[460px] md:h-[calc(100vh-330px)] max-h-[800px] resize-y pb-7 font-mono text-sm leading-relaxed"
+                        className="min-h-[360px] h-[54vh] sm:min-h-[460px] md:h-[calc(100vh-330px)] max-h-[800px] resize-y font-mono text-sm leading-relaxed"
                         placeholder={t('personaConfig.personaQueryPlaceholder')}
                       />
-                      <span className="pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums text-muted-foreground">
-                        {t('personaConfig.charCount', { count: [...editContent].length })}
-                      </span>
                     </div>
                   </div>
                 </TabsContent>
