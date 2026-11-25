@@ -110,6 +110,10 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24小时
 /** 插件商店每页条数（服务端分页） */
 const PLUGIN_PAGE_SIZE = 32;
 
+const MULTILINE_TOAST_CLASS = 'whitespace-pre-wrap break-words';
+const toastError = (msg: string) => toast.error(msg, { className: MULTILINE_TOAST_CLASS });
+const toastSuccess = (msg: string) => toast.success(msg, { className: MULTILINE_TOAST_CLASS });
+
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
@@ -780,11 +784,11 @@ export default function PluginStorePage() {
   // 成功文案在后端 data.msg；失败时 status=1，由 postFormData 抛出，走 catch
   const handleInstallByFile = async () => {
     if (!installByFile) {
-      toast.error(t('pluginStore.fileRequired'));
+      toastError(t('pluginStore.fileRequired'));
       return;
     }
     if (!installByFile.name.toLowerCase().endsWith('.zip')) {
-      toast.error(t('pluginStore.fileMustBeZip'));
+      toastError(t('pluginStore.fileMustBeZip'));
       return;
     }
     try {
@@ -792,7 +796,7 @@ export default function PluginStorePage() {
       const formData = new FormData();
       formData.append('file', installByFile);
       const data = await pluginStoreApi.installByFile(formData);
-      toast.success(data.msg || t('pluginStore.installSuccess'));
+      toastSuccess(data?.msg || t('pluginStore.installSuccess'));
       setInstallByFileOpen(false);
       setInstallByFile(null);
       localStorage.removeItem(PLUGIN_CACHE_KEY);
@@ -800,7 +804,7 @@ export default function PluginStorePage() {
       fetchPlugins(true);
       fetchGitMirrorInfo(true);
     } catch (error) {
-      toast.error(getApiErrorMessage(error, t('pluginStore.installError')));
+      toastError(getApiErrorMessage(error, t('pluginStore.installError')));
     } finally {
       setInstallByFileLoading(false);
     }
