@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { cn, formatTokens } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -30,37 +30,43 @@ import {
   Download,
   Users,
   Layers,
-  MessageSquare,
   Wrench,
-  Image as ImageIcon,
-  UserCog,
-  Activity,
-  Smile,
-  Brain,
-  LayoutGrid,
-  Clock,
-  Radio,
   ChevronsUpDown,
   ChevronsDownUp,
   type LucideIcon,
 } from 'lucide-react';
 import {
   aiSessionLogsApi,
+  aiTaskModelsApi,
   personaApi,
+  type AITaskModelsData,
   type SessionLogSummary,
   type SessionLogDetail,
   type SessionLogEntry,
   type SegmentMeta,
   type SessionLogStatsOverview,
-  type SessionLogCategory,
+  type SessionLogCategoriesResponse,
   type SessionChainUsage,
 } from '@/lib/api';
+import { TASK_GROUP_ICON } from '@/lib/aiTaskKinds';
 import { toast } from 'sonner';
 import TraceWaterfall, { type TraceWaterfallHandle } from '@/components/ai-history/TraceWaterfall';
 import { TokenBadges } from '@/components/ai-history/TokenBadges';
 import { extractSessionUsage, type SessionUsage } from '@/components/ai-history/usage';
+import { TaskKindFilterMenu } from '@/components/ai-history/TaskKindFilterMenu';
+import {
+  CAPABILITY_AGENT_TASK_PREFIX,
+  DEFAULT_ALL_FILTER,
+  buildTaskFilterModel,
+  initialFilterFromSearchParams,
+  parseTaskFilterValue,
+  resolveSessionTaskKind,
+  upgradeCreateByFilterToTaskKind,
+  type TaskKindDisplayInfo,
+} from '@/components/ai-history/taskFilter';
 
-const DEFAULT_SELECT_VALUE = '__all__';
+const DEFAULT_SELECT_VALUE = DEFAULT_ALL_FILTER;
+const LIST_SKELETON_KEYS = ['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'];
 
 // ============================================================================
 // 工具函数
@@ -90,30 +96,6 @@ function parseSessionId(sessionId: string | null | undefined): {
     if (type === 'private') return { displayName: name, chatType: 'private' };
   }
   return { displayName: sessionId, chatType: null };
-}
-
-// 会话来源分组 → 图标：无人格参与的系统/子任务用任务类型图标，替代千篇一律的空机器人。
-// 分组值取自后端分类目录（_CREATE_BY_CATALOG 的 group 字段，随 categories 接口下发）。
-const GROUP_ICON: Record<string, LucideIcon> = {
-  chat: MessageSquare,
-  agent: Bot,
-  capability: Wrench,
-  image: ImageIcon,
-  persona: UserCog,
-  heartbeat: Activity,
-  meme: Smile,
-  memory: Brain,
-  kanban: LayoutGrid,
-  scheduled: Clock,
-  proactive: Radio,
-  other: Cpu,
-};
-
-// capagent_<node_id>_<suffix> → 抠出 node_id（就是这个能力任务本身，如 papertrade_decision_agent）。
-// node_id 自身可能含下划线，故只削尾部已知的运行后缀（adhoc / kanban[_...]）。
-function capabilityNodeName(sessionId: string): string {
-  const rest = sessionId.slice('capagent_'.length);
-  return rest.replace(/_(?:adhoc|kanban(?:_.*)?)$/, '') || sessionId;
 }
 
 // create_by → 分组：后端分类目录（_CREATE_BY_CATALOG）没收录的来源（插件产出 / 新增核心来源，
@@ -181,31 +163,43 @@ interface SessionDisplay {
   Icon: LucideIcon; // 无人格时的头像图标
 }
 
-// 把冗长的 session_id 归一为「简短名 + 类型图标」：常规聊天取会话名；能力 Agent 取 node_id；
-// 心跳/续聊等定向会话保留目标；其余取后端短标签，未收录则按 create_by 兜底（仍带类型图标）。
+// 把冗长的 session_id 归一为「简短名 + 类型图标」：常规聊天取会话名；能力 Agent 优先取中文代理名；
+// 心跳/续聊等定向会话保留目标；其余优先取 task_kind 标题，再回退后端分类标签与 create_by。
 function describeSession(
-  log: { session_id: string; create_by: string },
+  log: { session_id: string; create_by: string; task_kind?: string | null },
   catMap: Map<string, { label: string; group: string }>,
+  taskKindInfoById: Map<string, TaskKindDisplayInfo>,
 ): SessionDisplay {
   const cat = catMap.get(log.create_by);
-  // 后端 group 优先（除非它也只归到 other）；否则按 create_by 命名规律推断，保证插件来源也有像样图标
-  const group = cat?.group && cat.group !== 'other' ? cat.group : inferGroup(log.create_by);
-  const Icon = GROUP_ICON[group] ?? Bot;
+  const inferredTk = resolveSessionTaskKind(log);
+  const tkInfo = inferredTk ? taskKindInfoById.get(inferredTk) : undefined;
+  const isCapAgent = inferredTk.startsWith(CAPABILITY_AGENT_TASK_PREFIX);
+
+  const group =
+    tkInfo?.group && tkInfo.group !== 'other'
+      ? tkInfo.group
+      : cat?.group && cat.group !== 'other'
+        ? cat.group
+        : inferGroup(log.create_by);
+  const Icon = isCapAgent ? Wrench : (TASK_GROUP_ICON[group] ?? Bot);
   const parsed = parseSessionId(log.session_id);
+  const resolvedLabel = tkInfo?.title ?? cat?.label ?? humanizeCreateBy(log.create_by);
 
   // 1) 常规聊天：session_id 形如 platform:...:group/private:xxx → 会话名（群名/私聊名）
   if (parsed.chatType) return { name: parsed.displayName, Icon };
-  // 2) 能力 Agent：展示 node_id（任务本身），比泛化的「能力 Agent」更有信息量
-  if (log.session_id.startsWith('capagent_'))
-    return { name: capabilityNodeName(log.session_id), Icon };
+  // 2) 能力 Agent：优先展示代理中文 display_name，未登记则回退 node_id
+  if (isCapAgent) {
+    const fallbackNode = inferredTk.slice(CAPABILITY_AGENT_TASK_PREFIX.length);
+    return { name: tkInfo?.title || fallbackNode || resolvedLabel, Icon };
+  }
   // 3) 定向后台会话（心跳/续聊）：类别标签 + 目标（群号/用户），别把不同目标折叠成同一个名字
   const target = targetedTarget(log.session_id);
-  if (target) return { name: `${cat?.label ?? humanizeCreateBy(log.create_by)} · ${target}`, Icon };
+  if (target) return { name: `${resolvedLabel} · ${target}`, Icon };
   // 3.5) 记忆等后台抽取子 agent：auto_ id 里编了 scope → 显示"针对哪个群/用户"
   const autoScope = parseAutoScope(log.session_id, log.create_by);
-  if (autoScope)
-    return { name: `${cat?.label ?? humanizeCreateBy(log.create_by)} · ${autoScope}`, Icon };
-  // 4) 其它系统/子任务：后端归类的简短标签（记忆实体抽取…）；未收录则按 create_by 兜底
+  if (autoScope) return { name: `${resolvedLabel} · ${autoScope}`, Icon };
+  // 4) 其它系统/子任务：优先 task_kind 标题 → 后端归类标签 → create_by 兜底
+  if (tkInfo) return { name: tkInfo.title, Icon };
   if (cat) return { name: cat.label, Icon };
   return { name: humanizeCreateBy(log.create_by) || parsed.displayName, Icon };
 }
@@ -279,14 +273,23 @@ export default function AIHistoryPage() {
   const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const linkedQuery = searchParams.get('q') ?? '';
-  const linkedCreateBy = searchParams.get('create_by') || 'Chat';
+  const initialFilter = initialFilterFromSearchParams(searchParams);
+
+  const tr = useCallback(
+    (key: string, fallback: string, params?: Record<string, string | number>) => {
+      const value = t(key, params);
+      return value === key ? fallback : value;
+    },
+    [t],
+  );
 
   // 数据
   const [logs, setLogs] = useState<SessionLogSummary[]>([]);
   const [stats, setStats] = useState<SessionLogStatsOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedLogs, setHasLoadedLogs] = useState(false);
-  const [categories, setCategories] = useState<SessionLogCategory[]>([]);
+  const [categoriesData, setCategoriesData] = useState<SessionLogCategoriesResponse | null>(null);
+  const [taskModels, setTaskModels] = useState<AITaskModelsData | null>(null);
 
   // 选中链
   const [selectedCard, setSelectedCard] = useState<SessionLogSummary | null>(null);
@@ -302,13 +305,15 @@ export default function AIHistoryPage() {
   const detailViewportRef = useRef<HTMLDivElement>(null);
   const pendingScrollBottomRef = useRef(false);
   const scrollAnchorRef = useRef<{ prevHeight: number; prevTop: number } | null>(null);
-  // 整链用量竞态守卫：快速切换卡片时只允许最后一次请求落地
+  // 列表 / 详情 / 整链用量竞态守卫：快速切换筛选或卡片时只允许最后一次请求落地
+  const logsSeqRef = useRef(0);
+  const detailSeqRef = useRef(0);
   const usageSeqRef = useRef(0);
 
-  // 筛选
+  // 筛选（默认选中主对话 task:chat）
   const [searchQuery, setSearchQuery] = useState(linkedQuery);
   const [debouncedSearch, setDebouncedSearch] = useState(linkedQuery);
-  const [filterCreateBy, setFilterCreateBy] = useState<string>(linkedCreateBy);
+  const [filterTask, setFilterTask] = useState<string>(initialFilter);
   const [filterPersona, setFilterPersona] = useState<string>(DEFAULT_SELECT_VALUE);
   const [filterDateFrom] = useState('');
   const [filterDateTo] = useState('');
@@ -330,6 +335,7 @@ export default function AIHistoryPage() {
   }, [segEntries]);
 
   const loadedSegCount = Object.keys(segEntries).length;
+  const legacyCreateByOnly = categoriesData !== null && !categoriesData.task_kinds;
 
   // ── 数据拉取 ──────────────────────────────────────────────────────────
   const fetchStats = useCallback(async () => {
@@ -343,37 +349,75 @@ export default function AIHistoryPage() {
   const fetchCategories = useCallback(async () => {
     try {
       const data = await aiSessionLogsApi.getCategories();
-      setCategories(data.categories || []);
+      setCategoriesData(data);
     } catch (err) {
       console.error('Failed to fetch session log categories:', err);
     }
   }, []);
 
+  const fetchTaskModels = useCallback(async () => {
+    try {
+      const data = await aiTaskModelsApi.list();
+      setTaskModels(data);
+    } catch {
+      // 旧后端无 /api/ai_task_models 时降级为仅展示 categories
+    }
+  }, []);
+
   const fetchLogs = useCallback(
     async (currentOffset = 0) => {
+      const seq = ++logsSeqRef.current;
       try {
         setIsLoading(true);
+        const parsed = parseTaskFilterValue(filterTask);
+        let taskKindParam: string | undefined;
+        let createByParam: string | undefined;
+        let unmappedOnlyParam: boolean | undefined;
+        if (parsed.mode === 'task') {
+          if (legacyCreateByOnly && parsed.taskKind === 'chat') {
+            createByParam = 'Chat';
+          } else {
+            taskKindParam = parsed.taskKind;
+          }
+        } else if (parsed.mode === 'unmapped') {
+          createByParam = parsed.createBy;
+          unmappedOnlyParam = true;
+        } else if (parsed.mode === 'create_by') {
+          createByParam = parsed.createBy;
+        }
         const data = await aiSessionLogsApi.getLogs({
           search: debouncedSearch || undefined,
-          create_by: filterCreateBy !== DEFAULT_SELECT_VALUE ? filterCreateBy : undefined,
+          task_kind: taskKindParam,
+          create_by: createByParam,
+          unmapped_only: unmappedOnlyParam,
           persona_name: filterPersona !== DEFAULT_SELECT_VALUE ? filterPersona : undefined,
           date_from: filterDateFrom || undefined,
           date_to: filterDateTo || undefined,
           limit,
           offset: currentOffset,
         });
+        if (seq !== logsSeqRef.current) return;
         setLogs(data.items || []);
         setTotal(data.total || 0);
         setOffset(currentOffset);
         setHasLoadedLogs(true);
       } catch (err) {
+        if (seq !== logsSeqRef.current) return;
         console.error('Failed to fetch session logs:', err);
         toast.error(t('aiHistory.loadFailed'));
       } finally {
-        setIsLoading(false);
+        if (seq === logsSeqRef.current) setIsLoading(false);
       }
     },
-    [debouncedSearch, filterCreateBy, filterPersona, filterDateFrom, filterDateTo, t],
+    [
+      debouncedSearch,
+      filterTask,
+      legacyCreateByOnly,
+      filterPersona,
+      filterDateFrom,
+      filterDateTo,
+      t,
+    ],
   );
 
   // 拉取单个分段详情：内存活跃分段按真实 session_id 取实时数据，磁盘分段按文件名 stem O(1) 取
@@ -409,19 +453,22 @@ export default function AIHistoryPage() {
             setChainUsage(chainUsageToSessionUsage(card.usage));
           }
         });
+      const detailSeq = ++detailSeqRef.current;
       try {
         const segs = cardSegments(card);
         const latest = segs[segs.length - 1];
         const d = await fetchSegment(latest);
+        if (detailSeq !== detailSeqRef.current) return;
         if (d) {
           setMainDetail(d);
           setSegEntries({ [latest.segment_index]: d.entries || [] });
         }
       } catch (err) {
+        if (detailSeq !== detailSeqRef.current) return;
         console.error('Failed to fetch chain detail:', err);
         toast.error(t('aiHistory.loadDetailFailed'));
       } finally {
-        setIsLoadingDetail(false);
+        if (detailSeq === detailSeqRef.current) setIsLoadingDetail(false);
       }
     },
     [fetchSegment, t],
@@ -473,17 +520,26 @@ export default function AIHistoryPage() {
   );
 
   // ── effects ───────────────────────────────────────────────────────────
-  // 产出物页用 ?create_by=&q= 跳过来。页已经开着时也要跟上这次查询。
+  // 产出物页用 ?create_by=&q= 或 ?task_kind=&q= 跳过来。页已经开着时也要跟上这次查询。
   useEffect(() => {
     const q = searchParams.get('q');
     const createBy = searchParams.get('create_by');
-    if (q === null && !createBy) return;
+    const taskKind = searchParams.get('task_kind');
+    if (q === null && !createBy && !taskKind) return;
     if (q !== null) {
       setSearchQuery(q);
       setDebouncedSearch(q);
     }
-    if (createBy) setFilterCreateBy(createBy);
+    if (taskKind || createBy) {
+      setFilterTask(initialFilterFromSearchParams(searchParams));
+    }
   }, [searchParams]);
+
+  // 任务注册表就绪后，把 1:1 对应的 ?create_by=（如 Autonomy）归一化为对应 task_kind 选中态
+  useEffect(() => {
+    if (!taskModels || !categoriesData?.task_kinds) return;
+    setFilterTask((prev) => upgradeCreateByFilterToTaskKind(prev, taskModels.kinds));
+  }, [taskModels, categoriesData]);
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(searchQuery), 400);
@@ -493,7 +549,8 @@ export default function AIHistoryPage() {
   useEffect(() => {
     fetchStats();
     fetchCategories();
-  }, [fetchStats, fetchCategories]);
+    fetchTaskModels();
+  }, [fetchStats, fetchCategories, fetchTaskModels]);
 
   useEffect(() => {
     fetchLogs(0);
@@ -520,9 +577,10 @@ export default function AIHistoryPage() {
   const handleRefresh = useCallback(() => {
     fetchStats();
     fetchCategories();
+    fetchTaskModels();
     fetchLogs(0);
     if (selectedCard) selectCard(selectedCard);
-  }, [fetchStats, fetchCategories, fetchLogs, selectedCard, selectCard]);
+  }, [fetchStats, fetchCategories, fetchTaskModels, fetchLogs, selectedCard, selectCard]);
 
   const handleDownloadSession = useCallback(() => {
     if (!mainDetail) return;
@@ -553,20 +611,47 @@ export default function AIHistoryPage() {
     setSegEntries({});
   };
 
-  // create_by → {label, group}：供 describeSession 归一化展示名 + 选类型图标
+  const categories = useMemo(() => categoriesData?.categories ?? [], [categoriesData]);
+
+  // create_by → {label, group}：供 describeSession 兜底归一化展示名 + 选类型图标
   const categoryMap = useMemo(() => {
     const m = new Map<string, { label: string; group: string }>();
     for (const c of categories) m.set(c.create_by, { label: c.label, group: c.group });
     return m;
   }, [categories]);
 
+  const totalSessionCount = useMemo(() => {
+    if (stats?.total !== undefined) return stats.total;
+    return categories.reduce((sum, c) => sum + c.count, 0);
+  }, [stats, categories]);
+
+  const taskFilterModel = useMemo(
+    () => buildTaskFilterModel(taskModels, categoriesData, totalSessionCount, tr),
+    [taskModels, categoriesData, totalSessionCount, tr],
+  );
+
+  // 优先用后端全量 personas（不受当前 50 条分页限制）；旧后端降级从当前页提取
   const personaOptions = useMemo(() => {
-    const set = new Set<string>();
-    logs.forEach((l) => {
-      if (l.persona_name) set.add(l.persona_name);
-    });
-    return Array.from(set);
-  }, [logs]);
+    const items: Array<{ name: string; count?: number }> = [];
+    const seen = new Set<string>();
+    if (categoriesData?.personas) {
+      for (const p of categoriesData.personas) {
+        if (!p.persona_name || seen.has(p.persona_name)) continue;
+        seen.add(p.persona_name);
+        items.push({ name: p.persona_name, count: p.count });
+      }
+    } else {
+      for (const l of logs) {
+        if (!l.persona_name || seen.has(l.persona_name)) continue;
+        seen.add(l.persona_name);
+        items.push({ name: l.persona_name });
+      }
+    }
+    if (filterPersona !== DEFAULT_SELECT_VALUE && !seen.has(filterPersona)) {
+      items.push({ name: filterPersona });
+    }
+    return items;
+  }, [categoriesData, logs, filterPersona]);
 
   // 会话 token 总量与计费单元：整链接口优先（含未加载分段），取不到时回退已加载 entries 汇总
   const sessionUsage = useMemo(
@@ -577,10 +662,17 @@ export default function AIHistoryPage() {
   const personaName = mainDetail?.persona_name || selectedCard?.persona_name || '';
   const avatarUrl = personaName ? personaApi.getAvatarUrl(personaName) : '';
   const totalSegCount = selectedCard ? cardSegments(selectedCard).length : 0;
-  // 详情副标题里的来源：用后端分类的短标签（记忆实体抽取…），比原始 create_by 可读
-  const createByLabel = selectedCard
-    ? (categoryMap.get(selectedCard.create_by)?.label ?? selectedCard.create_by)
-    : '';
+  // 详情副标题里的来源：优先展示 task_kind 本地化标题（能力代理带父级前缀），再回退分类短标签
+  const createByLabel = useMemo(() => {
+    const target = mainDetail ?? selectedCard;
+    if (!target) return '';
+    const inferredTk = resolveSessionTaskKind(target);
+    const tkInfo = inferredTk ? taskFilterModel.taskKindInfoById.get(inferredTk) : undefined;
+    if (tkInfo) {
+      return tkInfo.parentTitle ? `${tkInfo.parentTitle} · ${tkInfo.title}` : tkInfo.title;
+    }
+    return categoryMap.get(target.create_by)?.label ?? target.create_by;
+  }, [mainDetail, selectedCard, taskFilterModel, categoryMap]);
   const hasEarlier = selectedCard ? loadedSegCount < totalSegCount : false;
   const linkedAgentCount = selectedCard?.linked_agent_count ?? 0;
   const linkedEntryCount = (selectedCard?.linked_agents ?? []).reduce(
@@ -589,9 +681,9 @@ export default function AIHistoryPage() {
   );
   // 详情头部：与列表一致地展示简短名 + 类型图标（selectedCard 在分类未随详情返回时兜底）
   const detailDesc = mainDetail
-    ? describeSession(mainDetail, categoryMap)
+    ? describeSession(mainDetail, categoryMap, taskFilterModel.taskKindInfoById)
     : selectedCard
-      ? describeSession(selectedCard, categoryMap)
+      ? describeSession(selectedCard, categoryMap, taskFilterModel.taskKindInfoById)
       : null;
   const DetailIcon = detailDesc?.Icon ?? Bot;
 
@@ -666,25 +758,14 @@ export default function AIHistoryPage() {
                 />
               </div>
 
-              {/* 筛选：来源 + 人格（选择即生效，无需额外按钮） */}
+              {/* 筛选：任务类型 + 人格（选择即生效，无需额外按钮） */}
               <div className="flex items-center gap-2">
-                <Select value={filterCreateBy} onValueChange={setFilterCreateBy}>
-                  <SelectTrigger className="flex-1 min-w-0 h-9 text-xs">
-                    <SelectValue placeholder={t('aiHistory.filterCreateBy')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={DEFAULT_SELECT_VALUE}>{t('aiHistory.filterAll')}</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.create_by} value={cat.create_by}>
-                        {cat.label} ({cat.count})
-                      </SelectItem>
-                    ))}
-                    {filterCreateBy !== DEFAULT_SELECT_VALUE &&
-                    !categories.some((cat) => cat.create_by === filterCreateBy) ? (
-                      <SelectItem value={filterCreateBy}>{filterCreateBy}</SelectItem>
-                    ) : null}
-                  </SelectContent>
-                </Select>
+                <TaskKindFilterMenu
+                  model={taskFilterModel}
+                  value={filterTask}
+                  onValueChange={setFilterTask}
+                  tr={tr}
+                />
                 <Select value={filterPersona} onValueChange={setFilterPersona}>
                   <SelectTrigger className="flex-1 min-w-0 h-9 text-xs">
                     <SelectValue placeholder={t('aiHistory.filterPersona')} />
@@ -692,8 +773,8 @@ export default function AIHistoryPage() {
                   <SelectContent>
                     <SelectItem value={DEFAULT_SELECT_VALUE}>{t('aiHistory.filterAll')}</SelectItem>
                     {personaOptions.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
+                      <SelectItem key={opt.name} value={opt.name}>
+                        {opt.count !== undefined ? `${opt.name} (${opt.count})` : opt.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -705,8 +786,8 @@ export default function AIHistoryPage() {
             <ScrollArea className="flex-1">
               {isLoading && !hasLoadedLogs ? (
                 <div className="space-y-3 p-3">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
+                  {LIST_SKELETON_KEYS.map((key) => (
+                    <Skeleton key={key} className="h-16 w-full" />
                   ))}
                 </div>
               ) : logs.length === 0 ? (
@@ -724,12 +805,14 @@ export default function AIHistoryPage() {
                       const { name: displayName, Icon: TypeIcon } = describeSession(
                         log,
                         categoryMap,
+                        taskFilterModel.taskKindInfoById,
                       );
                       // created_at_str 形如 "2026-07-09 09:44:51" → 取 "07-09 09:44"
                       const shortTime = log.created_at_str ? log.created_at_str.slice(5, 16) : '';
                       return (
                         <button
                           key={log.chain_id || log.session_uuid}
+                          type="button"
                           onClick={() => selectCard(log)}
                           className={cn(
                             'w-full p-2.5 rounded-lg text-left transition-colors',
@@ -786,8 +869,12 @@ export default function AIHistoryPage() {
                               </div>
                               {/* 行2：人格 · 条数（+ 分段/子Agent 紧凑徽章） */}
                               <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground min-w-0">
-                                <span className="truncate min-w-0">{log.persona_name}</span>
-                                <span className="shrink-0 opacity-40">·</span>
+                                {log.persona_name && (
+                                  <>
+                                    <span className="truncate min-w-0">{log.persona_name}</span>
+                                    <span className="shrink-0 opacity-40">·</span>
+                                  </>
+                                )}
                                 <span className="shrink-0 tabular-nums">
                                   {log.entry_count} {t('aiHistory.entries')}
                                 </span>
@@ -887,8 +974,8 @@ export default function AIHistoryPage() {
                         <ChatTypeBadge sessionId={mainDetail.session_id} t={t} />
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
-                        {personaName} · {createByLabel} · {selectedCard.entry_count}{' '}
-                        {t('aiHistory.entries')}
+                        {personaName ? `${personaName} · ` : ''}
+                        {createByLabel} · {selectedCard.entry_count} {t('aiHistory.entries')}
                         {linkedAgentCount > 0 &&
                           ` · ${t('aiHistory.linkedAgentsSummary', {
                             count: linkedAgentCount,

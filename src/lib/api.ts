@@ -5943,6 +5943,7 @@ export interface SessionLogSummary {
   session_uuid: string;
   persona_name: string;
   create_by: string;
+  task_kind?: string | null;
   is_subagent: boolean;
   // 逻辑会话链身份：一条会话窗口内多物理分段共享 chain_id，列表按此归并成一张卡片
   chain_id: string;
@@ -5980,6 +5981,7 @@ export interface SessionLogDetail {
   session_uuid: string;
   persona_name: string;
   create_by: string;
+  task_kind?: string | null;
   is_subagent: boolean;
   chain_id?: string;
   segment_index?: number;
@@ -6017,10 +6019,25 @@ export interface SessionLogCategory {
   subagent_count: number;
 }
 
+export interface SessionLogTaskKindCount {
+  count: number;
+  active_count: number;
+  subagent_count: number;
+}
+
+export interface SessionLogPersonaCount {
+  persona_name: string;
+  count: number;
+  active_count: number;
+}
+
 export interface SessionLogCategoriesResponse {
   categories: SessionLogCategory[];
   groups: Record<string, number>;
   total: number;
+  task_kinds?: Record<string, SessionLogTaskKindCount>;
+  unmapped?: SessionLogCategory[];
+  personas?: SessionLogPersonaCount[];
 }
 
 export interface LinkedAgentsResponse {
@@ -6038,6 +6055,8 @@ export const aiSessionLogsApi = {
       session_id?: string;
       search?: string;
       create_by?: string;
+      task_kind?: string;
+      unmapped_only?: boolean;
       persona_name?: string;
       is_active?: boolean;
       date_from?: string;
@@ -6050,6 +6069,8 @@ export const aiSessionLogsApi = {
     if (params.session_id) query.set('session_id', params.session_id);
     if (params.search) query.set('search', params.search);
     if (params.create_by) query.set('create_by', params.create_by);
+    if (params.task_kind) query.set('task_kind', params.task_kind);
+    if (params.unmapped_only) query.set('unmapped_only', 'true');
     if (params.persona_name) query.set('persona_name', params.persona_name);
     if (params.is_active !== undefined) query.set('is_active', String(params.is_active));
     if (params.date_from) query.set('date_from', params.date_from);

@@ -530,7 +530,7 @@ function ActivityDialog({
             </div>
             {row.session_id ? (
               <Button asChild variant="outline" className="w-fit">
-                <Link to={`/ai-history?create_by=Autonomy&q=${encodeURIComponent(row.session_id)}`}>
+                <Link to={`/ai-history?task_kind=autonomy&q=${encodeURIComponent(row.session_id)}`}>
                   {t('aiAutonomy.detail.sessionLog')}
                 </Link>
               </Button>

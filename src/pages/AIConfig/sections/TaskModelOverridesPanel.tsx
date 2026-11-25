@@ -41,6 +41,7 @@ import {
   type AITaskModelsData,
   type AllConfigItem,
 } from '@/lib/api';
+import { resolveKindTitle, resolveNodeSourceBadge, shortKindCode } from '@/lib/aiTaskKinds';
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
 type TaskMode = 'default' | 'high' | 'low' | 'config';
@@ -164,17 +165,7 @@ export function TaskModelOverridesPanel({
     return map;
   }, [data]);
 
-  const shortKindCode = (kind: AITaskKindInfo) => {
-    if (kind.parent_id && kind.id.startsWith(`${kind.parent_id}:`)) {
-      return kind.id.slice(kind.parent_id.length + 1);
-    }
-    return kind.id;
-  };
-
-  const kindTitle = useCallback(
-    (kind: AITaskKindInfo) => tr(`aiConfig.taskModels.kinds.${kind.id}.title`, kind.title),
-    [tr],
-  );
+  const kindTitle = useCallback((kind: AITaskKindInfo) => resolveKindTitle(kind, tr), [tr]);
   const kindDesc = useCallback(
     (kind: AITaskKindInfo) => tr(`aiConfig.taskModels.kinds.${kind.id}.desc`, kind.desc),
     [tr],
@@ -188,14 +179,7 @@ export function TaskModelOverridesPanel({
     },
     [kindById, kindTitle],
   );
-  const nodeSourceLabel = (kind: AITaskKindInfo) => {
-    if (!kind.node_source) return '';
-    const base = tr(`aiConfig.taskModels.nodeSources.${kind.node_source}`, kind.node_source);
-    if (kind.node_source === 'plugin' && kind.plugin && kind.plugin !== 'core') {
-      return `${base} · ${kind.plugin}`;
-    }
-    return base;
-  };
+  const nodeSourceLabel = (kind: AITaskKindInfo) => resolveNodeSourceBadge(kind, tr);
   const levelLabel = (level: 'high' | 'low') =>
     level === 'high' ? t('aiConfig.taskModels.levelHigh') : t('aiConfig.taskModels.levelLow');
 
