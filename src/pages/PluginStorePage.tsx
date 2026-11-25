@@ -20,6 +20,7 @@ import {
   Sparkles,
   Wrench,
   Link2,
+  FileUp,
   Loader2,
   Cable,
   Github,
@@ -306,6 +307,12 @@ export default function PluginStorePage() {
   const [installByUrlUrl, setInstallByUrlUrl] = useState('');
   const [installByUrlBranch, setInstallByUrlBranch] = useState('');
   const [installByUrlLoading, setInstallByUrlLoading] = useState(false);
+
+  // 从文件安装：只保留单个待装 zip（对齐 AstrBot，再选一个即覆盖上一个）
+  const [installByFileOpen, setInstallByFileOpen] = useState(false);
+  const [installByFile, setInstallByFile] = useState<File | null>(null);
+  const [installByFileLoading, setInstallByFileLoading] = useState(false);
+  const installByFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // GitHub 连接（Device Flow）+ 插件 star 状态
   const [githubStatus, setGithubStatus] = useState<GitHubStatus | null>(null);
@@ -769,6 +776,36 @@ export default function PluginStorePage() {
     }
   };
 
+  // 从本地 zip 安装插件 - 对应后端 POST /api/plugin-store/install-upload
+  // 成功文案在后端 data.msg；失败时 status=1，由 postFormData 抛出，走 catch
+  const handleInstallByFile = async () => {
+    if (!installByFile) {
+      toast.error(t('pluginStore.fileRequired'));
+      return;
+    }
+    if (!installByFile.name.toLowerCase().endsWith('.zip')) {
+      toast.error(t('pluginStore.fileMustBeZip'));
+      return;
+    }
+    try {
+      setInstallByFileLoading(true);
+      const formData = new FormData();
+      formData.append('file', installByFile);
+      const data = await pluginStoreApi.installByFile(formData);
+      toast.success(data.msg || t('pluginStore.installSuccess'));
+      setInstallByFileOpen(false);
+      setInstallByFile(null);
+      localStorage.removeItem(PLUGIN_CACHE_KEY);
+      localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
+      fetchPlugins(true);
+      fetchGitMirrorInfo(true);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('pluginStore.installError')));
+    } finally {
+      setInstallByFileLoading(false);
+    }
+  };
+
   // 列表视图：服务端已按页签/搜索过滤并分页（旧后端走前端兜底）
   const storeView = useMemo(
     () =>
@@ -1032,6 +1069,10 @@ export default function PluginStorePage() {
               <DropdownMenuItem onClick={() => setInstallByUrlOpen(true)}>
                 <Link2 className="mr-2 h-4 w-4 shrink-0" />
                 <span>{t('pluginStore.installFromUrl')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setInstallByFileOpen(true)}>
+                <FileUp className="mr-2 h-4 w-4 shrink-0" />
+                <span>{t('pluginStore.installFromFile')}</span>
               </DropdownMenuItem>
               {isAdmin && githubStatus && (
                 <>
@@ -1613,6 +1654,95 @@ export default function PluginStorePage() {
               className="h-9 text-primary hover:text-primary [&_svg]:!text-current"
             >
               {installByUrlLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {t('pluginStore.installing')}
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  {t('pluginStore.install')}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Install by File Dialog：单个 zip，安装中禁止换文件/关闭 */}
+      <Dialog
+        open={installByFileOpen}
+        onOpenChange={(open) => {
+          if (!open && installByFileLoading) return;
+          setInstallByFileOpen(open);
+          if (!open) {
+            setInstallByFile(null);
+            if (installByFileInputRef.current) {
+              installByFileInputRef.current.value = '';
+            }
+          }
+        }}
+      >
+        <DialogContent className="glass-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileUp className="w-5 h-5" />
+              {t('pluginStore.installFromFileTitle')}
+            </DialogTitle>
+            <DialogDescription>{t('pluginStore.installFromFileDesc')}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <input
+              ref={installByFileInputRef}
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={(e) => setInstallByFile(e.target.files?.[0] ?? null)}
+            />
+
+            <div className="flex w-full justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 w-1/2 min-w-[12rem]"
+                disabled={installByFileLoading}
+                onClick={() => installByFileInputRef.current?.click()}
+              >
+                <FileUp className="mr-2 w-4 h-4" />
+                {t('pluginStore.selectZipFile')}
+              </Button>
+            </div>
+
+            {installByFile && (
+              <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                <FileText className="w-4 h-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate font-mono">{installByFile.name}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {(installByFile.size / 1024).toFixed(1)}KB
+                </span>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">{t('pluginStore.installFromFileHint')}</p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setInstallByFileOpen(false)}
+              disabled={installByFileLoading}
+              className="h-9"
+            >
+              {t('pluginStore.cancel')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleInstallByFile}
+              disabled={installByFileLoading || !installByFile}
+              className="h-9 text-primary hover:text-primary [&_svg]:!text-current"
+            >
+              {installByFileLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   {t('pluginStore.installing')}
