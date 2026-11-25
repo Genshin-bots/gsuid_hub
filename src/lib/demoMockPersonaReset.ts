@@ -34,7 +34,8 @@ const PREVIEW_ITEMS: PersonaResetItemPreview[] = [
   mockItem('session_history', 'persona', true, 4, 'sessions', 0, 0, false),
   mockItem('scheduled_tasks', 'persona', false, 2, 'tasks', 0.1, 1_000),
   mockItem('global_group', 'global', false, 5400, 'rows', 8.7, 3_600_000),
-  mockItem('global_user', 'global', false, 860, 'rows', 1.6, 420_000),
+  mockItem('global_user', 'global', false, 740, 'rows', 1.4, 372_000),
+  mockItem('user_preferences', 'global', false, 120, 'rows', 0.2, 48_000),
 ];
 
 function mockItem(
@@ -146,7 +147,15 @@ export function startPersonaMockReset(persona: string, body: unknown): { job_id:
   }
   const steps: PersonaJobStepKey[] = ['prepare'];
   if (payload.backup) steps.push('backup');
-  steps.push('memory', 'journal', 'relationship', 'persona_state', 'scheduled_tasks', 'finish');
+  steps.push(
+    'memory',
+    'user_preferences',
+    'journal',
+    'relationship',
+    'persona_state',
+    'scheduled_tasks',
+    'finish',
+  );
   jobs.set(id, { id, kind: 'reset', persona, steps, startedAt: Date.now(), backupFile, items });
   return { job_id: id };
 }

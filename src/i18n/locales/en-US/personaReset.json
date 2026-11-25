@@ -19,7 +19,7 @@
     },
     "self_memory": {
       "name": "Self memory",
-      "desc": "This persona's own experiences, entities, relations and preferences"
+      "desc": "This persona's own experiences, entities, relations and self-cognition notes"
     },
     "relationship": {
       "name": "Favorability & relationships",
@@ -40,7 +40,11 @@
     },
     "global_user": {
       "name": "Global profiles of all users",
-      "desc": "Global memory and preferences of all users"
+      "desc": "Global episodes, entities and relations of all users"
+    },
+    "user_preferences": {
+      "name": "Preferences of all users",
+      "desc": "Addressing, taboo and reply-style preference rules for all users"
     }
   },
   "units": {
@@ -51,7 +55,7 @@
     "keys": "{count} keys"
   },
   "globalConfirmTitle": "Clear shared memory?",
-  "globalConfirmDesc": "All personas share group memory and global user profiles. After deletion, other personas forget this content too.",
+  "globalConfirmDesc": "All personas share group memory, global user profiles and user preference rules. After deletion, other personas forget this content too.",
   "globalConfirmOthers": "Other personas affected: {names}",
   "globalConfirmNoOthers": "There are no other personas.",
   "globalConfirmAction": "I understand, select it",
@@ -85,6 +89,7 @@
     "prepare": "Prepare (pause writes, clear sessions)",
     "backup": "Backup",
     "memory": "Delete memory graph",
+    "user_preferences": "Delete user preference rules",
     "journal": "Life journal",
     "relationship": "Favorability & relationships",
     "persona_state": "Mood & state",

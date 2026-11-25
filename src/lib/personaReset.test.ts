@@ -30,6 +30,7 @@ const ITEMS: PersonaResetItemPreview[] = [
   item({ key: 'scheduled_tasks', default_checked: false, backup_seconds: 5, backup_bytes: 5 }),
   item({ key: 'global_group', group: 'global', default_checked: false, backup_seconds: 10.1 }),
   item({ key: 'global_user', group: 'global', default_checked: false, backup_seconds: 3 }),
+  item({ key: 'user_preferences', group: 'global', default_checked: false, backup_seconds: 0.4 }),
 ];
 
 describe('reset selection with shared global confirmation', () => {
@@ -47,16 +48,20 @@ describe('reset selection with shared global confirmation', () => {
     s = toggleResetItem(s, ITEMS, 'global_user', true);
     expect(s.pendingGlobal).toBeNull();
     expect(s.checked).toContain('global_user');
+
+    s = toggleResetItem(s, ITEMS, 'user_preferences', true);
+    expect(s.pendingGlobal).toBeNull();
+    expect(s.checked).toContain('user_preferences');
   });
 
   it('rolls back on cancel and asks again after every global item is unchecked', () => {
-    let s = toggleResetItem(initialResetSelection(ITEMS), ITEMS, 'global_user', true);
+    let s = toggleResetItem(initialResetSelection(ITEMS), ITEMS, 'user_preferences', true);
     s = cancelPendingGlobal(s);
-    expect(s.checked).not.toContain('global_user');
+    expect(s.checked).not.toContain('user_preferences');
     expect(s.globalConfirmed).toBe(false);
 
-    s = confirmPendingGlobal(toggleResetItem(s, ITEMS, 'global_user', true));
-    s = toggleResetItem(s, ITEMS, 'global_user', false);
+    s = confirmPendingGlobal(toggleResetItem(s, ITEMS, 'user_preferences', true));
+    s = toggleResetItem(s, ITEMS, 'user_preferences', false);
     s = toggleResetItem(s, ITEMS, 'global_group', true);
     expect(s.pendingGlobal).toBe('global_group');
   });

@@ -14,7 +14,7 @@
   "groupGlobalHelp": "所有人格共用这些数据。勾选时需要再次确认。",
   "items": {
     "journal": { "name": "生活手账", "desc": "该人格的手账、归档和自主行动记录" },
-    "self_memory": { "name": "自我经历记忆", "desc": "该人格自己的经历、实体、关系和偏好" },
+    "self_memory": { "name": "自我经历记忆", "desc": "该人格自己的经历、实体、关系与自我认知笔记" },
     "relationship": { "name": "好感与关系", "desc": "该人格对所有用户的好感度和关系约定" },
     "persona_state": { "name": "心情与状态", "desc": "当前心情、稳态和在场状态" },
     "session_history": { "name": "当前会话历史", "desc": "正在使用该人格的会话上下文，不支持备份" },
@@ -23,7 +23,11 @@
       "desc": "该人格待执行和已暂停的定时任务，标记为已取消"
     },
     "global_group": { "name": "所有群的记忆", "desc": "全部群聊和群内用户的记忆图谱与群画像" },
-    "global_user": { "name": "所有用户的全局画像", "desc": "全部用户的全局记忆和偏好" }
+    "global_user": { "name": "所有用户的全局画像", "desc": "全部用户的全局情景、实体与关系记忆" },
+    "user_preferences": {
+      "name": "所有用户的偏好规则",
+      "desc": "全部用户的称呼、禁忌与回复风格等偏好规则"
+    }
   },
   "units": {
     "rows": "{count} 条",
@@ -33,7 +37,7 @@
     "keys": "{count} 项"
   },
   "globalConfirmTitle": "确认清空全局记忆？",
-  "globalConfirmDesc": "群记忆和用户全局画像由所有人格共用。删除后，其他人格也会忘记这些内容。",
+  "globalConfirmDesc": "群记忆、用户全局画像和用户偏好规则由所有人格共用。删除后，其他人格也会忘记这些内容。",
   "globalConfirmOthers": "受影响的其他人格：{names}",
   "globalConfirmNoOthers": "当前没有其他人格。",
   "globalConfirmAction": "我已了解，继续勾选",
@@ -67,6 +71,7 @@
     "prepare": "准备（暂停写入、清理会话）",
     "backup": "备份",
     "memory": "删除记忆图谱",
+    "user_preferences": "删除用户偏好规则",
     "journal": "生活手账",
     "relationship": "好感与关系",
     "persona_state": "心情与状态",

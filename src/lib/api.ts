@@ -3386,7 +3386,8 @@ export type PersonaResetItemKey =
   | 'session_history'
   | 'scheduled_tasks'
   | 'global_group'
-  | 'global_user';
+  | 'global_user'
+  | 'user_preferences';
 
 export type PersonaResetItemGroup = 'persona' | 'global';
 export type PersonaResetUnit = 'rows' | 'files' | 'sessions' | 'tasks' | 'keys';
@@ -3417,6 +3418,7 @@ export type PersonaJobStepKey =
   | 'prepare'
   | 'backup'
   | 'memory'
+  | 'user_preferences'
   | 'journal'
   | 'relationship'
   | 'persona_state'
