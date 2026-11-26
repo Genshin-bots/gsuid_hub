@@ -68,6 +68,8 @@
   "loadEarlierSegments": "以前の {count} セグメントを読み込む",
   "downloadSession": "セッション JSON をダウンロード",
   "downloadSuccess": "セッション JSON を保存しました",
+  "createdAt": "作成日時",
+  "updatedAt": "最終更新",
   "waterfall": {
     "agentRun": "エージェント実行",
     "thinkingEffort": "思考強度",

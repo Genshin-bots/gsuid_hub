@@ -68,6 +68,8 @@
   "loadEarlierSegments": "Load {count} earlier segment(s)",
   "downloadSession": "Download session JSON",
   "downloadSuccess": "Session JSON saved",
+  "createdAt": "Created",
+  "updatedAt": "Last updated",
   "waterfall": {
     "agentRun": "Agent Run",
     "thinkingEffort": "Thinking effort",

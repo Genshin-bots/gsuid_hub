@@ -6100,9 +6100,9 @@ export interface SessionLogSummary {
   chain_id: string;
   segment_index: number;
   created_at: number;
-  created_at_str: string;
+  created_at_str: string | null;
   updated_at: number;
-  updated_at_str: string;
+  updated_at_str: string | null;
   ended_at: number | null;
   ended_at_str: string | null;
   duration_seconds: number | null;

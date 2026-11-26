@@ -64,6 +64,12 @@ import {
   upgradeCreateByFilterToTaskKind,
   type TaskKindDisplayInfo,
 } from '@/components/ai-history/taskFilter';
+import {
+  buildSessionTimeTooltip,
+  formatSessionShortTime,
+  formatSessionTimestamp,
+  getSessionActivityTimestamp,
+} from '@/components/ai-history/time';
 
 const DEFAULT_SELECT_VALUE = DEFAULT_ALL_FILTER;
 const LIST_SKELETON_KEYS = ['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'];
@@ -71,16 +77,6 @@ const LIST_SKELETON_KEYS = ['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'];
 // ============================================================================
 // 工具函数
 // ============================================================================
-
-function formatTimestamp(ts: number): string {
-  return new Date(ts * 1000).toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-}
 
 // 解析 session_id → 展示名 + 聊天类型（web:web:client:group:xxx / :private:xxx）
 function parseSessionId(sessionId: string | null | undefined): {
@@ -686,6 +682,21 @@ export default function AIHistoryPage() {
       ? describeSession(selectedCard, categoryMap, taskFilterModel.taskKindInfoById)
       : null;
   const DetailIcon = detailDesc?.Icon ?? Bot;
+  const timeTooltipLabels = useMemo(
+    () => ({
+      createdAt: t('aiHistory.createdAt'),
+      updatedAt: t('aiHistory.updatedAt'),
+    }),
+    [t],
+  );
+  const detailActivityTs = selectedCard ? getSessionActivityTimestamp(selectedCard, mainDetail) : 0;
+  const detailCreatedTs = selectedCard?.created_at || mainDetail?.created_at || 0;
+  const detailActivityText = formatSessionTimestamp(detailActivityTs);
+  const detailCreatedText = formatSessionTimestamp(detailCreatedTs);
+  const showDistinctCreated =
+    Boolean(detailCreatedText) &&
+    Boolean(detailActivityText) &&
+    Math.floor(detailActivityTs) !== Math.floor(detailCreatedTs);
 
   return (
     <TooltipProvider>
@@ -807,8 +818,12 @@ export default function AIHistoryPage() {
                         categoryMap,
                         taskFilterModel.taskKindInfoById,
                       );
-                      // created_at_str 形如 "2026-07-09 09:44:51" → 取 "07-09 09:44"
-                      const shortTime = log.created_at_str ? log.created_at_str.slice(5, 16) : '';
+                      const shortTime = formatSessionShortTime(log);
+                      const timeTooltip = buildSessionTimeTooltip(
+                        log.created_at_str,
+                        log.updated_at_str,
+                        timeTooltipLabels,
+                      );
                       return (
                         <button
                           key={log.chain_id || log.session_uuid}
@@ -863,7 +878,10 @@ export default function AIHistoryPage() {
                                   {displayName}
                                 </span>
                                 <ChatTypeBadge sessionId={log.session_id} t={t} />
-                                <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/70 font-mono tabular-nums">
+                                <span
+                                  className="ml-auto shrink-0 text-[10px] text-muted-foreground/70 font-mono tabular-nums"
+                                  title={timeTooltip || undefined}
+                                >
                                   {shortTime}
                                 </span>
                               </div>
@@ -999,9 +1017,25 @@ export default function AIHistoryPage() {
                         t={t}
                       />
                     )}
-                    <span className="text-xs text-muted-foreground hidden sm:inline">
-                      {formatTimestamp(selectedCard.created_at)}
-                    </span>
+                    {detailActivityText && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-xs text-muted-foreground tabular-nums hidden sm:inline">
+                            {detailActivityText}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="space-y-0.5 text-xs">
+                          <p>
+                            {t('aiHistory.updatedAt')}: {detailActivityText}
+                          </p>
+                          {showDistinctCreated && (
+                            <p>
+                              {t('aiHistory.createdAt')}: {detailCreatedText}
+                            </p>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button

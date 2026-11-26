@@ -68,6 +68,8 @@
   "loadEarlierSegments": "加载更早的 {count} 个分段",
   "downloadSession": "下载会话 JSON",
   "downloadSuccess": "会话 JSON 已保存",
+  "createdAt": "创建时间",
+  "updatedAt": "最后更新",
   "waterfall": {
     "agentRun": "Agent 运行",
     "thinkingEffort": "思考强度",
