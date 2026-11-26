@@ -808,8 +808,11 @@ class ApiClient {
     });
   }
 
-  delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  delete<T>(endpoint: string, body?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
   }
 
   // POST request that returns raw Blob (for file downloads)
@@ -5725,11 +5728,16 @@ export interface MemeRecord {
   source_group: string;
   folder: string;
   persona_hint: string;
+  title: string;
+  ocr_text: string;
+  usage_hint: string;
   emotion_tags: string[];
   scene_tags: string[];
   description: string;
   custom_tags: string[];
   status: 'pending' | 'tagged' | 'manual' | 'pending_manual' | 'rejected';
+  enabled: boolean;
+  pack_ids: string[];
   nsfw_score: number;
   use_count: number;
   last_used_at: string | null;
@@ -5751,8 +5759,11 @@ export interface MemeStatsData {
   status_counts: Record<string, number>;
   folder_counts: Record<string, number>;
   total_usage: number;
+  incomplete_count?: number;
+  enabled_count?: number;
   top_memes: {
     meme_id: string;
+    title?: string;
     description: string;
     use_count: number;
     file_path: string;
@@ -5771,6 +5782,7 @@ export interface MemePackSummary {
   member_count: number;
   tagged_count: number;
   bound_personas: string[];
+  is_repo_pack?: boolean;
 }
 
 export interface MemeListParams {
@@ -5784,11 +5796,30 @@ export interface MemeListParams {
 }
 
 export interface MemeUpdateData {
+  title?: string;
+  ocr_text?: string;
+  usage_hint?: string;
   description?: string;
   emotion_tags?: string[];
   scene_tags?: string[];
   custom_tags?: string[];
   persona_hint?: string;
+  enabled?: boolean;
+  pack_ids?: string[];
+  status?: MemeRecord['status'];
+}
+
+export interface MemeBatchRetagParams {
+  mode?: 'incomplete' | 'pending_only' | 'selected';
+  pack_id?: string;
+  meme_ids?: string[];
+}
+
+export interface MemeBatchUpdateParams {
+  meme_ids: string[];
+  enabled?: boolean;
+  add_pack_id?: string;
+  remove_pack_id?: string;
 }
 
 export const memeApi = {
@@ -6030,12 +6061,35 @@ export const memeApi = {
       {},
     ),
 
-  // 批量重新打标（待手动处理状态）
-  batchRetagPending: () =>
-    api.post<{ retag_count: number; failed: Array<{ meme_id: string; reason: string }> }>(
-      '/api/meme/batch_retag_pending',
-      {},
-    ),
+  // 批量重新识别（待补全 / 待手动 / 选中）
+  batchRetagIncomplete: (params: MemeBatchRetagParams = { mode: 'incomplete' }) =>
+    api.post<{
+      retag_count: number;
+      skipped_full?: number;
+      failed: Array<{ meme_id: string; reason: string }>;
+    }>('/api/meme/batch_retag_pending', params),
+
+  // 兼容旧调用
+  batchRetagPending: (params: MemeBatchRetagParams = { mode: 'pending_only' }) =>
+    api.post<{
+      retag_count: number;
+      skipped_full?: number;
+      failed: Array<{ meme_id: string; reason: string }>;
+    }>('/api/meme/batch_retag_pending', params),
+
+  // 批量启停 / 加入或移出表情包
+  batchUpdate: (params: MemeBatchUpdateParams) =>
+    api.post<{ updated_count: number; meme_ids: string[] }>('/api/meme/batch_update', params),
+
+  addPackMembers: (packId: string, memeIds: string[]) =>
+    api.post<{ added: string[] }>(`/api/meme/packs/${encodeURIComponent(packId)}/members`, {
+      meme_ids: memeIds,
+    }),
+
+  removePackMembers: (packId: string, memeIds: string[]) =>
+    api.delete<{ removed: string[] }>(`/api/meme/packs/${encodeURIComponent(packId)}/members`, {
+      meme_ids: memeIds,
+    }),
 };
 
 // ===================

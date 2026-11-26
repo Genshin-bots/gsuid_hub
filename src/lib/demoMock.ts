@@ -865,15 +865,22 @@ const MEME_STATUS_CYCLE = [
   'manual',
   'tagged',
   'rejected',
+  'pending_manual',
 ] as const;
 
-/** 由真实元数据构建完整 MemeRecord（补齐使用次数/时间等运营字段，种子化稳定）。 */
+/** 由真实元数据构建完整 MemeRecord（补齐新语义字段与运营字段，种子化稳定）。 */
 const buildMemeRecords = () =>
   DEMO_MEME_META.map((m, i) => {
     const rng = makeRng(hashSeed(m.meme_id));
     const used = randInt(rng, 0, 132);
     const daysAgo = (lo: number, hi: number) =>
       new Date(Date.now() - randInt(rng, lo, hi) * 86400_000).toISOString();
+    const status = MEME_STATUS_CYCLE[i % MEME_STATUS_CYCLE.length];
+    const title = m.description ? m.description.slice(0, 10) : '';
+    const usageHint =
+      m.emotion_tags.length > 0
+        ? `适合用于聊天中表达${m.emotion_tags.slice(0, 2).join('、')}的回应`
+        : '';
     return {
       meme_id: m.meme_id,
       file_path: `${m.folder}/${m.file}`,
@@ -881,14 +888,19 @@ const buildMemeRecords = () =>
       file_mime: m.file_mime,
       width: m.width,
       height: m.height,
-      source_group: `${randInt(rng, 100000, 999999)}`,
+      source_group: i % 3 === 0 ? 'manual' : `${randInt(rng, 100000, 999999)}`,
       folder: m.folder,
       persona_hint: m.persona_hint,
+      title,
+      ocr_text: '',
+      usage_hint: usageHint,
       emotion_tags: m.emotion_tags,
       scene_tags: m.scene_tags,
       description: m.description,
       custom_tags: m.custom_tags,
-      status: MEME_STATUS_CYCLE[i % MEME_STATUS_CYCLE.length],
+      status,
+      enabled: i % 9 !== 7,
+      pack_ids: ['default-pack'],
       nsfw_score: m.nsfw_score,
       use_count: used,
       last_used_at: used > 0 ? daysAgo(0, 30) : null,
@@ -902,12 +914,144 @@ const buildMemeRecords = () =>
 let memeCache: ReturnType<typeof buildMemeRecords> | null = null;
 const memeRecords = () => (memeCache ??= buildMemeRecords());
 
-/** 单条详情：MemeDetailDialog 点击表情时调用 GET /api/meme/{id}。
- *  必须返回完整记录——否则 `[...meme.emotion_tags]` 等会因字段缺失而抛错白屏（见用户反馈）。 */
+export const updateDemoMeme = (memeId: string, body: unknown) => {
+  const rec = memeRecords().find((r) => r.meme_id === memeId);
+  if (!rec || !body || typeof body !== 'object') return null;
+  const patch = body as Record<string, unknown>;
+  let semanticChanged = false;
+  if (typeof patch.title === 'string') {
+    rec.title = patch.title;
+    semanticChanged = true;
+  }
+  if (typeof patch.description === 'string') {
+    rec.description = patch.description;
+    semanticChanged = true;
+  }
+  if (typeof patch.ocr_text === 'string') {
+    rec.ocr_text = patch.ocr_text;
+    semanticChanged = true;
+  }
+  if (typeof patch.usage_hint === 'string') {
+    rec.usage_hint = patch.usage_hint;
+    semanticChanged = true;
+  }
+  if (Array.isArray(patch.emotion_tags)) {
+    rec.emotion_tags = patch.emotion_tags.map(String);
+    semanticChanged = true;
+  }
+  if (Array.isArray(patch.custom_tags)) {
+    rec.custom_tags = patch.custom_tags.map(String);
+    semanticChanged = true;
+  }
+  if (typeof patch.enabled === 'boolean') rec.enabled = patch.enabled;
+  if (Array.isArray(patch.pack_ids)) rec.pack_ids = patch.pack_ids.map(String);
+  if (typeof patch.status === 'string') {
+    rec.status = patch.status as typeof rec.status;
+  } else if (semanticChanged && rec.status === 'tagged') {
+    rec.status = 'manual';
+  }
+  rec.updated_at = new Date().toISOString();
+  return null;
+};
+
+export const batchUpdateDemoMemes = (body: unknown) => {
+  if (!body || typeof body !== 'object') return { updated_count: 0, meme_ids: [] as string[] };
+  const req = body as {
+    meme_ids?: string[];
+    enabled?: boolean;
+    add_pack_id?: string;
+    remove_pack_id?: string;
+  };
+  const ids = Array.isArray(req.meme_ids) ? req.meme_ids.map(String) : [];
+  const updated: string[] = [];
+  for (const rec of memeRecords()) {
+    if (!ids.includes(rec.meme_id)) continue;
+    if (typeof req.enabled === 'boolean') rec.enabled = req.enabled;
+    if (req.add_pack_id && !rec.pack_ids.includes(req.add_pack_id)) {
+      rec.pack_ids = [...rec.pack_ids, req.add_pack_id];
+    }
+    if (req.remove_pack_id) {
+      rec.pack_ids = rec.pack_ids.filter((id) => id !== req.remove_pack_id);
+    }
+    updated.push(rec.meme_id);
+  }
+  return { updated_count: updated.length, meme_ids: updated };
+};
+
+export const batchRetagDemoMemes = (body: unknown) => {
+  const req = (body && typeof body === 'object' ? body : {}) as {
+    mode?: string;
+    pack_id?: string;
+    meme_ids?: string[];
+  };
+  let recs = memeRecords();
+  if (req.pack_id) {
+    recs = recs.filter((r) => r.pack_ids.includes(req.pack_id!));
+  }
+  if (req.mode === 'selected' && Array.isArray(req.meme_ids)) {
+    const idSet = new Set(req.meme_ids.map(String));
+    return {
+      retag_count: recs.filter((r) => idSet.has(r.meme_id)).length,
+      skipped_full: 0,
+      failed: [],
+    };
+  }
+  if (req.mode === 'pending_only') {
+    return {
+      retag_count: recs.filter((r) => r.status === 'pending_manual').length,
+      skipped_full: 0,
+      failed: [],
+    };
+  }
+  const incomplete = recs.filter(
+    (r) =>
+      r.status === 'pending' ||
+      r.status === 'pending_manual' ||
+      ((r.status === 'tagged' || r.status === 'manual') && (!r.title || !r.usage_hint)),
+  );
+  return { retag_count: incomplete.length, skipped_full: 0, failed: [] };
+};
+
+export const countDemoPackMembers = (packId: string) => {
+  const members = memeRecords().filter((r) => r.pack_ids.includes(packId));
+  return {
+    member_count: members.length,
+    tagged_count: members.filter((r) => r.status === 'tagged' || r.status === 'manual').length,
+  };
+};
+
+export const deleteDemoMeme = (memeId: string) => {
+  const records = memeRecords();
+  const idx = records.findIndex((r) => r.meme_id === memeId);
+  if (idx < 0) return null;
+  records.splice(idx, 1);
+  return null;
+};
+
+export const batchDeleteDemoMemes = (body: unknown) => {
+  const ids =
+    body && typeof body === 'object' && Array.isArray((body as { meme_ids?: unknown }).meme_ids)
+      ? (body as { meme_ids: unknown[] }).meme_ids.map(String)
+      : [];
+  const records = memeRecords();
+  const failed: Array<{ meme_id: string; reason: string }> = [];
+  let deletedCount = 0;
+  for (const id of new Set(ids)) {
+    const idx = records.findIndex((r) => r.meme_id === id);
+    if (idx >= 0) {
+      records.splice(idx, 1);
+      deletedCount++;
+    } else {
+      failed.push({ meme_id: id, reason: 'not found' });
+    }
+  }
+  return { success_count: deletedCount, failed };
+};
+
+/** 单条详情：MemeEditSheet 点击表情时调用 GET /api/meme/{id}。 */
 export const generateMemeDetail = (memeId: string) => {
   const all = memeRecords();
   if (!all.length) {
-    // 极端兜底：无素材时仍返回合法空记录，避免前端展开 undefined
     return {
       meme_id: memeId || 'demo-empty',
       file_path: 'common/placeholder.png',
@@ -918,11 +1062,16 @@ export const generateMemeDetail = (memeId: string) => {
       source_group: '',
       folder: 'common',
       persona_hint: 'common',
+      title: '',
+      ocr_text: '',
+      usage_hint: '',
       emotion_tags: [] as string[],
       scene_tags: [] as string[],
       description: '',
       custom_tags: [] as string[],
       status: 'tagged' as const,
+      enabled: true,
+      pack_ids: ['default-pack'],
       nsfw_score: 0,
       use_count: 0,
       last_used_at: null as string | null,
@@ -935,8 +1084,9 @@ export const generateMemeDetail = (memeId: string) => {
   return all.find((r) => r.meme_id === memeId) ?? all[0];
 };
 
-export const generateMemeList = (params: URLSearchParams) => {
+export const generateMemeList = (params: URLSearchParams, packId?: string) => {
   let records = memeRecords();
+  if (packId) records = records.filter((r) => r.pack_ids.includes(packId));
   const folder = params.get('folder');
   const status = params.get('status');
   const persona = params.get('persona_hint');
@@ -944,7 +1094,17 @@ export const generateMemeList = (params: URLSearchParams) => {
   if (folder) records = records.filter((r) => r.folder === folder);
   if (status) records = records.filter((r) => r.status === status);
   if (persona) records = records.filter((r) => r.persona_hint === persona);
-  if (q) records = records.filter((r) => r.description.includes(q));
+  if (q) {
+    records = records.filter(
+      (r) =>
+        r.title.includes(q) ||
+        r.description.includes(q) ||
+        r.ocr_text.includes(q) ||
+        r.usage_hint.includes(q) ||
+        r.emotion_tags.some((t) => t.includes(q)) ||
+        r.custom_tags.some((t) => t.includes(q)),
+    );
+  }
   const page = Number(params.get('page') ?? 1);
   const pageSize = Number(params.get('page_size') ?? 24);
   const start = (page - 1) * pageSize;
@@ -970,21 +1130,40 @@ export const generateMemeStats = () => {
   const status_counts: Record<string, number> = {};
   const folder_counts: Record<string, number> = {};
   let total_usage = 0;
+  let enabled_count = 0;
+  let incomplete_count = 0;
   for (const r of records) {
     status_counts[r.status] = (status_counts[r.status] ?? 0) + 1;
     folder_counts[r.folder] = (folder_counts[r.folder] ?? 0) + 1;
     total_usage += r.use_count;
+    if (r.enabled) enabled_count++;
+    if (
+      r.status === 'pending' ||
+      r.status === 'pending_manual' ||
+      ((r.status === 'tagged' || r.status === 'manual') && (!r.title || !r.usage_hint))
+    ) {
+      incomplete_count++;
+    }
   }
   const top_memes = [...records]
     .sort((a, b) => b.use_count - a.use_count)
     .slice(0, 5)
     .map((r) => ({
       meme_id: r.meme_id,
+      title: r.title,
       description: r.description,
       use_count: r.use_count,
       file_path: r.file_path,
     }));
-  return { total: records.length, status_counts, folder_counts, total_usage, top_memes };
+  return {
+    total: records.length,
+    status_counts,
+    folder_counts,
+    total_usage,
+    incomplete_count,
+    enabled_count,
+    top_memes,
+  };
 };
 
 // ───────────────────────── Tier 1 · 插件数据库 ─────────────────────────

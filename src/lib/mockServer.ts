@@ -45,6 +45,12 @@ import {
   generateMemePersonas,
   generateMemeStats,
   generateMemeDetail,
+  updateDemoMeme,
+  batchUpdateDemoMemes,
+  batchRetagDemoMemes,
+  batchDeleteDemoMemes,
+  deleteDemoMeme,
+  countDemoPackMembers,
   // Tier 2 · 补 demo 必崩页面所需 mock
   generateLogEntries,
   generateLogDates,
@@ -153,6 +159,15 @@ const mockMemePacks = [
     member_count: 1,
     tagged_count: 1,
     bound_personas: [] as string[],
+    is_repo_pack: false,
+  },
+  {
+    pack_id: 'collected-pack',
+    name: '群聊采集',
+    member_count: 0,
+    tagged_count: 0,
+    bound_personas: [] as string[],
+    is_repo_pack: false,
   },
 ];
 
@@ -1180,7 +1195,11 @@ const routes: Route[] = [
   {
     m: 'GET',
     re: /^\/api\/meme\/packs$/,
-    h: () => mockMemePacks,
+    h: () =>
+      mockMemePacks.map((pack) => ({
+        ...pack,
+        ...countDemoPackMembers(pack.pack_id),
+      })),
   },
   {
     m: 'POST',
@@ -1193,6 +1212,7 @@ const routes: Route[] = [
         member_count: 0,
         tagged_count: 0,
         bound_personas: [],
+        is_repo_pack: false,
       };
       mockMemePacks.push(created);
       return { pack_id: created.pack_id, name: created.name };
@@ -1201,10 +1221,70 @@ const routes: Route[] = [
   {
     m: 'GET',
     re: /^\/api\/meme\/packs\/([^/]+)\/members$/,
-    h: ({ url }) => generateMemeList(url.searchParams),
+    h: ({ url }) => generateMemeList(url.searchParams, pathSeg(url, 4)),
   },
-  // 单条详情（点击表情打开详情弹窗）——必须放在上面三条「具体路径」之后，避免误吞 list/personas/stats。
-  // 兼容尾斜杠；返回完整 MemeRecord，缺字段会让 AIMemePage 展开 tags 白屏。
+  {
+    m: 'POST',
+    re: /^\/api\/meme\/packs\/([^/]+)\/members$/,
+    h: ({ url, body }) => {
+      const packId = pathSeg(url, 4);
+      const ids = Array.isArray((body as { meme_ids?: string[] } | null)?.meme_ids)
+        ? (body as { meme_ids: string[] }).meme_ids
+        : [];
+      const res = batchUpdateDemoMemes({ meme_ids: ids, add_pack_id: packId });
+      return { added: res.meme_ids };
+    },
+  },
+  {
+    m: 'DELETE',
+    re: /^\/api\/meme\/packs\/([^/]+)\/members$/,
+    h: ({ url, body }) => {
+      const packId = pathSeg(url, 4);
+      const ids = Array.isArray((body as { meme_ids?: string[] } | null)?.meme_ids)
+        ? (body as { meme_ids: string[] }).meme_ids
+        : [];
+      const res = batchUpdateDemoMemes({ meme_ids: ids, remove_pack_id: packId });
+      return { removed: res.meme_ids };
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/meme\/batch_retag_pending$/,
+    h: ({ body }) => batchRetagDemoMemes(body),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/meme\/batch_update$/,
+    h: ({ body }) => batchUpdateDemoMemes(body),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/meme\/batch_delete$/,
+    h: ({ body }) => batchDeleteDemoMemes(body),
+  },
+  {
+    m: 'DELETE',
+    re: /^\/api\/meme\/([^/]+)\/?$/,
+    h: ({ url }) => {
+      const segs = url.pathname.split('/').filter(Boolean);
+      return deleteDemoMeme(decodeURIComponent(segs[segs.length - 1] || ''));
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/meme\/([^/]+)\/retag$/,
+    h: () => null,
+  },
+  {
+    m: 'PUT',
+    re: /^\/api\/meme\/([^/]+)\/?$/,
+    h: ({ url, body }) => {
+      const segs = url.pathname.split('/').filter(Boolean);
+      const id = decodeURIComponent(segs[segs.length - 1] || '');
+      return updateDemoMeme(id, body);
+    },
+  },
+  // 单条详情（点击表情打开编辑抽屉）——必须放在上面具体路径之后，避免误吞 list/personas/stats。
   {
     m: 'GET',
     re: /^\/api\/meme\/([^/]+)\/?$/,

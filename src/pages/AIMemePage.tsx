@@ -29,6 +29,13 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -50,15 +57,15 @@ import {
   Upload,
   Trash2,
   RefreshCw,
-  FolderOpen,
   FolderPlus,
   Clock,
   Users,
-  FileImage,
   Sparkles,
   Loader2,
   X,
-  Move,
+  Pencil,
+  Lock,
+  Ban,
   Eye,
   TrendingUp,
   Zap,
@@ -73,10 +80,12 @@ import {
 } from 'lucide-react';
 import {
   memeApi,
+  getAuthToken,
   type MemeRecord,
   type MemeStatsData,
   type MemeListParams,
   type MemePersona,
+  type MemePackSummary,
   getApiErrorMessage,
 } from '@/lib/api';
 import { headerActionRowClass, pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
@@ -129,8 +138,7 @@ function formatDateTime(dateStr: string | null): string {
   }
 }
 
-/** 把列表项 / 详情接口可能缺字段的记录补成 MemeDetailDialog 可安全渲染的形状。
- *  demo 下若 mock 未命中会返回 emptyFor 空对象，直接 `[...meme.emotion_tags]` 会抛错白屏。 */
+/** 把列表项 / 详情接口可能缺字段的记录补成安全渲染形状。 */
 function normalizeMemeRecord(
   raw: Partial<MemeRecord> | null | undefined,
   fallback?: MemeRecord | null,
@@ -153,11 +161,16 @@ function normalizeMemeRecord(
     folder: typeof raw.folder === 'string' ? raw.folder : (base?.folder ?? 'common'),
     persona_hint:
       typeof raw.persona_hint === 'string' ? raw.persona_hint : (base?.persona_hint ?? ''),
+    title: typeof raw.title === 'string' ? raw.title : (base?.title ?? ''),
+    ocr_text: typeof raw.ocr_text === 'string' ? raw.ocr_text : (base?.ocr_text ?? ''),
+    usage_hint: typeof raw.usage_hint === 'string' ? raw.usage_hint : (base?.usage_hint ?? ''),
     emotion_tags: asStringArray(raw.emotion_tags, base?.emotion_tags ?? []),
     scene_tags: asStringArray(raw.scene_tags, base?.scene_tags ?? []),
     description: typeof raw.description === 'string' ? raw.description : (base?.description ?? ''),
     custom_tags: asStringArray(raw.custom_tags, base?.custom_tags ?? []),
     status: (raw.status as MemeRecord['status']) || base?.status || 'tagged',
+    enabled: typeof raw.enabled === 'boolean' ? raw.enabled : (base?.enabled ?? true),
+    pack_ids: asStringArray(raw.pack_ids, base?.pack_ids ?? []),
     nsfw_score: typeof raw.nsfw_score === 'number' ? raw.nsfw_score : (base?.nsfw_score ?? 0),
     use_count: typeof raw.use_count === 'number' ? raw.use_count : (base?.use_count ?? 0),
     last_used_at: (raw.last_used_at as string | null | undefined) ?? base?.last_used_at ?? null,
@@ -167,6 +180,17 @@ function normalizeMemeRecord(
     tagged_at: (raw.tagged_at as string | null | undefined) ?? base?.tagged_at ?? null,
     updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : (base?.updated_at ?? ''),
   };
+}
+
+function formatSourceLabel(
+  sourceGroup: string,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  const src = (sourceGroup || '').trim().toLowerCase();
+  if (src === 'manual') return t('aiMeme.card.sourceManual');
+  if (src === 'import') return t('aiMeme.card.sourceImport');
+  if (src) return t('aiMeme.card.sourceCollected');
+  return t('aiMeme.card.sourceUnknown');
 }
 
 // ============================================================================
@@ -255,7 +279,7 @@ const MemeCard = memo(function MemeCard({
     const controller = new AbortController();
     const fetchImage = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = getAuthToken();
         const base = memeApi.getImageUrl(meme.meme_id);
         const resp = await fetch(base, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -358,22 +382,27 @@ const MemeCard = memo(function MemeCard({
     rejected: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20',
   };
 
+  const cardTitle = meme.title || meme.description || t('aiMeme.card.untitled');
+  const cardSummary = meme.title
+    ? meme.description || meme.ocr_text || t('aiMeme.card.noDescription')
+    : meme.ocr_text || meme.usage_hint || (meme.description ? '' : t('aiMeme.card.noDescription'));
+  const statusLabel = t(`aiMeme.status.${meme.status}`);
+  const sourceLabel = formatSourceLabel(meme.source_group, t);
+
   return (
     <Card
       ref={cardRef}
       className={cn(
         'group cursor-pointer transition-[transform,box-shadow] duration-300 hover:shadow-lg hover:scale-[1.02]',
-        // glass-card-flat: keeps the translucent look but drops the per-card
-        // backdrop-filter blur, which is very expensive across a 24-item grid.
         'glass-card-flat',
         selected && 'ring-2 ring-primary shadow-lg',
+        !meme.enabled && 'opacity-85',
       )}
       onClick={() => onClick(meme)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image - lazy render via IntersectionObserver for GIF performance */}
-      {/* rounded-t-[inherit]：Card 不再 overflow-hidden，图片区需自己贴合卡片上圆角 */}
       <div className="relative aspect-square bg-muted/30 overflow-hidden rounded-t-[inherit]">
         {!hasEntered ? (
           <div className="absolute inset-0 bg-muted/30 flex items-center justify-center">
@@ -387,77 +416,101 @@ const MemeCard = memo(function MemeCard({
           </div>
         ) : (
           <>
-            {/* Loading placeholder until the downscaled thumbnail is painted */}
             {!snapshotReady && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <Skeleton className="w-full h-full absolute" />
                 <ImageIcon className="w-8 h-8 text-muted-foreground/30 relative z-10" />
               </div>
             )}
-            {/* Lightweight downscaled thumbnail (used for every card) */}
             <canvas
               ref={canvasRef}
               aria-hidden
               className={cn(
                 'absolute inset-0 w-full h-full object-cover transition-[transform,opacity] duration-300 group-hover:scale-105',
-                snapshotReady ? 'opacity-100' : 'opacity-0',
+                snapshotReady ? (meme.enabled ? 'opacity-100' : 'opacity-60') : 'opacity-0',
               )}
             />
-            {/* Full-resolution animated image - mounted only while hovered, so the
-                grid plays at most one GIF at a time and never decodes 24 at once. */}
             {showLiveImg && (
               <img
                 src={blobUrl || undefined}
-                alt={meme.description || meme.meme_id}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                alt={cardTitle}
+                className={cn(
+                  'absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105',
+                  !meme.enabled && 'opacity-65',
+                )}
                 onError={() => setImgError(true)}
                 decoding="async"
               />
             )}
           </>
         )}
-        {/* Status badge overlay */}
-        <div className="absolute top-2 left-2">
+        {/* Top-left: format badge or non-ready status pill */}
+        <div className="absolute top-2 left-2 flex items-center gap-1">
+          {meme.status !== 'tagged' && meme.status !== 'manual' ? (
+            <Badge
+              variant="outline"
+              className={cn(
+                'text-[10px] px-1.5 py-0.5 backdrop-blur-sm',
+                statusColorMap[meme.status] || 'bg-muted/80',
+              )}
+            >
+              {statusLabel}
+            </Badge>
+          ) : (
+            <Badge
+              variant="outline"
+              className={cn(
+                'text-[10px] px-1.5 py-0 h-5 font-mono font-medium backdrop-blur-sm',
+                formatTypeColorMap[formatImageType(meme.file_mime)] ||
+                  'bg-muted/80 text-muted-foreground border-border',
+              )}
+            >
+              {formatImageType(meme.file_mime)}
+            </Badge>
+          )}
+        </div>
+        {/* Top-right: enable capsule + selection checkbox */}
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5">
           <Badge
             variant="outline"
             className={cn(
-              'text-[10px] px-1.5 py-0.5',
-              statusColorMap[meme.status] || 'bg-muted/80',
+              'text-[10px] px-1.5 py-0 h-5 border backdrop-blur-sm',
+              meme.enabled
+                ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/35'
+                : 'bg-zinc-600/70 text-zinc-100 border-zinc-400/35',
             )}
           >
-            {t(`aiMeme.status.${meme.status}`)}
+            {meme.enabled ? t('aiMeme.card.enabled') : t('aiMeme.card.disabled')}
           </Badge>
-        </div>
-        {/* Selection checkbox - always visible, click stops propagation */}
-        <div
-          className="absolute top-2 right-2 z-10"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSelect?.(meme.meme_id);
-          }}
-        >
           <div
-            className={cn(
-              'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 cursor-pointer',
-              selected
-                ? 'bg-primary border-primary shadow-sm'
-                : 'bg-white/80 dark:bg-black/60 border-white/50 dark:border-white/25 opacity-0 group-hover:opacity-100 hover:border-primary/60',
-            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect?.(meme.meme_id);
+            }}
           >
-            {selected && (
-              <svg
-                className="w-3 h-3 text-primary-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={3}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            )}
+            <div
+              className={cn(
+                'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 cursor-pointer',
+                selected
+                  ? 'bg-primary border-primary shadow-sm'
+                  : 'bg-white/80 dark:bg-black/60 border-white/50 dark:border-white/25 opacity-0 group-hover:opacity-100 hover:border-primary/60',
+              )}
+            >
+              {selected && (
+                <svg
+                  className="w-3 h-3 text-primary-foreground"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
           </div>
         </div>
-        {/* Use count overlay - bottom right when not selected */}
+        {/* Use count overlay */}
         {meme.use_count > 0 && (
           <div className="absolute bottom-2 right-2">
             <Badge
@@ -470,7 +523,7 @@ const MemeCard = memo(function MemeCard({
           </div>
         )}
         {/* Hover overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center pointer-events-none">
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="w-10 h-10 rounded-full bg-white/90 dark:bg-black/70 flex items-center justify-center">
               <Eye className="w-5 h-5 text-foreground" />
@@ -478,44 +531,34 @@ const MemeCard = memo(function MemeCard({
           </div>
         </div>
       </div>
-      {/* Info */}
+      {/* Clean semantic info area */}
       <CardContent className="flex flex-col gap-1.5 p-3 sm:p-3">
-        <p className="min-w-0 truncate text-xs leading-4 text-muted-foreground">
-          {meme.description || t('aiMeme.card.noDescription')}
+        <p
+          className="min-w-0 truncate text-xs font-semibold leading-4 text-foreground"
+          title={cardTitle}
+        >
+          {cardTitle}
         </p>
-        <div className="flex flex-wrap gap-1">
-          {/* Image format (PNG / GIF / JPG ...) - color-coded for quick scanning */}
-          <Badge
-            variant="outline"
-            className={cn(
-              'text-[10px] px-1.5 py-0 h-5 font-mono font-medium',
-              formatTypeColorMap[formatImageType(meme.file_mime)] ||
-                'bg-muted text-muted-foreground/80 border-border',
-            )}
-          >
-            {formatImageType(meme.file_mime)}
-          </Badge>
-          {(Array.isArray(meme.emotion_tags) ? meme.emotion_tags : []).slice(0, 3).map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
-              {tag}
-            </Badge>
-          ))}
-          {Array.isArray(meme.emotion_tags) && meme.emotion_tags.length > 3 && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
-              +{meme.emotion_tags.length - 3}
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground/70 min-w-0">
-          <span className="flex items-center gap-1 min-w-0">
-            <FolderOpen className="w-3 h-3 shrink-0" />
-            <span className="truncate">{meme.folder}</span>
+        <p className="min-w-0 line-clamp-2 min-h-[2rem] text-[11px] leading-4 text-muted-foreground">
+          {cardSummary}
+        </p>
+        <div className="flex items-center justify-between gap-2 pt-0.5 min-w-0">
+          <span className="truncate text-[10px] text-muted-foreground/75">
+            {sourceLabel} · {statusLabel}
           </span>
-          {meme.use_count > 0 && (
-            <span className="shrink-0 whitespace-nowrap">
-              {t('aiMeme.card.useCount', { count: meme.use_count })}
-            </span>
-          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick(meme);
+            }}
+            className="h-6 shrink-0 gap-1 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            <Pencil className="w-3 h-3" />
+            {t('aiMeme.card.edit')}
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -523,68 +566,105 @@ const MemeCard = memo(function MemeCard({
 });
 
 // ============================================================================
-// Detail Dialog
+// Right-side Edit Sheet
 // ============================================================================
 
-function MemeDetailDialog({
+function MemeEditSheet({
   meme,
+  packs,
   open,
   onClose,
   onUpdate,
   onDelete,
 }: {
   meme: MemeRecord | null;
+  packs: MemePackSummary[];
   open: boolean;
   onClose: () => void;
   onUpdate: () => void;
   onDelete: () => void;
 }) {
   const { t } = useLanguage();
+  const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editEmotionTags, setEditEmotionTags] = useState<string[]>([]);
-  const [editSceneTags, setEditSceneTags] = useState<string[]>([]);
+  const [editOcrText, setEditOcrText] = useState('');
   const [editCustomTags, setEditCustomTags] = useState<string[]>([]);
-  const [editPersonaHint, setEditPersonaHint] = useState('');
+  const [editEmotionTags, setEditEmotionTags] = useState<string[]>([]);
+  const [editUsageHint, setEditUsageHint] = useState('');
+  const [editPackIds, setEditPackIds] = useState<string[]>([]);
+  const [editEnabled, setEditEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isRetagging, setIsRetagging] = useState(false);
-  const [isMoving, setIsMoving] = useState(false);
-  const [moveTarget, setMoveTarget] = useState('');
-  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showRetagDialog, setShowRetagDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  useEffect(() => {
-    if (meme) {
-      setEditDescription(meme.description || '');
-      // 始终用 Array.isArray 兜底，避免缺字段时展开抛错导致整页白屏
-      setEditEmotionTags(Array.isArray(meme.emotion_tags) ? [...meme.emotion_tags] : []);
-      setEditSceneTags(Array.isArray(meme.scene_tags) ? [...meme.scene_tags] : []);
-      setEditCustomTags(Array.isArray(meme.custom_tags) ? [...meme.custom_tags] : []);
-      setEditPersonaHint(meme.persona_hint || '');
-      setMoveTarget(meme.folder || '');
-    }
-  }, [meme]);
-
   const [detailBlobUrl, setDetailBlobUrl] = useState<string | null>(null);
+  const [detailImgError, setDetailImgError] = useState(false);
+
+  const memeId = meme?.meme_id ?? null;
+  const loadedIdRef = useRef<string | null>(null);
+  const isDirtyRef = useRef(false);
+
+  const markDirty = () => {
+    isDirtyRef.current = true;
+  };
 
   useEffect(() => {
-    if (!meme || !open) return;
+    if (!open || !meme) {
+      setShowRetagDialog(false);
+      setShowDeleteDialog(false);
+      loadedIdRef.current = null;
+      isDirtyRef.current = false;
+      return;
+    }
+    const switchedMeme = loadedIdRef.current !== meme.meme_id;
+    if (switchedMeme || !isDirtyRef.current) {
+      loadedIdRef.current = meme.meme_id;
+      isDirtyRef.current = false;
+      setEditTitle(meme.title || '');
+      setEditDescription(meme.description || '');
+      setEditOcrText(meme.ocr_text || '');
+      setEditCustomTags(Array.isArray(meme.custom_tags) ? [...meme.custom_tags] : []);
+      setEditEmotionTags(Array.isArray(meme.emotion_tags) ? [...meme.emotion_tags] : []);
+      setEditUsageHint(meme.usage_hint || '');
+      setEditPackIds(Array.isArray(meme.pack_ids) ? [...meme.pack_ids] : []);
+      setEditEnabled(meme.enabled !== false);
+    }
+    if (switchedMeme) {
+      setShowRetagDialog(false);
+      setShowDeleteDialog(false);
+    }
+  }, [meme, open]);
+
+  useEffect(() => {
+    if (!memeId || !open) {
+      setDetailBlobUrl(null);
+      setDetailImgError(false);
+      return;
+    }
     let revoked = false;
     const controller = new AbortController();
+    setDetailBlobUrl(null);
+    setDetailImgError(false);
     const fetchImage = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        const base = memeApi.getImageUrl(meme.meme_id);
+        const token = getAuthToken();
+        const base = memeApi.getImageUrl(memeId);
         const resp = await fetch(base, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           credentials: 'include',
           signal: controller.signal,
         });
-        if (!resp.ok || revoked) return;
+        if (!resp.ok) {
+          if (!revoked) setDetailImgError(true);
+          return;
+        }
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
         if (!revoked) setDetailBlobUrl(url);
+        else URL.revokeObjectURL(url);
       } catch {
-        // ignore
+        if (!revoked && !controller.signal.aborted) setDetailImgError(true);
       }
     };
     fetchImage();
@@ -592,7 +672,7 @@ function MemeDetailDialog({
       revoked = true;
       controller.abort();
     };
-  }, [meme?.meme_id, open]);
+  }, [memeId, open]);
 
   useEffect(() => {
     return () => {
@@ -600,221 +680,344 @@ function MemeDetailDialog({
     };
   }, [detailBlobUrl]);
 
-  if (!meme) return null;
+  const togglePack = (pack: MemePackSummary) => {
+    if (pack.is_repo_pack) return;
+    markDirty();
+    setEditPackIds((prev) =>
+      prev.includes(pack.pack_id)
+        ? prev.filter((id) => id !== pack.pack_id)
+        : [...prev, pack.pack_id],
+    );
+  };
 
   const handleSave = async () => {
+    if (!meme) return;
     try {
       setIsSaving(true);
+      const trimmedTitle = editTitle.trim();
+      const trimmedDesc = editDescription.trim();
+      const trimmedOcr = editOcrText.trim();
+      const trimmedUsage = editUsageHint.trim();
+      const hasSemanticInfo = Boolean(
+        trimmedTitle || trimmedDesc || trimmedUsage || editEmotionTags.length > 0,
+      );
+      const promoteManual =
+        (meme.status === 'pending_manual' || meme.status === 'pending') && hasSemanticInfo;
+
       await memeApi.update(meme.meme_id, {
-        description: editDescription,
-        emotion_tags: editEmotionTags,
-        scene_tags: editSceneTags,
+        title: trimmedTitle,
+        description: trimmedDesc,
+        ocr_text: trimmedOcr,
         custom_tags: editCustomTags,
-        persona_hint: editPersonaHint,
+        emotion_tags: editEmotionTags,
+        usage_hint: trimmedUsage,
+        pack_ids: editPackIds,
+        enabled: editEnabled,
+        ...(promoteManual ? { status: 'manual' as const } : {}),
       });
+      isDirtyRef.current = false;
       toast.success(t('aiMeme.detail.updateSuccess'));
       onUpdate();
-    } catch (_error) {
-      toast.error(t('aiMeme.detail.updateFailed'));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('aiMeme.detail.updateFailed')));
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleRetag = async () => {
+    if (!meme) return;
     try {
       setIsRetagging(true);
       await memeApi.retag(meme.meme_id);
+      isDirtyRef.current = false;
       toast.success(t('aiMeme.detail.retagSuccess'));
       setShowRetagDialog(false);
       onUpdate();
-    } catch (_error) {
-      toast.error(t('aiMeme.detail.retagFailed'));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('aiMeme.detail.retagFailed')));
     } finally {
       setIsRetagging(false);
     }
   };
 
-  const handleMove = async () => {
-    if (!moveTarget.trim()) return;
-    try {
-      setIsMoving(true);
-      await memeApi.move(meme.meme_id, moveTarget.trim());
-      toast.success(t('aiMeme.detail.moveSuccess', { folder: moveTarget }));
-      setShowMoveDialog(false);
-      onUpdate();
-    } catch (_error) {
-      toast.error(t('aiMeme.detail.moveFailed'));
-    } finally {
-      setIsMoving(false);
-    }
-  };
-
   const handleDelete = async () => {
+    if (!meme) return;
     try {
+      setIsDeleting(true);
       await memeApi.delete(meme.meme_id);
       toast.success(t('aiMeme.detail.deleteSuccess'));
       setShowDeleteDialog(false);
       onDelete();
-    } catch (_error) {
-      toast.error(t('aiMeme.detail.deleteFailed'));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('aiMeme.detail.deleteFailed')));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="glass-card max-h-[90vh] max-w-4xl gap-0 overflow-visible p-0 sm:max-w-4xl sm:p-0">
-          <div className="flex max-h-[min(85vh,52rem)] min-h-0 flex-col overflow-hidden rounded-[inherit] md:flex-row">
-            {/* Left: Image Preview */}
-            <div className="flex min-h-[240px] items-center justify-center bg-foreground/[0.04] p-6 md:min-h-0 md:w-1/2">
-              <img
-                src={detailBlobUrl || undefined}
-                alt={meme.description || meme.meme_id}
-                className="max-h-[400px] max-w-full rounded-lg object-contain md:max-h-[70vh]"
-              />
-            </div>
+      <Sheet open={open && Boolean(meme)} onOpenChange={(v) => !v && onClose()}>
+        <SheetContent
+          side="right"
+          className="glass-card flex h-full w-full flex-col gap-0 p-0 sm:max-w-lg"
+        >
+          {meme && (
+            <>
+              <SheetHeader className="shrink-0 space-y-1 px-6 pb-4 pr-12 pt-5">
+                <SheetTitle className="flex items-center gap-2 text-base">
+                  <ImageIcon className="w-4 h-4 shrink-0 text-primary" />
+                  <span className="truncate">{meme.title || t('aiMeme.detail.title')}</span>
+                </SheetTitle>
+                <SheetDescription className="text-xs">
+                  {meme.width}×{meme.height} · {formatFileSize(meme.file_size)} ·{' '}
+                  {formatImageType(meme.file_mime)} · {t(`aiMeme.status.${meme.status}`)}
+                </SheetDescription>
+              </SheetHeader>
 
-            {/* Right: Info & Edit */}
-            <div className="flex min-h-0 min-w-0 flex-col border-border/40 md:w-1/2 md:border-l">
-              <DialogHeader className="shrink-0 space-y-2 px-6 pb-4 pr-12 pt-6">
-                <DialogTitle className="flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 shrink-0 text-primary" />
-                  <span className="truncate">{t('aiMeme.detail.title')}</span>
-                </DialogTitle>
-                <DialogDescription className="break-all">
-                  {meme.meme_id} · {meme.width}×{meme.height} · {formatFileSize(meme.file_size)}
-                </DialogDescription>
-              </DialogHeader>
+              {/* Compact image preview */}
+              <div className="shrink-0 flex h-40 items-center justify-center border-y border-border/30 bg-muted/30 px-6 py-3">
+                {detailBlobUrl ? (
+                  <img
+                    src={detailBlobUrl}
+                    alt={meme.title || meme.description || meme.meme_id}
+                    className="max-h-full max-w-full rounded-lg object-contain"
+                    onError={() => setDetailImgError(true)}
+                  />
+                ) : detailImgError ? (
+                  <div className="flex flex-col items-center justify-center gap-1.5 text-muted-foreground/60">
+                    <AlertCircle className="w-7 h-7" />
+                    <span className="text-xs">{t('aiMeme.loadFailed')}</span>
+                  </div>
+                ) : (
+                  <Skeleton className="h-32 w-32 rounded-lg" />
+                )}
+              </div>
 
               <ScrollArea className="min-h-0 flex-1 px-6">
-                <div className="space-y-3 md:space-y-4 pb-4">
-                  {/* Description */}
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">
-                      {t('aiMeme.detail.description')}
-                    </Label>
-                    <Textarea
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      placeholder={t('aiMeme.detail.descriptionPlaceholder')}
-                      className="min-h-[60px] text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* Tags */}
-                  <div className="space-y-3 md:space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground">
-                        {t('aiMeme.detail.emotionTags')}
-                      </Label>
-                      <TagsInput value={editEmotionTags} onChange={setEditEmotionTags} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground">
-                        {t('aiMeme.detail.sceneTags')}
-                      </Label>
-                      <TagsInput value={editSceneTags} onChange={setEditSceneTags} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground">
-                        {t('aiMeme.detail.customTags')}
-                      </Label>
-                      <TagsInput value={editCustomTags} onChange={setEditCustomTags} />
-                    </div>
-                  </div>
-
-                  {/* Persona Hint */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2 text-muted-foreground">
-                      <Users className="w-3 h-3" />
-                      {t('aiMeme.detail.personaHint')}
+                <div className="space-y-4 py-4">
+                  {/* 1. 名称 */}
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="meme-edit-title"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      {t('aiMeme.detail.name')}
                     </Label>
                     <Input
-                      value={editPersonaHint}
-                      onChange={(e) => setEditPersonaHint(e.target.value)}
-                      placeholder={t('aiMeme.detail.personaHintPlaceholder')}
+                      id="meme-edit-title"
+                      value={editTitle}
+                      onChange={(e) => {
+                        markDirty();
+                        setEditTitle(e.target.value);
+                      }}
+                      maxLength={64}
+                      placeholder={t('aiMeme.detail.namePlaceholder')}
                       className="text-sm"
                     />
                   </div>
 
-                  <Separator className="bg-border/30" />
+                  {/* 2. 画面与动作 */}
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="meme-edit-desc"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      {t('aiMeme.detail.description')}
+                    </Label>
+                    <Textarea
+                      id="meme-edit-desc"
+                      value={editDescription}
+                      onChange={(e) => {
+                        markDirty();
+                        setEditDescription(e.target.value);
+                      }}
+                      maxLength={500}
+                      placeholder={t('aiMeme.detail.descriptionPlaceholder')}
+                      className="min-h-[84px] text-sm resize-y"
+                    />
+                  </div>
 
-                  {/* File Info & Usage Stats - compact grid */}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <div className="flex items-center gap-1.5">
-                      <FileImage className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="text-muted-foreground">{t('aiMeme.detail.fileSize')}:</span>
-                      <span className="font-medium truncate">{formatFileSize(meme.file_size)}</span>
+                  {/* 3. 可见文字 */}
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="meme-edit-ocr"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      {t('aiMeme.detail.ocrText')}
+                    </Label>
+                    <Input
+                      id="meme-edit-ocr"
+                      value={editOcrText}
+                      onChange={(e) => {
+                        markDirty();
+                        setEditOcrText(e.target.value);
+                      }}
+                      maxLength={256}
+                      placeholder={t('aiMeme.detail.ocrTextPlaceholder')}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  {/* 4. 标签 (custom_tags) */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      {t('aiMeme.detail.customTags')}
+                    </Label>
+                    <TagsInput
+                      value={editCustomTags}
+                      onChange={(next) => {
+                        markDirty();
+                        setEditCustomTags(next);
+                      }}
+                    />
+                  </div>
+
+                  {/* 5. 情绪 (emotion_tags) */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      {t('aiMeme.detail.emotionTags')}
+                    </Label>
+                    <TagsInput
+                      value={editEmotionTags}
+                      onChange={(next) => {
+                        markDirty();
+                        setEditEmotionTags(next);
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground/80">
+                      {t('aiMeme.detail.emotionTagsHint')}
+                    </p>
+                  </div>
+
+                  {/* 6. 适用回应 (usage_hint) */}
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="meme-edit-usage"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      {t('aiMeme.detail.usageHint')}
+                    </Label>
+                    <Textarea
+                      id="meme-edit-usage"
+                      value={editUsageHint}
+                      onChange={(e) => {
+                        markDirty();
+                        setEditUsageHint(e.target.value);
+                      }}
+                      maxLength={512}
+                      placeholder={t('aiMeme.detail.usageHintPlaceholder')}
+                      className="min-h-[68px] text-sm resize-y"
+                    />
+                  </div>
+
+                  {/* 7. 所属表情包 */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      {t('aiMeme.detail.packs')}
+                    </Label>
+                    {packs.length === 0 ? (
+                      <p className="text-xs text-muted-foreground/70">
+                        {t('aiMeme.detail.packsEmpty')}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {packs.map((pack) => {
+                          const checked = editPackIds.includes(pack.pack_id);
+                          const locked = Boolean(pack.is_repo_pack);
+                          return (
+                            <label
+                              key={pack.pack_id}
+                              className={cn(
+                                'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors select-none',
+                                checked
+                                  ? 'border-primary/50 bg-primary/10 text-primary font-medium'
+                                  : 'border-border/60 bg-muted/20 text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                                locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+                              )}
+                            >
+                              <Checkbox
+                                checked={checked}
+                                disabled={locked}
+                                onCheckedChange={() => togglePack(pack)}
+                                className="h-3.5 w-3.5"
+                              />
+                              <span className="max-w-[140px] truncate">{pack.name}</span>
+                              {locked && (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                  <Lock className="w-2.5 h-2.5" />
+                                  {t('aiMeme.detail.repoPackReadOnly')}
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 8. 允许检索使用 */}
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-muted/35 p-3">
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <Label
+                        htmlFor="meme-edit-enabled"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        {t('aiMeme.detail.enabled')}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {t('aiMeme.detail.enabledDesc')}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">
-                        {t('aiMeme.detail.dimensions')}:
-                      </span>
-                      <span className="font-medium">
-                        {meme.width}×{meme.height}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 col-span-2">
-                      <span className="text-muted-foreground">{t('aiMeme.detail.mimeType')}:</span>
-                      <span className="font-medium truncate">{meme.file_mime}</span>
-                    </div>
+                    <Switch
+                      id="meme-edit-enabled"
+                      checked={editEnabled}
+                      onCheckedChange={(checked) => {
+                        markDirty();
+                        setEditEnabled(checked);
+                      }}
+                      className="shrink-0"
+                    />
                   </div>
 
                   <Separator className="bg-border/30" />
 
-                  {/* Usage Stats - compact */}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  {/* Compact Usage & Timestamps */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1.5">
-                      <Zap className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="text-muted-foreground">{t('aiMeme.detail.useCount')}:</span>
-                      <span className="font-bold text-primary">{meme.use_count}</span>
+                      <Zap className="w-3 h-3 shrink-0" />
+                      <span>{t('aiMeme.detail.useCount')}:</span>
+                      <span className="font-semibold text-foreground">{meme.use_count}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="text-muted-foreground truncate">
+                    <div className="flex items-center justify-end gap-1 truncate">
+                      <Clock className="w-3 h-3 shrink-0" />
+                      <span className="truncate">
                         {meme.last_used_at
                           ? formatDateTime(meme.last_used_at)
                           : t('aiMeme.detail.never')}
                       </span>
                     </div>
-                    {meme.last_used_group && (
-                      <div className="flex items-center gap-1.5 col-span-2 min-w-0">
-                        <Users className="w-3 h-3 text-muted-foreground shrink-0" />
-                        <span className="text-muted-foreground shrink-0">
-                          {t('aiMeme.detail.lastUsedGroup')}:
-                        </span>
-                        <span className="font-medium truncate min-w-0">{meme.last_used_group}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <Separator className="bg-border/30" />
-
-                  {/* Timestamps - compact */}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <span>{t('aiMeme.detail.createdAt')}</span>
-                    </div>
+                    <div>{t('aiMeme.detail.createdAt')}</div>
                     <div className="text-right">{formatDateTime(meme.created_at)}</div>
                     {meme.tagged_at && (
                       <>
-                        <div className="flex items-center gap-1">
-                          <span>{t('aiMeme.detail.taggedAt')}</span>
-                        </div>
+                        <div>{t('aiMeme.detail.taggedAt')}</div>
                         <div className="text-right">{formatDateTime(meme.tagged_at)}</div>
                       </>
                     )}
-                    <div className="flex items-center gap-1">
-                      <span>{t('aiMeme.detail.updatedAt')}</span>
-                    </div>
+                    <div>{t('aiMeme.detail.updatedAt')}</div>
                     <div className="text-right">{formatDateTime(meme.updated_at)}</div>
                   </div>
                 </div>
               </ScrollArea>
 
               <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border/40 px-6 py-4">
-                <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving || isRetagging || isDeleting}
+                  className="gap-1.5"
+                >
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
@@ -822,69 +1025,49 @@ function MemeDetailDialog({
                   )}
                   {t('common.save')}
                 </Button>
-                <Button variant="outline" onClick={() => setShowMoveDialog(true)} className="gap-2">
-                  <Move className="w-4 h-4" />
-                  {t('aiMeme.detail.moveToFolder')}
-                </Button>
                 <Button
                   variant="outline"
+                  disabled={isSaving || isRetagging || isDeleting}
                   onClick={() => setShowRetagDialog(true)}
-                  className="gap-2"
+                  className="gap-1.5"
                 >
                   <Sparkles className="w-4 h-4" />
                   {t('aiMeme.detail.retag')}
                 </Button>
                 <Button
                   variant="destructive"
+                  disabled={isSaving || isRetagging || isDeleting}
                   onClick={() => setShowDeleteDialog(true)}
-                  className="gap-2 sm:ml-auto"
+                  className="gap-1.5 sm:ml-auto"
                 >
                   <Trash2 className="w-4 h-4" />
                   {t('common.delete')}
                 </Button>
               </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Move Dialog */}
-      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-        <DialogContent className="glass-card max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t('aiMeme.detail.moveToFolder')}</DialogTitle>
-            <DialogDescription>{t('aiMeme.detail.targetFolder')}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Label>{t('aiMeme.detail.targetFolder')}</Label>
-            <Input
-              value={moveTarget}
-              onChange={(e) => setMoveTarget(e.target.value)}
-              placeholder="common"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={handleMove} disabled={isMoving || !moveTarget.trim()}>
-              {isMoving && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
-              {t('common.confirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Retag Confirm Dialog */}
-      <AlertDialog open={showRetagDialog} onOpenChange={setShowRetagDialog}>
+      <AlertDialog
+        open={showRetagDialog}
+        onOpenChange={(next) => !isRetagging && setShowRetagDialog(next)}
+      >
         <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('aiMeme.detail.retagConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>{t('aiMeme.detail.retagConfirmDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRetag} disabled={isRetagging}>
+            <AlertDialogCancel disabled={isRetagging}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleRetag();
+              }}
+              disabled={isRetagging}
+            >
               {isRetagging && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
               {t('common.confirm')}
             </AlertDialogAction>
@@ -893,18 +1076,26 @@ function MemeDetailDialog({
       </AlertDialog>
 
       {/* Delete Confirm Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog
+        open={showDeleteDialog}
+        onOpenChange={(next) => !isDeleting && setShowDeleteDialog(next)}
+      >
         <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('aiMeme.detail.deleteConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>{t('aiMeme.detail.deleteConfirmDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDelete();
+              }}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+              {isDeleting && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
               {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1346,7 +1537,8 @@ export default function AIMemePage() {
   const [stats, setStats] = useState<MemeStatsData | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  // Persona filter
+  // Pack / Persona filter
+  const [packs, setPacks] = useState<MemePackSummary[]>([]);
   const [personas, setPersonas] = useState<MemePersona[]>([]);
   // Radix Select disallows empty-string values on <SelectItem>, so we use a
   // sentinel value and translate it back to '' (== "no persona filter") when
@@ -1361,16 +1553,20 @@ export default function AIMemePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
-  // Dialogs
+  // Dialogs & Edit Sheet
   const [selectedMeme, setSelectedMeme] = useState<MemeRecord | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  // Selection
+  // Selection & Batch actions
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+  const [isBatchUpdating, setIsBatchUpdating] = useState(false);
+  const [isBatchRetaggingSelected, setIsBatchRetaggingSelected] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showBatchDeleteDialog, setShowBatchDeleteDialog] = useState(false);
+  const [showRetagSelectedDialog, setShowRetagSelectedDialog] = useState(false);
+  const [batchPackSelectKey, setBatchPackSelectKey] = useState(0);
 
   // Purge / Retag
   const [isPurging, setIsPurging] = useState(false);
@@ -1456,8 +1652,10 @@ export default function AIMemePage() {
   const fetchPersonas = useCallback(async () => {
     try {
       const data = await memeApi.getPacks();
+      const list = Array.isArray(data) ? data : [];
+      setPacks(list);
       setPersonas(
-        (Array.isArray(data) ? data : []).map((pack) => ({
+        list.map((pack) => ({
           persona_hint: pack.pack_id,
           count: pack.member_count,
           folder: pack.name,
@@ -1501,10 +1699,17 @@ export default function AIMemePage() {
     }, 500);
   };
 
-  // Reset page when filters change
+  // Reset page & selection when filters change; clear debounce timer on unmount
   useEffect(() => {
     setPage(1);
+    setSelectedIds(new Set());
   }, [filterFolder, filterStatus, filterPersona, sortBy]);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, []);
 
   const openExportDialog = () => {
     setExportPackId(filterPersona);
@@ -1579,8 +1784,12 @@ export default function AIMemePage() {
   // Handlers
   // ============================================================================
 
+  const detailSeqRef = useRef(0);
+  const detailOpenRef = useRef(false);
+
   const handleMemeClick = useCallback(async (meme: MemeRecord) => {
-    // 先用列表项立刻打开弹窗（已规范化），避免等详情时空白；详情返回后再覆盖。
+    const seq = ++detailSeqRef.current;
+    detailOpenRef.current = true;
     const safeListItem = normalizeMemeRecord(meme);
     if (safeListItem) {
       setSelectedMeme(safeListItem);
@@ -1588,6 +1797,7 @@ export default function AIMemePage() {
     }
     try {
       const detail = await memeApi.getDetail(meme.meme_id);
+      if (seq !== detailSeqRef.current || !detailOpenRef.current) return;
       const safe = normalizeMemeRecord(detail, safeListItem);
       if (safe) setSelectedMeme(safe);
     } catch {
@@ -1599,12 +1809,14 @@ export default function AIMemePage() {
     fetchMemes();
     fetchStats();
     fetchPersonas();
-    // Refresh selected meme
     if (selectedMeme) {
+      const seq = ++detailSeqRef.current;
+      const current = selectedMeme;
       memeApi
-        .getDetail(selectedMeme.meme_id)
+        .getDetail(current.meme_id)
         .then((detail) => {
-          const safe = normalizeMemeRecord(detail, selectedMeme);
+          if (seq !== detailSeqRef.current || !detailOpenRef.current) return;
+          const safe = normalizeMemeRecord(detail, current);
           if (safe) setSelectedMeme(safe);
         })
         .catch(() => {});
@@ -1612,8 +1824,9 @@ export default function AIMemePage() {
   };
 
   const handleDetailDelete = () => {
+    detailSeqRef.current++;
+    detailOpenRef.current = false;
     setDetailOpen(false);
-    setSelectedMeme(null);
     fetchMemes();
     fetchStats();
     fetchPersonas();
@@ -1781,15 +1994,22 @@ export default function AIMemePage() {
     }
   };
 
-  // Batch retag pending_manual
-  const handleBatchRetagPending = async () => {
+  // Batch retag incomplete (active force mode)
+  const handleBatchRetagIncomplete = async () => {
     try {
       setIsRetaggingPending(true);
-      const result = await memeApi.batchRetagPending();
-      if (result.retag_count === 0) {
-        toast.info(t('aiMeme.batchRetagPendingNone'));
+      const selectedPack = filterPersona !== PERSONA_ALL ? filterPersona : undefined;
+      const result = await memeApi.batchRetagIncomplete({
+        mode: 'incomplete',
+        pack_id: selectedPack,
+      });
+      const skipped = result.skipped_full ?? 0;
+      if (skipped > 0) {
+        toast.warning(t('aiMeme.batchRetagSkippedFull', { count: result.retag_count, skipped }));
+      } else if (result.retag_count === 0) {
+        toast.info(t('aiMeme.batchRetagIncompleteNone'));
       } else if (result.failed.length === 0) {
-        toast.success(t('aiMeme.batchRetagPendingSuccess', { count: result.retag_count }));
+        toast.success(t('aiMeme.batchRetagIncompleteSuccess', { count: result.retag_count }));
       } else {
         toast.warning(
           t('aiMeme.batchRetagPendingPartial', {
@@ -1802,12 +2022,92 @@ export default function AIMemePage() {
       fetchMemes();
       fetchStats();
       fetchPersonas();
-    } catch (_error) {
-      toast.error(t('aiMeme.batchRetagPendingFailed'));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('aiMeme.batchRetagIncompleteFailed')));
     } finally {
       setIsRetaggingPending(false);
     }
   };
+
+  // Batch retag selected
+  const handleBatchRetagSelected = async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      setIsBatchRetaggingSelected(true);
+      const result = await memeApi.batchRetagIncomplete({
+        mode: 'selected',
+        meme_ids: Array.from(selectedIds),
+      });
+      const skipped = result.skipped_full ?? 0;
+      if (skipped > 0) {
+        toast.warning(t('aiMeme.batchRetagSkippedFull', { count: result.retag_count, skipped }));
+      } else if (result.retag_count === 0) {
+        toast.info(t('aiMeme.batchRetagIncompleteNone'));
+      } else {
+        toast.success(t('aiMeme.batchRetagIncompleteSuccess', { count: result.retag_count }));
+      }
+      setShowRetagSelectedDialog(false);
+      setSelectedIds(new Set());
+      fetchMemes();
+      fetchStats();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('aiMeme.batchRetagIncompleteFailed')));
+    } finally {
+      setIsBatchRetaggingSelected(false);
+    }
+  };
+
+  // Batch enable / disable
+  const handleBatchSetEnabled = async (enabled: boolean) => {
+    if (selectedIds.size === 0) return;
+    try {
+      setIsBatchUpdating(true);
+      const result = await memeApi.batchUpdate({
+        meme_ids: Array.from(selectedIds),
+        enabled,
+      });
+      toast.success(t('aiMeme.batchUpdateSuccess', { count: result.updated_count }));
+      setSelectedIds(new Set());
+      fetchMemes();
+      fetchStats();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('aiMeme.batchUpdateFailed')));
+    } finally {
+      setIsBatchUpdating(false);
+    }
+  };
+
+  // Batch add to pack
+  const handleBatchAddToPack = async (packId: string) => {
+    if (selectedIds.size === 0 || !packId) return;
+    try {
+      setIsBatchUpdating(true);
+      const result = await memeApi.batchUpdate({
+        meme_ids: Array.from(selectedIds),
+        add_pack_id: packId,
+      });
+      toast.success(t('aiMeme.batchUpdateSuccess', { count: result.updated_count }));
+      setSelectedIds(new Set());
+      fetchMemes();
+      fetchStats();
+      fetchPersonas();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('aiMeme.batchUpdateFailed')));
+    } finally {
+      setIsBatchUpdating(false);
+      setBatchPackSelectKey((k) => k + 1);
+    }
+  };
+
+  const editablePacks = packs.filter((p) => !p.is_repo_pack);
+  const editableUploadPersonas = editablePacks.map((pack) => ({
+    persona_hint: pack.pack_id,
+    count: pack.member_count,
+    folder: pack.name,
+  }));
+  const activePackSummary =
+    filterPersona !== PERSONA_ALL ? packs.find((p) => p.pack_id === filterPersona) : undefined;
+  const incompleteCount = stats?.incomplete_count ?? 0;
 
   const totalPages = Math.ceil(total / pageSize);
 
@@ -1840,16 +2140,23 @@ export default function AIMemePage() {
                 {t('aiMeme.purgeRejected')}
               </Button>
             )}
-            {filterStatus === 'pending_manual' && (
-              <Button
-                variant="outline"
-                onClick={() => setShowRetagPendingDialog(true)}
-                className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
-              >
-                <RotateCw className="w-4 h-4" />
-                {t('aiMeme.batchRetagPending')}
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              disabled={isRetaggingPending}
+              onClick={() => setShowRetagPendingDialog(true)}
+              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
+            >
+              <RotateCw className={cn('w-4 h-4', isRetaggingPending && 'animate-spin')} />
+              <span>{t('aiMeme.batchRetagIncomplete')}</span>
+              {!activePackSummary && incompleteCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-0.5 h-5 px-1.5 text-[10px] font-semibold tabular-nums bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                >
+                  {incompleteCount}
+                </Badge>
+              )}
+            </Button>
             {(stats?.total ?? total) > 0 && (
               <Button
                 variant="outline"
@@ -1962,7 +2269,9 @@ export default function AIMemePage() {
             />
             {searchInput && (
               <button
+                type="button"
                 onClick={() => {
+                  if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
                   setSearchInput('');
                   setSearchQuery('');
                   setPage(1);
@@ -2055,6 +2364,55 @@ export default function AIMemePage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => void handleBatchSetEnabled(true)}
+              disabled={isBatchUpdating}
+              className="h-7 text-xs gap-1"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              {t('aiMeme.batchEnable')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleBatchSetEnabled(false)}
+              disabled={isBatchUpdating}
+              className="h-7 text-xs gap-1"
+            >
+              <Ban className="w-3.5 h-3.5 text-muted-foreground" />
+              {t('aiMeme.batchDisable')}
+            </Button>
+            {editablePacks.length > 0 && (
+              <Select
+                key={batchPackSelectKey}
+                onValueChange={(packId) => void handleBatchAddToPack(packId)}
+                disabled={isBatchUpdating}
+              >
+                <SelectTrigger className="h-7 w-auto min-w-[116px] text-xs px-2.5 gap-1">
+                  <FolderPlus className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <SelectValue placeholder={t('aiMeme.batchAddPack')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {editablePacks.map((pack) => (
+                    <SelectItem key={pack.pack_id} value={pack.pack_id}>
+                      {pack.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowRetagSelectedDialog(true)}
+              disabled={isBatchRetaggingSelected}
+              className="h-7 text-xs gap-1"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              {t('aiMeme.batchRetagSelected')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleBatchExport}
               disabled={isExporting}
               className="h-7 text-xs gap-1"
@@ -2107,25 +2465,25 @@ export default function AIMemePage() {
                 value={stats.total_usage}
               />
               <StatCard
+                icon={<CheckCircle2 />}
+                iconBgClass="bg-emerald-500/10"
+                iconClass="text-emerald-500"
+                label={t('aiMeme.stats.enabled')}
+                value={stats.enabled_count ?? stats.total}
+              />
+              <StatCard
                 icon={<Clock />}
                 iconBgClass="bg-yellow-500/10"
                 iconClass="text-yellow-500"
-                label={t('aiMeme.stats.pending')}
-                value={stats.status_counts.pending || 0}
-              />
-              <StatCard
-                icon={<CheckCircle2 />}
-                iconBgClass="bg-green-500/10"
-                iconClass="text-green-500"
-                label={t('aiMeme.stats.tagged')}
-                value={stats.status_counts.tagged || 0}
+                label={t('aiMeme.stats.incomplete')}
+                value={stats.incomplete_count ?? stats.status_counts.pending ?? 0}
               />
               <StatCard
                 icon={<Sparkles />}
                 iconBgClass="bg-blue-500/10"
                 iconClass="text-blue-500"
-                label={t('aiMeme.stats.manual')}
-                value={stats.status_counts.manual || 0}
+                label={t('aiMeme.stats.tagged')}
+                value={(stats.status_counts.tagged || 0) + (stats.status_counts.manual || 0)}
               />
               <StatCard
                 icon={<AlertCircle />}
@@ -2242,13 +2600,15 @@ export default function AIMemePage() {
         </>
       )}
 
-      {/* Detail Dialog */}
-      <MemeDetailDialog
+      {/* Right-side Edit Sheet */}
+      <MemeEditSheet
         meme={selectedMeme}
+        packs={packs}
         open={detailOpen}
         onClose={() => {
+          detailSeqRef.current++;
+          detailOpenRef.current = false;
           setDetailOpen(false);
-          setSelectedMeme(null);
         }}
         onUpdate={handleDetailUpdate}
         onDelete={handleDetailDelete}
@@ -2259,10 +2619,25 @@ export default function AIMemePage() {
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
         onSuccess={handleUploadSuccess}
-        personas={personas}
+        personas={editableUploadPersonas}
         onPackCreated={(pack) => {
           setPersonas((prev) =>
             prev.some((p) => p.persona_hint === pack.persona_hint) ? prev : [...prev, pack],
+          );
+          setPacks((prev) =>
+            prev.some((p) => p.pack_id === pack.persona_hint)
+              ? prev
+              : [
+                  ...prev,
+                  {
+                    pack_id: pack.persona_hint,
+                    name: pack.folder,
+                    member_count: 0,
+                    tagged_count: 0,
+                    bound_personas: [],
+                    is_repo_pack: false,
+                  },
+                ],
           );
         }}
       />
@@ -2357,19 +2732,62 @@ export default function AIMemePage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Batch Retag Pending Confirm Dialog */}
-      <AlertDialog open={showRetagPendingDialog} onOpenChange={setShowRetagPendingDialog}>
+      {/* Batch Retag Incomplete Confirm Dialog */}
+      <AlertDialog
+        open={showRetagPendingDialog}
+        onOpenChange={(next) => !isRetaggingPending && setShowRetagPendingDialog(next)}
+      >
         <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('aiMeme.batchRetagPendingConfirm')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('aiMeme.batchRetagIncompleteConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('aiMeme.batchRetagPendingConfirmDesc')}
+              {activePackSummary
+                ? t('aiMeme.batchRetagIncompleteConfirmPackDesc', { pack: activePackSummary.name })
+                : t('aiMeme.batchRetagIncompleteConfirmDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBatchRetagPending} disabled={isRetaggingPending}>
+            <AlertDialogCancel disabled={isRetaggingPending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleBatchRetagIncomplete();
+              }}
+              disabled={isRetaggingPending}
+            >
               {isRetaggingPending && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+              {t('common.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Batch Retag Selected Confirm Dialog */}
+      <AlertDialog
+        open={showRetagSelectedDialog}
+        onOpenChange={(next) => !isBatchRetaggingSelected && setShowRetagSelectedDialog(next)}
+      >
+        <AlertDialogContent className="glass-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('aiMeme.batchRetagSelectedConfirm')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('aiMeme.batchRetagSelectedConfirmDesc', { count: selectedIds.size })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBatchRetaggingSelected}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleBatchRetagSelected();
+              }}
+              disabled={isBatchRetaggingSelected}
+            >
+              {isBatchRetaggingSelected && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
               {t('common.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>

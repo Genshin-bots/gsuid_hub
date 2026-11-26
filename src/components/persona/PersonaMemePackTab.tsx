@@ -54,11 +54,11 @@ function loadThumb(memeId: string): Promise<string | null> {
 
 function getDerivedCooldown(frequency: number): number {
   if (frequency <= 0) return 0;
-  if (frequency < 20) return 180;
-  if (frequency < 40) return 120;
-  if (frequency < 65) return 60;
-  if (frequency < 85) return 30;
-  return 15;
+  if (frequency < 20) return 90;
+  if (frequency < 40) return 45;
+  if (frequency < 65) return 15;
+  if (frequency < 85) return 8;
+  return 3;
 }
 
 function getTierLabel(frequency: number): string {
@@ -373,11 +373,11 @@ export function PersonaMemePackTab({
               <div className="flex flex-wrap gap-1.5 flex-1 items-center">
                 {[
                   { val: 0, tag: '0 自适应' },
+                  { val: 3, tag: '3秒' },
+                  { val: 8, tag: '8秒' },
                   { val: 15, tag: '15秒' },
-                  { val: 30, tag: '30秒' },
-                  { val: 60, tag: '60秒' },
-                  { val: 120, tag: '120秒' },
-                  { val: 300, tag: '300秒' },
+                  { val: 45, tag: '45秒' },
+                  { val: 90, tag: '90秒' },
                 ].map(({ val, tag }) => {
                   const active = currentCd === val;
                   return (
