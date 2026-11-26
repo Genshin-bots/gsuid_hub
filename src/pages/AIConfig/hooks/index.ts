@@ -33,3 +33,6 @@ export type {
   UseAIServiceSwitchArgs,
   UseAIServiceSwitchReturn,
 } from './useAIServiceSwitch';
+
+export { useTaskGraphConfig } from './useTaskGraphConfig';
+export type { UseTaskGraphConfigReturn } from './useTaskGraphConfig';

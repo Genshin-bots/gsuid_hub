@@ -1937,24 +1937,56 @@ export interface AITaskKindInfo {
   plugin?: string | null;
 }
 
+export type AITaskGraphNodeRole = 'high' | 'low' | 'custom';
+
+export interface AITaskGraphPos {
+  x: number;
+  y: number;
+}
+
+export interface AITaskGraphHubNode {
+  id: string;
+  primary: string;
+  secondary: string;
+  role: AITaskGraphNodeRole;
+  valid?: boolean;
+  pos: AITaskGraphPos | null;
+}
+
+export interface AITaskGraphData {
+  nodes: AITaskGraphHubNode[];
+  edges: Record<string, string>;
+  split_subagents: string[];
+  task_positions: Record<string, AITaskGraphPos>;
+}
+
+export interface AITaskGraphSavePayload {
+  nodes: Array<{
+    id: string;
+    primary: string;
+    secondary: string;
+    role: AITaskGraphNodeRole;
+    pos: AITaskGraphPos | null;
+  }>;
+  edges: Record<string, string>;
+  split_subagents: string[];
+  task_positions: Record<string, AITaskGraphPos>;
+}
+
 export interface AITaskModelsData {
   groups: AITaskGroup[];
   levels: Record<AITaskLevel, { primary: string; secondary: string }>;
   kinds: AITaskKindInfo[];
   /** 已保存但当前未登记的任务 ID（如插件已卸载） */
   orphans: string[];
+  /** 星型节点模型路由图谱拓扑（旧后端可能缺省，前端可自动合成） */
+  graph?: AITaskGraphData;
 }
 
 export const aiTaskModelsApi = {
   list: () => api.get<AITaskModelsData>('/api/ai_task_models'),
-  set: (taskKind: string, primary: string, secondary = '') =>
-    api.put<AITaskModelsData>(`/api/ai_task_models/${encodeURIComponent(taskKind)}`, {
-      primary,
-      secondary,
-    }),
-  clear: (taskKind: string) =>
-    api.delete<AITaskModelsData>(`/api/ai_task_models/${encodeURIComponent(taskKind)}`),
-  clearAll: () => api.delete<AITaskModelsData>('/api/ai_task_models'),
+  saveGraph: (payload: AITaskGraphSavePayload) =>
+    api.put<AITaskModelsData>('/api/ai_task_models/graph', payload),
 };
 
 export const embeddingConfigApi = {
@@ -7449,6 +7481,7 @@ export interface TokenRangeByModelItem extends TokenRangeBucket {
 
 export interface TokenRangeByTypeItem extends TokenRangeBucket {
   type: string;
+  request_count?: number;
 }
 
 /** User Turn / Agent Run 效率（省 Token 主指标） */

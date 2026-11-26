@@ -2,7 +2,7 @@
  * 桶导出文件。
  *
  * 外部推荐通过以下方式导入：
- *   import { ServiceSwitchSection, TaskConfigSection } from './AIConfig';
+ *   import { ServiceSwitchSection, TaskRoutingGraphSection } from './AIConfig';
  *   import type { LocalFrameworkConfig } from './AIConfig';
  *
  * 该入口同时被 `./AIConfigPage.tsx`（顶层路由）和外部测试使用。
@@ -24,10 +24,8 @@ export { renderRichText } from './shared/renderRichText';
 // sections
 export { ServiceSwitchSection } from './sections/ServiceSwitchSection';
 export type { ServiceSwitchSectionProps } from './sections/ServiceSwitchSection';
-export { TaskConfigSection } from './sections/TaskConfigSection';
-export type { TaskConfigSectionProps } from './sections/TaskConfigSection';
-export { TaskModelOverridesPanel } from './sections/TaskModelOverridesPanel';
-export type { TaskModelOverridesPanelProps } from './sections/TaskModelOverridesPanel';
+export { TaskRoutingGraphSection } from './graph/TaskRoutingGraphSection';
+export type { TaskRoutingGraphSectionProps } from './graph/TaskRoutingGraphSection';
 export { WebSearchSection } from './sections/WebSearchSection';
 export type { WebSearchSectionProps } from './sections/WebSearchSection';
 export { WebFetchSection } from './sections/WebFetchSection';

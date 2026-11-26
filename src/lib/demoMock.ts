@@ -2322,8 +2322,8 @@ export const generateTokenByRange = (startDate?: string, endDate?: string) => {
       output_tokens: output,
       cache_read_tokens: cacheRead,
       cache_write_tokens: cacheWrite,
-      // 与后端一致：四类互不重叠，总量四项全加（manager.py get_token_usage_by_range）
-      total_tokens: input + output + cacheRead + cacheWrite,
+      // 与后端一致：cache 单列但总量只算 input+output（manager.py get_token_usage_by_range）
+      total_tokens: input + output,
       user_turn_count: userTurn,
       agent_run_count: agentRun,
       avg_tokens_per_user_turn: Math.floor((input + output) / userTurn),
@@ -2361,7 +2361,7 @@ export const generateTokenByRange = (startDate?: string, endDate?: string) => {
       output_tokens: output,
       cache_read_tokens: cacheRead,
       cache_write_tokens: cacheWrite,
-      total_tokens: input + output + cacheRead + cacheWrite,
+      total_tokens: input + output,
     };
   });
 
@@ -2369,23 +2369,31 @@ export const generateTokenByRange = (startDate?: string, endDate?: string) => {
   // 键名对齐任务注册表 stats_keys，统计页与任务配置面板才能映射出中文任务名
   const by_type = (
     [
-      { type: 'chat', share: 0.58, inShare: 0.44, outShare: 0.71 },
-      { type: 'turnrouter', share: 0.24, inShare: 0.31, outShare: 0.18 },
-      { type: 'memalgebra', share: 0.11, inShare: 0.16, outShare: 0.07 },
-      { type: 'imageunderstand', share: 0.07, inShare: 0.09, outShare: 0.04 },
+      { type: 'chat', share: 0.44, inShare: 0.34, outShare: 0.56, reqMult: 1.0 },
+      { type: 'turnrouter', share: 0.16, inShare: 0.23, outShare: 0.09, reqMult: 2.2 },
+      { type: 'autonomy', share: 0.12, inShare: 0.11, outShare: 0.13, reqMult: 0.25 },
+      { type: 'capabilityagent', share: 0.11, inShare: 0.12, outShare: 0.1, reqMult: 0.32 },
+      { type: 'memalgebra', share: 0.08, inShare: 0.11, outShare: 0.05, reqMult: 0.85 },
+      { type: 'scheduledtask_exec', share: 0.05, inShare: 0.05, outShare: 0.04, reqMult: 0.18 },
+      { type: 'heartbeat_decision', share: 0.04, inShare: 0.04, outShare: 0.03, reqMult: 0.6 },
     ] as const
   ).map((ty) => {
     const input = Math.round(total.input_tokens * ty.inShare);
     const output = Math.round(total.output_tokens * ty.outShare);
     const cacheRead = Math.round(total.cache_read_tokens * ty.share);
     const cacheWrite = Math.round(total.cache_write_tokens * ty.share);
+    const baseTurns = Math.max(
+      1,
+      sum((d) => d.user_turn_count),
+    );
     return {
       type: ty.type,
       input_tokens: input,
       output_tokens: output,
       cache_read_tokens: cacheRead,
       cache_write_tokens: cacheWrite,
-      total_tokens: input + output + cacheRead + cacheWrite,
+      total_tokens: input + output,
+      request_count: Math.max(1, Math.round(baseTurns * ty.reqMult)),
     };
   });
 

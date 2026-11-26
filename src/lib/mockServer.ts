@@ -1598,8 +1598,8 @@ const routes: Route[] = [
     m: 'GET',
     re: /^\/api\/ai_task_models$/,
     h: () => {
-      const high = 'high-main';
-      const low = 'low-main';
+      const high = 'anthropic++high-main';
+      const low = 'anthropic++low-main';
       const kind = (
         id: string,
         title: string,
@@ -1635,48 +1635,140 @@ const routes: Route[] = [
         node_source: extra.node_source ?? null,
         plugin: extra.plugin ?? null,
       });
+      const kinds = [
+        kind('chat', '主对话', 'conversation', 'high', {
+          stats: ['chat', 'http_chat', '命令补充'],
+        }),
+        kind('turn_router', '前置路由', 'conversation', 'low', {
+          fast: true,
+          stats: ['turnrouter'],
+        }),
+        kind('temp_assistant', '临时任务助手', 'conversation', 'high', {
+          stats: ['coreaicontrolbtw'],
+        }),
+        kind('eval_judge', '评测裁判', 'conversation', 'low', { stats: ['evaljudge'] }),
+        kind('subagent', '子 Agent', 'agent', 'high', { stats: ['autoplanner'] }),
+        kind('capability_agent', '能力代理', 'agent', 'high', { stats: ['capabilityagent'] }),
+        kind('capability_agent:render_agent', '视觉渲染', 'agent', 'high', {
+          desc: '把事实包设计并渲染为竖屏信息图。',
+          parent_id: 'capability_agent',
+          node_source: 'builtin',
+          plugin: 'core',
+        }),
+        kind('capability_agent:research_agent', '调研助手', 'agent', 'high', {
+          desc: '外部信息收集、综合分析与资料汇总。',
+          parent_id: 'capability_agent',
+          node_source: 'builtin',
+          plugin: 'core',
+        }),
+        kind('capability_agent:code_agent', '代码助手', 'agent', 'high', {
+          desc: '沙盒内编写代码、运行脚本与生成报告文件。',
+          parent_id: 'capability_agent',
+          node_source: 'builtin',
+          plugin: 'core',
+        }),
+        kind('capability_eval', '能力代理评估', 'agent', 'low', {
+          stats: ['capabilityevaluator'],
+        }),
+        kind('scheduled_task', '定时任务', 'agent', 'high', { stats: ['scheduledtask_exec'] }),
+        kind('autonomy', '自主行动', 'agent', 'high', { stats: ['autonomy'] }),
+        kind('build_persona', '人格生成', 'agent', 'high', { stats: ['buildpersona'] }),
+        kind('mcp_profile', 'MCP 画像生成', 'agent', 'high', { stats: ['mcpprofilegenerator'] }),
+        kind('heartbeat_decision', '巡检决策', 'proactive', 'high', {
+          stats: ['heartbeat_decision'],
+        }),
+        kind('heartbeat_output', '巡检发言', 'proactive', 'high', {
+          stats: ['heartbeat_output', 'autonomy_output'],
+        }),
+        kind('memory_algebra', '记忆抽取', 'memory', 'low', {
+          fast: true,
+          stats: ['memalgebra'],
+        }),
+        kind('memory_window_router', '记忆话题归类', 'memory', 'low', {
+          fast: true,
+          stats: ['memwindowrouter'],
+        }),
+        kind('journal_compact', '日志压缩', 'memory', 'high'),
+        kind('relationship_distill', '关系提炼', 'memory', 'high', { stats: ['dyadic_distill'] }),
+        kind('image_understand', '图片理解', 'multimodal', 'high', {
+          follows_caller: true,
+          stats: ['imageunderstand'],
+        }),
+        kind('image_desc_summary', '图片描述精简', 'multimodal', 'low', {
+          stats: ['imagedescsummary'],
+        }),
+        kind('meme_tagger', '表情包打标', 'multimodal', 'low', { stats: ['memetagger'] }),
+      ];
+      const edges: Record<string, string> = {};
+      for (const k of kinds) {
+        if (!k.parent_id && !k.follows_caller) {
+          edges[k.id] = k.default_level === 'high' ? 'slot_high' : 'slot_low';
+        }
+      }
       return {
         groups: ['conversation', 'agent', 'proactive', 'memory', 'multimodal', 'plugin'],
-        levels: { high: { primary: high, secondary: '' }, low: { primary: low, secondary: '' } },
-        kinds: [
-          kind('chat', '主对话', 'conversation', 'high', {
-            stats: ['chat', 'http_chat', '命令补充'],
-          }),
-          kind('turn_router', '前置路由', 'conversation', 'low', {
-            fast: true,
-            stats: ['turnrouter'],
-          }),
-          kind('subagent', '子 Agent', 'agent', 'high', { stats: ['autoplanner'] }),
-          kind('capability_agent', '能力代理', 'agent', 'high', { stats: ['capabilityagent'] }),
-          kind('capability_agent:render_agent', '视觉渲染', 'agent', 'high', {
-            desc: '把事实包设计并渲染为竖屏信息图。',
-            parent_id: 'capability_agent',
-            node_source: 'builtin',
-            plugin: 'core',
-          }),
-          kind('capability_agent:research_agent', '调研助手', 'agent', 'high', {
-            desc: '外部信息收集、综合分析与资料汇总。',
-            parent_id: 'capability_agent',
-            node_source: 'builtin',
-            plugin: 'core',
-          }),
-          kind('capability_agent:code_agent', '代码助手', 'agent', 'high', {
-            desc: '沙盒内编写代码、运行脚本与生成报告文件。',
-            parent_id: 'capability_agent',
-            node_source: 'builtin',
-            plugin: 'core',
-          }),
-          kind('heartbeat_decision', '巡检决策', 'proactive', 'high'),
-          kind('memory_algebra', '记忆抽取', 'memory', 'low', {
-            fast: true,
-            stats: ['memalgebra'],
-          }),
-          kind('image_understand', '图片理解', 'multimodal', 'high', {
-            follows_caller: true,
-            stats: ['imageunderstand'],
-          }),
-        ],
+        levels: {
+          high: { primary: high, secondary: 'openai++high-backup' },
+          low: { primary: low, secondary: 'gemini++low-backup' },
+        },
+        kinds,
         orphans: [],
+        graph: {
+          nodes: [
+            {
+              id: 'slot_high',
+              primary: high,
+              secondary: 'openai++high-backup',
+              role: 'high',
+              valid: true,
+              pos: null,
+            },
+            {
+              id: 'slot_low',
+              primary: low,
+              secondary: 'gemini++low-backup',
+              role: 'low',
+              valid: true,
+              pos: null,
+            },
+          ],
+          edges,
+          split_subagents: [],
+          task_positions: {},
+        },
+      };
+    },
+  },
+  {
+    m: 'PUT',
+    re: /^\/api\/ai_task_models\/graph$/,
+    h: ({ body }) => {
+      const payload = (body ?? {}) as {
+        nodes?: Array<{
+          id: string;
+          primary: string;
+          secondary: string;
+          role: string;
+          pos: { x: number; y: number } | null;
+        }>;
+        edges?: Record<string, string>;
+        split_subagents?: string[];
+        task_positions?: Record<string, { x: number; y: number }>;
+      };
+      return {
+        groups: ['conversation', 'agent', 'proactive', 'memory', 'multimodal', 'plugin'],
+        levels: {
+          high: { primary: payload.nodes?.[0]?.primary ?? '', secondary: '' },
+          low: { primary: payload.nodes?.[1]?.primary ?? '', secondary: '' },
+        },
+        kinds: [],
+        orphans: [],
+        graph: {
+          nodes: (payload.nodes ?? []).map((n) => ({ ...n, valid: true })),
+          edges: payload.edges ?? {},
+          split_subagents: payload.split_subagents ?? [],
+          task_positions: payload.task_positions ?? {},
+        },
       };
     },
   },
