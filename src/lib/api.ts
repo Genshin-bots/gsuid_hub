@@ -10,6 +10,7 @@ import {
   type EncryptedPayload,
 } from './authCrypto';
 import { BackendUnreachableError, isUnreachableResponse } from './backendReachability';
+import { isEndpointNotFoundError, isMissingConfigItemError } from './pluginSource';
 // Demo 模式：<img src> 不走 fetch（mockServer 拦不到），故图片 URL 构造函数在 VITE_DEMO 下
 // 直接返回内置 SVG 占位图，避免一墙裂图。普通构建下分支为 dead code，import 会被 tree-shake。
 import { demoPluginIcon, demoMemeImageUrl } from './demoMock';
@@ -367,6 +368,16 @@ export interface Plugin {
   enabled: boolean;
   status: string;
   icon?: string;
+  commit?: string;
+  is_git?: boolean;
+  has_remote?: boolean;
+  source_kind?: PluginSourceKind;
+  upstream_url?: string;
+  upstream_host?: string;
+  upstream_provider?: UpstreamProvider;
+  active_mirror?: MirrorDisplay;
+  load_status?: 'loaded' | 'failed' | 'unloaded' | 'disabled';
+  last_error?: string | null;
   config: Record<string, PluginConfigItem>;
   config_groups?: PluginConfigGroup[];
   config_names?: string[]; // 配置名称列表，用于判断是否需要显�?toggle group
@@ -1118,6 +1129,38 @@ export interface PluginUsageRank {
   plugins: PluginUsageItem[];
 }
 
+export type PluginSourceKind = 'official' | 'fork' | 'third_party' | 'git_local_only' | 'local';
+export type UpstreamProvider = 'github' | 'cnb' | 'gitcode' | 'gitlab' | 'gitea' | 'other';
+export type MirrorChannel =
+  | 'github'
+  | 'cnb'
+  | 'gitcode'
+  | 'ghproxy'
+  | 'ssh'
+  | 'custom_proxy'
+  | 'custom_mirror';
+export type MirrorType = 'auto' | 'default' | 'mirror' | 'proxy' | 'ssh';
+export type MirrorDisplay =
+  | 'github'
+  | 'cnb'
+  | 'gitcode'
+  | 'ghproxy'
+  | 'ssh'
+  | 'custom_proxy'
+  | 'custom_mirror'
+  | 'native'
+  | 'unknown';
+export type ProbeState = 'available' | 'not_synced' | 'unreachable' | 'unknown';
+
+export interface MirrorProbeResult {
+  channel: string;
+  target_url: string;
+  state: ProbeState;
+  checked_at: number;
+  expires_at?: number;
+  detail?: string;
+}
+
 export interface PluginListItem {
   id: string;
   name: string;
@@ -1126,6 +1169,15 @@ export interface PluginListItem {
   status: string;
   icon?: string;
   commit?: string;
+  is_git?: boolean;
+  has_remote?: boolean;
+  source_kind?: PluginSourceKind;
+  upstream_url?: string;
+  upstream_host?: string;
+  upstream_provider?: UpstreamProvider;
+  active_mirror?: MirrorDisplay;
+  load_status?: 'loaded' | 'failed' | 'unloaded' | 'disabled';
+  last_error?: string | null;
   pages?: PluginPageMeta[];
 }
 
@@ -1158,6 +1210,15 @@ export interface StorePlugin {
   isFun?: boolean;
   isTool?: boolean;
   isAdapter?: boolean;
+  in_store?: boolean;
+  is_git?: boolean;
+  local_plugin_name?: string | null;
+  local_source_kind?: PluginSourceKind | null;
+  local_upstream_url?: string;
+  local_upstream_host?: string;
+  load_status?: 'loaded' | 'failed' | 'unloaded' | 'disabled' | null;
+  last_error?: string | null;
+  has_icon?: boolean;
 }
 
 /** 插件商店各页签计数（对全量统计，不随翻页/搜索变化） */
@@ -1198,6 +1259,8 @@ export interface PluginStoreListResponse {
   order_seed?: string | null;
   /** 后端实际采用的排序模式（default / stars_desc / stars_asc） */
   sort?: string;
+  /** 远程插件商店不可达且降级展示本地已安装插件时为 true */
+  store_offline?: boolean;
 }
 
 export interface PluginPrefsDto {
@@ -1208,6 +1271,16 @@ export interface PluginPrefsDto {
 export const pluginsApi = {
   // 获取插件列表（轻量级接口�?
   getPluginList: () => api.get<PluginListItem[]>(`/api/plugins/list?_t=${Date.now()}`),
+
+  /** 管理员手动重扫本地插件磁盘快照。 */
+  refreshPlugins: () =>
+    api.post<{
+      total: number;
+      git_count: number;
+      local_count: number;
+      disabled_count?: number;
+      failed_count: number;
+    }>('/api/plugins/refresh'),
 
   /** 近几天命令触发热度。后端有缓存；旧后端没有这个接口时调用方自行降级。 */
   getPluginUsage: () => api.get<PluginUsageRank>(`/api/plugins/usage`),
@@ -4860,7 +4933,8 @@ export const aiScheduledTasksApi = {
 export interface GitMirrorOption {
   label: string;
   value: string;
-  type: 'default' | 'mirror' | 'proxy';
+  type: 'default' | 'mirror' | 'proxy' | 'ssh';
+  channel?: string;
 }
 
 export interface GitPluginInfo {
@@ -4868,11 +4942,21 @@ export interface GitPluginInfo {
   path: string;
   remote_url: string;
   is_git_repo: boolean;
-  mirror: 'gitcode' | 'cnb' | 'ghproxy' | 'github' | 'unknown';
+  mirror: MirrorDisplay;
+  commit?: string;
+  source_kind?: PluginSourceKind;
+  upstream_url?: string;
+  upstream_host?: string;
+  upstream_provider?: UpstreamProvider;
+  active_mirror_prefix?: string;
+  store_upstream_url?: string | null;
+  supported_mirrors?: string[];
+  mirror_probes?: MirrorProbeResult[];
 }
 
 export interface GitMirrorInfo {
   current_mirror: string;
+  current_mirror_mode?: MirrorType;
   available_mirrors: GitMirrorOption[];
   plugins: GitPluginInfo[];
 }
@@ -4880,6 +4964,7 @@ export interface GitMirrorInfo {
 export interface GitMirrorSetAllResult {
   name: string;
   success: boolean;
+  status?: 'switched' | 'unchanged' | 'skipped' | 'failed';
   message: string;
 }
 
@@ -4888,37 +4973,95 @@ export interface GitMirrorSetAllResponse {
   summary: {
     total: number;
     success_count: number;
+    skipped_count?: number;
     fail_count: number;
+    config_updated?: boolean;
   };
 }
 
 export interface GitMirrorSetPluginResponse {
   name: string;
   success: boolean;
+  status?: 'switched' | 'unchanged' | 'skipped' | 'failed';
   message: string;
+}
+
+export interface GitMirrorProbeResponse {
+  probes: Record<string, MirrorProbeResult[]>;
+}
+
+export interface GitMirrorSaveConfigResponse {
+  current_mirror: string;
+  current_mirror_mode: 'auto' | 'proxy' | 'mirror';
 }
 
 export const gitMirrorApi = {
   // 获取 Git 镜像信息
-  getInfo: () => api.get<GitMirrorInfo>('/api/git-mirror/info'),
+  getInfo: (options?: { fresh?: boolean; probe?: boolean }) => {
+    const query = new URLSearchParams();
+    if (options?.fresh) query.set('fresh', 'true');
+    if (options?.probe) query.set('probe', 'true');
+    const qs = query.toString();
+    return api.get<GitMirrorInfo>(`/api/git-mirror/info${qs ? `?${qs}` : ''}`);
+  },
+
+  probe: (options?: { plugin_name?: string; force?: boolean }) =>
+    api.post<GitMirrorProbeResponse>('/api/git-mirror/probe', {
+      plugin_name: options?.plugin_name ?? null,
+      force: options?.force ?? true,
+    }),
 
   // 批量设置所有插件的镜像源（同时更新配置�?
-  setAll: (mirrorPrefix: string) =>
-    api.post<GitMirrorSetAllResponse>('/api/git-mirror/set-all', { mirror_prefix: mirrorPrefix }),
+  setAll: (mirrorPrefix: string, mirrorType: MirrorType = 'auto') =>
+    api.post<GitMirrorSetAllResponse>('/api/git-mirror/set-all', {
+      mirror_prefix: mirrorPrefix,
+      mirror_type: mirrorType,
+    }),
 
   // 设置单个插件的镜像源
-  setPlugin: (pluginName: string, mirrorPrefix: string) =>
+  setPlugin: (pluginName: string, mirrorPrefix: string, mirrorType: MirrorType = 'auto') =>
     api.post<GitMirrorSetPluginResponse>(
       `/api/git-mirror/set-plugin/${encodeURIComponent(pluginName)}`,
-      { mirror_prefix: mirrorPrefix },
+      { mirror_prefix: mirrorPrefix, mirror_type: mirrorType },
     ),
 
   // 获取可用镜像源列�?
   getAvailable: () => api.get<GitMirrorOption[]>('/api/git-mirror/available'),
 
-  // 仅保存镜像源配置（不影响已安装插件，仅影响后续新安装的插件）
-  saveConfig: (mirrorPrefix: string) =>
-    frameworkConfigApi.updateFrameworkConfigItem('GsCore', 'GitMirror', mirrorPrefix),
+  // 仅保存全局镜像配置（优先走原子 /api/git-mirror/config，旧版核心 404 时降级框架配置项）
+  saveConfig: async (
+    mirrorPrefix: string,
+    mirrorType: MirrorType = 'auto',
+    legacyMirrorMode?: 'auto' | 'proxy' | 'mirror',
+  ): Promise<GitMirrorSaveConfigResponse> => {
+    try {
+      return await api.post<GitMirrorSaveConfigResponse>('/api/git-mirror/config', {
+        mirror_prefix: mirrorPrefix,
+        mirror_type: mirrorType,
+      });
+    } catch (error) {
+      if (!isEndpointNotFoundError(error)) throw error;
+      console.warn(
+        '[gitMirrorApi] /api/git-mirror/config unavailable on legacy Core, falling back',
+      );
+      await frameworkConfigApi.updateFrameworkConfigItem('GsCore', 'GitMirror', mirrorPrefix);
+      if (legacyMirrorMode) {
+        try {
+          await frameworkConfigApi.updateFrameworkConfigItem(
+            'GsCore',
+            'GitMirrorMode',
+            legacyMirrorMode,
+          );
+        } catch (modeErr) {
+          if (!isMissingConfigItemError(modeErr, 'GitMirrorMode')) throw modeErr;
+        }
+      }
+      return {
+        current_mirror: mirrorPrefix,
+        current_mirror_mode: legacyMirrorMode ?? 'auto',
+      };
+    }
+  },
 };
 
 // ===================
@@ -5449,7 +5592,10 @@ export interface GitPluginStatus {
   is_git_repo: boolean;
   current_commit: GitCommitInfo | null;
   remote_url?: string;
-  mirror?: 'gitcode' | 'cnb' | 'ghproxy' | 'github' | 'unknown';
+  mirror?: MirrorDisplay;
+  source_kind?: PluginSourceKind;
+  upstream_host?: string;
+  upstream_url?: string;
 }
 
 export interface GitCommitListResponse {
@@ -5478,7 +5624,12 @@ export interface GitForceUpdateResponse {
 
 export const gitUpdateApi = {
   // 获取所有插件的 Git 状�?
-  getStatus: () => api.get<GitPluginStatus[]>('/api/git-update/status'),
+  getStatus: (fresh = false) => {
+    const query = new URLSearchParams();
+    if (fresh) query.set('fresh', 'true');
+    const qs = query.toString();
+    return api.get<GitPluginStatus[]>(`/api/git-update/status${qs ? `?${qs}` : ''}`);
+  },
 
   // 获取单个插件�?Git 状�?
   getPluginStatus: (pluginName: string) =>

@@ -29,6 +29,7 @@ import type { FrameworkSectionSharedProps } from '../types';
 const CORE_EXPECTED_KEYS = [
   'StartVENV',
   'GitMirror',
+  'GitMirrorMode',
   'is_use_custom_restart_command',
   'restart_command',
   'AutoUpdateCore',
@@ -58,6 +59,13 @@ const DEFAULT_GIT_MIRRORS = [
   'https://ghproxy.mihomo.me/',
   'ssh://',
 ] as const;
+
+function isBuiltinOrEmptyGitMirror(raw: string): boolean {
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed || trimmed.startsWith('ssh://')) return true;
+  const norm = `${trimmed.replace(/\/+$/, '')}/`;
+  return DEFAULT_GIT_MIRRORS.some((preset) => preset && preset.toLowerCase() === norm);
+}
 
 function normalizeTimeTuple(raw: unknown): [number, number] {
   if (Array.isArray(raw)) {
@@ -131,7 +139,13 @@ export function RuntimeSection({
   const autoInstallDep = Boolean(coreGroup?.config.AutoInstallDep?.value);
   const autoUpdateDep = Boolean(coreGroup?.config.AutoUpdateDep?.value);
 
-  const envKeys = ['StartVENV', 'GitMirror', 'is_use_custom_restart_command', 'restart_command'];
+  const envKeys = [
+    'StartVENV',
+    'GitMirror',
+    'GitMirrorMode',
+    'is_use_custom_restart_command',
+    'restart_command',
+  ];
   const scheduleKeys = [
     'AutoUpdateCore',
     'AutoUpdateCoreTime',
@@ -178,7 +192,9 @@ export function RuntimeSection({
             changedCount={countModified(envKeys)}
             onResetSection={() => resetKeys(envKeys)}
           >
-            {(coreGroup.config.StartVENV || coreGroup.config.GitMirror) && (
+            {(coreGroup.config.StartVENV ||
+              coreGroup.config.GitMirror ||
+              coreGroup.config.GitMirrorMode) && (
               <div className={FIELD_GRID_CLASS}>
                 {coreGroup.config.StartVENV && (
                   <FieldShell
@@ -219,7 +235,13 @@ export function RuntimeSection({
                   >
                     <InputWithDropdown
                       value={String(coreGroup.config.GitMirror.value ?? '')}
-                      onChange={(v) => onUpdateField(coreGroup.id, 'GitMirror', v)}
+                      onChange={(v) => {
+                        onUpdateField(coreGroup.id, 'GitMirror', v);
+                        // 切换回内置预设、SSH 或空值时同步把 GitMirrorMode 归位 auto
+                        if (coreGroup.config.GitMirrorMode && isBuiltinOrEmptyGitMirror(v)) {
+                          onUpdateField(coreGroup.id, 'GitMirrorMode', 'auto');
+                        }
+                      }}
                       options={gitMirrorOptions}
                       placeholder="https://github.com/ (Direct)"
                       showClearValueAction
@@ -230,6 +252,46 @@ export function RuntimeSection({
                     />
                   </FieldShell>
                 )}
+
+                {coreGroup.config.GitMirrorMode &&
+                  (() => {
+                    const lockedToAuto = isBuiltinOrEmptyGitMirror(
+                      String(coreGroup.config.GitMirror?.value ?? ''),
+                    );
+                    return (
+                      <FieldShell
+                        label={coreGroup.config.GitMirrorMode.title || 'GitMirrorMode'}
+                        help={coreGroup.config.GitMirrorMode.desc}
+                        modified={isFieldModified(coreGroup, origCore, 'GitMirrorMode')}
+                        onReset={() => onResetField(coreGroup.id, 'GitMirrorMode')}
+                      >
+                        <Select
+                          value={
+                            lockedToAuto
+                              ? 'auto'
+                              : String(coreGroup.config.GitMirrorMode.value ?? 'auto')
+                          }
+                          onValueChange={(v) => onUpdateField(coreGroup.id, 'GitMirrorMode', v)}
+                          disabled={lockedToAuto}
+                        >
+                          <SelectTrigger className="h-10 bg-background/60">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="auto">
+                              {t('frameworkConfig.runtime.gitMirrorModeAuto')}
+                            </SelectItem>
+                            <SelectItem value="proxy">
+                              {t('frameworkConfig.runtime.gitMirrorModeProxy')}
+                            </SelectItem>
+                            <SelectItem value="mirror">
+                              {t('frameworkConfig.runtime.gitMirrorModeMirror')}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FieldShell>
+                    );
+                  })()}
               </div>
             )}
 

@@ -903,6 +903,139 @@ const routes: Route[] = [
   // ── Tier 1 · 插件库 / 配置 ──
   { m: 'GET', re: /^\/api\/plugins\/list$/, h: () => generatePluginList() },
   {
+    m: 'POST',
+    re: /^\/api\/plugins\/refresh$/,
+    h: () => {
+      const total = generatePluginList().length;
+      return {
+        total,
+        git_count: Math.max(0, total - 1),
+        local_count: 1,
+        disabled_count: 0,
+        failed_count: 0,
+      };
+    },
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/git-mirror\/info$/,
+    h: () => ({
+      current_mirror: '',
+      current_mirror_mode: 'auto',
+      available_mirrors: [
+        { label: 'GitHub (默认)', value: '', type: 'default', channel: 'github' },
+        {
+          label: 'CNB 镜像',
+          value: 'https://cnb.cool/gscore-mirror/',
+          type: 'mirror',
+          channel: 'cnb',
+        },
+        {
+          label: 'GitCode 镜像',
+          value: 'https://gitcode.com/gscore-mirror/',
+          type: 'mirror',
+          channel: 'gitcode',
+        },
+        {
+          label: 'ghproxy 代理',
+          value: 'https://ghproxy.mihomo.me/',
+          type: 'proxy',
+          channel: 'ghproxy',
+        },
+        { label: 'SSH 协议', value: 'ssh://', type: 'ssh', channel: 'ssh' },
+      ],
+      plugins: generatePluginList()
+        .slice(0, 3)
+        .map((p, idx) => ({
+          name: p.id,
+          path: `/demo/plugins/${p.id}`,
+          remote_url:
+            idx === 1
+              ? `https://github.com/demo-fork/${p.id}.git`
+              : idx === 2
+                ? `https://cnb.cool/demo-org/${p.id}`
+                : `https://github.com/Genshin-bots/${p.id}`,
+          is_git_repo: true,
+          mirror: idx === 2 ? 'native' : 'github',
+          commit: p.commit || '',
+          source_kind: idx === 1 ? 'fork' : idx === 2 ? 'third_party' : 'official',
+          upstream_url:
+            idx === 1
+              ? `https://github.com/demo-fork/${p.id}`
+              : idx === 2
+                ? `https://cnb.cool/demo-org/${p.id}`
+                : `https://github.com/Genshin-bots/${p.id}`,
+          upstream_host: idx === 2 ? 'cnb.cool' : 'github.com',
+          upstream_provider: idx === 2 ? 'cnb' : 'github',
+          active_mirror_prefix: '',
+          store_upstream_url: idx <= 1 ? `https://github.com/Genshin-bots/${p.id}` : null,
+          supported_mirrors:
+            idx === 0
+              ? ['github', 'gitcode', 'cnb', 'ghproxy', 'ssh']
+              : idx === 1
+                ? ['github', 'ghproxy', 'ssh']
+                : [],
+          mirror_probes:
+            idx === 0
+              ? [
+                  {
+                    channel: 'cnb',
+                    target_url: `https://cnb.cool/gscore-mirror/${p.id}`,
+                    state: 'available',
+                    checked_at: Date.now() / 1000,
+                    expires_at: Date.now() / 1000 + 900,
+                  },
+                ]
+              : [],
+        })),
+    }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/git-mirror\/config$/,
+    h: ({ body }) => {
+      const payload = (body && typeof body === 'object' ? body : {}) as {
+        mirror_prefix?: string;
+        mirror_type?: string;
+      };
+      const prefix = String(payload.mirror_prefix ?? '').trim();
+      const mode =
+        payload.mirror_type === 'proxy' || payload.mirror_type === 'mirror'
+          ? payload.mirror_type
+          : 'auto';
+      return { current_mirror: prefix, current_mirror_mode: mode };
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/git-mirror\/probe$/,
+    h: () => ({ probes: {} }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/git-mirror\/set-all$/,
+    h: () => ({
+      results: [],
+      summary: {
+        total: 0,
+        success_count: 0,
+        skipped_count: 0,
+        fail_count: 0,
+        config_updated: true,
+      },
+    }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/git-mirror\/set-plugin\/([^/]+)$/,
+    h: ({ url }) => ({
+      name: decodeURIComponent(url.pathname.split('/').pop() || ''),
+      success: true,
+      status: 'switched',
+      message: 'demo: switched',
+    }),
+  },
+  {
     m: 'GET',
     re: /^\/api\/plugins\/recent$/,
     h: () => mockPluginPrefs,

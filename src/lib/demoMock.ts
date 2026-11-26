@@ -1471,7 +1471,23 @@ export const applyLogConfig = (body: unknown) => {
 };
 
 // ---- Persona（PersonaConfigPage） ----
-const DEMO_PERSONAS = [
+type DemoLegacyScope = 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
+type DemoChannelScope = 'off' | 'specific' | 'all';
+interface DemoPersona {
+  name: string;
+  description: string;
+  enabled: boolean;
+  scope: DemoLegacyScope;
+  group_scope: DemoChannelScope;
+  private_scope: DemoChannelScope;
+  target_groups: string[];
+  target_users: string[];
+  ai_mode: string[];
+  avatar: string;
+  bound_groups_count: number;
+  is_default: boolean;
+}
+const DEMO_PERSONAS: DemoPersona[] = [
   {
     name: '早柚',
     description: 'Wind Spirit. 是一只来自璃月的小风精灵，活泼可爱，喜欢早安问候与小憩。',
@@ -1529,7 +1545,6 @@ const DEMO_PERSONAS = [
     is_default: true,
   },
 ];
-type DemoPersona = (typeof DEMO_PERSONAS)[number];
 const extraCopiedPersonas: DemoPersona[] = [];
 
 function allDemoPersonas(): DemoPersona[] {

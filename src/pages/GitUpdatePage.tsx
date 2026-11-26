@@ -9,6 +9,11 @@ import { TruncatedText } from '@/components/ui/truncated-text';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
+  getSourceBadgeInfo,
+  resolveCommitIssueBaseUrl,
+  SOURCE_BADGE_CLASSES,
+} from '@/lib/pluginSource';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -122,59 +127,16 @@ function clearCommitsCache(pluginName?: string) {
   }
 }
 
-const KNOWN_GITHUB_MIRROR_OWNERS = new Set(['gscore-mirror', 'gsuid-mirror']);
-
-function cleanRepoName(repo: string) {
-  return repo.replace(/\.git$/i, '').replace(/\/$/, '');
-}
-
-function getGithubRepoPath(remoteUrl?: string, pluginName?: string): string | null {
-  const fallbackRepo = pluginName ? `Genshin-bots/${cleanRepoName(pluginName)}` : null;
-  if (!remoteUrl) return fallbackRepo;
-
-  const normalizedUrl = remoteUrl
-    .trim()
-    .replace(/^https?:\/\/ghproxy\.com\//i, '')
-    .replace(/^https?:\/\/gh-proxy\.com\//i, '');
-
-  const githubSshMatch = normalizedUrl.match(
-    /ssh:\/\/git@(?:ssh\.)?github\.com(?::\d+)?\/([^/\s]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i,
-  );
-  if (githubSshMatch) {
-    return `${githubSshMatch[1]}/${cleanRepoName(githubSshMatch[2])}`;
-  }
-
-  const githubMatch = normalizedUrl.match(
-    /github\.com[:/]([^/\s:]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i,
-  );
-  if (githubMatch) {
-    return `${githubMatch[1]}/${cleanRepoName(githubMatch[2])}`;
-  }
-
-  const mirrorMatch = normalizedUrl.match(
-    /(?:gitcode\.com|cnb\.cool)\/([^/\s]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i,
-  );
-  if (mirrorMatch) {
-    const owner = mirrorMatch[1];
-    const repo = cleanRepoName(mirrorMatch[2]);
-    return KNOWN_GITHUB_MIRROR_OWNERS.has(owner.toLowerCase())
-      ? `Genshin-bots/${repo}`
-      : `${owner}/${repo}`;
-  }
-
-  return fallbackRepo;
-}
-
 function CommitMessageWithIssueLinks({
   message,
-  githubRepoPath,
+  issueBaseUrl,
   className,
 }: {
   message: string;
-  githubRepoPath?: string | null;
+  issueBaseUrl?: string | null;
   className?: string;
 }) {
-  if (!githubRepoPath) {
+  if (!issueBaseUrl) {
     return <span className={className}>{message}</span>;
   }
 
@@ -187,7 +149,7 @@ function CommitMessageWithIssueLinks({
         return (
           <a
             key={`${part}-${index}`}
-            href={`https://github.com/${githubRepoPath}/issues/${issueMatch[1]}`}
+            href={`${issueBaseUrl}/issues/${issueMatch[1]}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary underline-offset-4 hover:underline"
@@ -211,7 +173,7 @@ const CommitCard = memo(function CommitCard({
   t,
   isLocalCurrent,
   isRemoteLatest,
-  githubRepoPath,
+  issueBaseUrl,
 }: {
   commit: GitCommitInfo;
   isCurrent: boolean;
@@ -221,7 +183,7 @@ const CommitCard = memo(function CommitCard({
   t: (key: string) => string;
   isLocalCurrent?: boolean;
   isRemoteLatest?: boolean;
-  githubRepoPath?: string | null;
+  issueBaseUrl?: string | null;
 }) {
   return (
     <Card className={`glass-card ${isLocalCurrent ? 'border-primary/50 bg-primary/5' : ''}`}>
@@ -260,7 +222,7 @@ const CommitCard = memo(function CommitCard({
           )}
         </div>
         <p className="text-sm font-medium break-words leading-relaxed">
-          <CommitMessageWithIssueLinks message={commit.message} githubRepoPath={githubRepoPath} />
+          <CommitMessageWithIssueLinks message={commit.message} issueBaseUrl={issueBaseUrl} />
         </p>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
@@ -287,7 +249,7 @@ const CommitRow = memo(function CommitRow({
   t,
   isLocalCurrent,
   isRemoteLatest,
-  githubRepoPath,
+  issueBaseUrl,
 }: {
   commit: GitCommitInfo;
   isCurrent: boolean;
@@ -297,7 +259,7 @@ const CommitRow = memo(function CommitRow({
   t: (key: string) => string;
   isLocalCurrent?: boolean;
   isRemoteLatest?: boolean;
-  githubRepoPath?: string | null;
+  issueBaseUrl?: string | null;
 }) {
   return (
     <tr className={`border-b border-border/50 ${isLocalCurrent ? 'bg-primary/5' : ''}`}>
@@ -319,7 +281,7 @@ const CommitRow = memo(function CommitRow({
         </div>
       </td>
       <td className="p-3 max-w-[400px] truncate">
-        <CommitMessageWithIssueLinks message={commit.message} githubRepoPath={githubRepoPath} />
+        <CommitMessageWithIssueLinks message={commit.message} issueBaseUrl={issueBaseUrl} />
       </td>
       <td className="p-3 text-muted-foreground whitespace-nowrap">{commit.author}</td>
       <td className="p-3 text-muted-foreground text-sm whitespace-nowrap">{commit.date}</td>
@@ -528,11 +490,24 @@ export default function GitUpdatePage() {
   const handleRefresh = useCallback(async () => {
     try {
       setIsLoadingStatus(true);
-      const statusData = await gitUpdateApi.getStatus();
+      const [statusData, mirrorRes, pluginListData] = await Promise.all([
+        gitUpdateApi.getStatus(true),
+        gitMirrorApi.getInfo({ fresh: true }).catch(() => null),
+        pluginsApi.getPluginList().catch(() => null),
+      ]);
       const gitPlugins = statusData.filter((p) => p.is_git_repo);
       setPlugins(gitPlugins);
-      // 更新缓存
       setCachedData(GIT_STATUS_CACHE_KEY, statusData);
+      if (mirrorRes) {
+        const map: Record<string, GitPluginInfo> = {};
+        mirrorRes.plugins.forEach((p) => {
+          map[p.name.toLowerCase()] = p;
+        });
+        setGitPluginsMap(map);
+      }
+      if (pluginListData) {
+        setPluginList(pluginListData);
+      }
     } catch (error) {
       console.error('Failed to refresh:', error);
     } finally {
@@ -545,7 +520,6 @@ export default function GitUpdatePage() {
         setDisplayCount(PAGE_SIZE);
         const data = await gitUpdateApi.getRemoteCommits(selectedPluginRef.current);
         setCommitsData(data);
-        // 更新缓存
         setCachedData(GIT_COMMITS_CACHE_PREFIX + selectedPluginRef.current, data);
       } catch (error) {
         console.error('Failed to refresh commits:', error);
@@ -553,7 +527,7 @@ export default function GitUpdatePage() {
         setIsLoadingCommits(false);
       }
     }
-  }, [t, toast]);
+  }, []);
 
   // Handle checkout
   const handleCheckout = async () => {
@@ -652,7 +626,16 @@ export default function GitUpdatePage() {
   // Get current plugin status
   const currentPlugin = plugins.find((p) => p.name === selectedPlugin);
   const currentMirrorInfo = gitPluginsMap[selectedPlugin?.toLowerCase()] || null;
-  const githubRepoPath = getGithubRepoPath(currentMirrorInfo?.remote_url, selectedPlugin);
+  const currentSourceBadge = getSourceBadgeInfo(
+    currentMirrorInfo?.source_kind || currentPlugin?.source_kind,
+    currentMirrorInfo?.upstream_host || currentPlugin?.upstream_host,
+    t,
+    currentMirrorInfo?.upstream_url || currentPlugin?.upstream_url,
+  );
+  const issueBaseUrl = resolveCommitIssueBaseUrl(
+    currentMirrorInfo || currentPlugin,
+    currentMirrorInfo?.remote_url || currentPlugin?.remote_url,
+  );
 
   // Format plugin display name
   const getPluginDisplayName = (name: string) => {
@@ -877,6 +860,18 @@ export default function GitUpdatePage() {
                   <span className="truncate">{getPluginDisplayName(selectedPlugin)}</span>
                 </Badge>
               )}
+              {currentSourceBadge && (
+                <Badge
+                  variant="outline"
+                  title={currentSourceBadge.title}
+                  className={cn(
+                    'text-xs font-normal shrink-0',
+                    SOURCE_BADGE_CLASSES[currentSourceBadge.tone],
+                  )}
+                >
+                  {currentSourceBadge.label}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="min-w-0">
@@ -944,6 +939,7 @@ export default function GitUpdatePage() {
                         currentMirrorInfo.mirror || 'unknown',
                         currentMirrorInfo.remote_url,
                         t,
+                        currentMirrorInfo.upstream_host || currentPlugin.upstream_host,
                       );
                       return (
                         <Badge
@@ -1053,7 +1049,7 @@ export default function GitUpdatePage() {
                     t={t}
                     isLocalCurrent={runningCommit ? commit.short_hash === runningCommit : false}
                     isRemoteLatest={commit.hash === commitsData.current_hash}
-                    githubRepoPath={githubRepoPath}
+                    issueBaseUrl={issueBaseUrl}
                   />
                 ));
               })()}
@@ -1109,7 +1105,7 @@ export default function GitUpdatePage() {
                         t={t}
                         isLocalCurrent={runningCommit ? commit.short_hash === runningCommit : false}
                         isRemoteLatest={commit.hash === commitsData.current_hash}
-                        githubRepoPath={githubRepoPath}
+                        issueBaseUrl={issueBaseUrl}
                       />
                     ));
                   })()}
@@ -1353,7 +1349,13 @@ export default function GitUpdatePage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <GitMirrorDialog open={gitMirrorOpen} onOpenChange={setGitMirrorOpen} />
+      <GitMirrorDialog
+        open={gitMirrorOpen}
+        onOpenChange={setGitMirrorOpen}
+        onChanged={() => {
+          void handleRefresh();
+        }}
+      />
     </PinnedPage>
   );
 }
