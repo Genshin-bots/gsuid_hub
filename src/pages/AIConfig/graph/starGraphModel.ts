@@ -16,14 +16,15 @@ export interface TaskUsageBucket {
   requests: number;
 }
 
-export const MIN_SATELLITE_RADIUS = 26;
-export const MAX_SATELLITE_RADIUS = 54;
-export const MIN_CHILD_SATELLITE_RADIUS = 22;
-export const MAX_CHILD_SATELLITE_RADIUS = 36;
+export const MIN_SATELLITE_RADIUS = 29;
+export const MAX_SATELLITE_RADIUS = 44;
+export const MIN_CHILD_SATELLITE_RADIUS = 23;
+export const MAX_CHILD_SATELLITE_RADIUS = 33;
 
 /**
- * 将近 30 天使用量对数缩放并钳制到 [minR, maxR]。
- * 用量为 0 时仍返回最小保底半径，保证零用量任务节点清晰可见。
+ * 将近 30 天使用量按温和幂次（ratio^0.45）缩放并钳制到 [minR, maxR]。
+ * 相比对数映射，低占比任务不会虚胖成与主任务接近的大小，尺寸层级与环绕进度条保持一致；
+ * 零用量任务保持最小保底半径，非零任务至少比零用量大 1px。
  */
 export function computeSatelliteRadius(
   value: number,
@@ -34,11 +35,93 @@ export function computeSatelliteRadius(
   if (!Number.isFinite(value) || value <= 0 || !Number.isFinite(maxValue) || maxValue <= 0) {
     return minR;
   }
-  const denom = Math.log1p(maxValue);
-  if (denom <= 0) return minR;
-  const rawRatio = Math.log1p(value) / denom;
-  const clampedRatio = Math.min(1, Math.max(0.14, rawRatio));
-  return Math.round(minR + clampedRatio * (maxR - minR));
+  const linearRatio = Math.min(1, Math.max(0, value / maxValue));
+  const scaled = Math.round(minR + linearRatio ** 0.45 * (maxR - minR));
+  return Math.min(maxR, Math.max(minR + 1, scaled));
+}
+
+/**
+ * 将全局占比 [0, 1] 映射为环绕进度条的弧长百分比（对应 SVG pathLength=100）：
+ * - 0 → 0（不绘制进度弧）
+ * - ≥99.95% → 100（完整闭合光环）
+ * - 其余非零占比严格线性映射到 [0.8, 97.5]，既保证极小占比可见，也避免非 100% 时圆角端点粘连闭合。
+ */
+export function computeRingFillPercent(share: number, hasValue: boolean): number {
+  if (!hasValue || !Number.isFinite(share) || share <= 0) return 0;
+  if (share >= 0.9995) return 100;
+  return Math.min(97.5, Math.max(0.8, share * 100));
+}
+
+/** 格式化用量占比文案（如 98%、1.8%、<0.1%、0%）。 */
+export function formatUsageShare(share: number): string {
+  if (!Number.isFinite(share) || share <= 0) return '0%';
+  if (share < 0.001) return '<0.1%';
+  if (share >= 0.9995) return '100%';
+  if (share >= 0.995) return '99.9%';
+  const pct = share * 100;
+  if (pct < 10) {
+    return `${Number(pct.toFixed(1))}%`;
+  }
+  return `${Math.round(pct)}%`;
+}
+
+/**
+ * 生成从 12 点钟方向（顶部中点）出发、顺时针绕完一圈的圆角正方形 SVG path。
+ * 兼容直角（cornerRadius=0）、圆角矩形及正圆（cornerRadius>=innerSize/2）。
+ */
+export function buildRoundedRectRingPath(
+  svgSize: number,
+  inset: number,
+  cornerRadius: number,
+): string {
+  const inner = Math.max(1, svgSize - inset * 2);
+  const x0 = inset;
+  const y0 = inset;
+  const x1 = x0 + inner;
+  const y1 = y0 + inner;
+  const cx = x0 + inner / 2;
+  const r = Math.max(0, Math.min(cornerRadius, inner / 2));
+
+  const f = (n: number) => Number(n.toFixed(2));
+  if (r <= 0.01) {
+    return `M ${f(cx)} ${f(y0)} H ${f(x1)} V ${f(y1)} H ${f(x0)} V ${f(y0)} Z`;
+  }
+  return [
+    `M ${f(cx)} ${f(y0)}`,
+    `H ${f(x1 - r)}`,
+    `A ${f(r)} ${f(r)} 0 0 1 ${f(x1)} ${f(y0 + r)}`,
+    `V ${f(y1 - r)}`,
+    `A ${f(r)} ${f(r)} 0 0 1 ${f(x1 - r)} ${f(y1)}`,
+    `H ${f(x0 + r)}`,
+    `A ${f(r)} ${f(r)} 0 0 1 ${f(x0)} ${f(y1 - r)}`,
+    `V ${f(y0 + r)}`,
+    `A ${f(r)} ${f(r)} 0 0 1 ${f(x0 + r)} ${f(y0)}`,
+    'Z',
+  ].join(' ');
+}
+
+/** 任务节点的语义强调色：用于环绕进度条与顶部用量占比条，确保节点与分布条颜色一一对应。 */
+export function resolveSatelliteAccentColor(
+  kind: Pick<AITaskKindInfo, 'id' | 'group'>,
+  isDetachedChild = false,
+): string {
+  if (kind.id === 'chat') return 'hsl(var(--primary))';
+  if (kind.id === 'autonomy') return '#f59e0b';
+  if (isDetachedChild) return '#0ea5e9';
+  switch (kind.group) {
+    case 'conversation':
+      return '#0ea5e9';
+    case 'agent':
+      return '#14b8a6';
+    case 'memory':
+      return '#a855f7';
+    case 'proactive':
+      return '#f43f5e';
+    case 'plugin':
+      return '#6366f1';
+    default:
+      return 'hsl(var(--primary))';
+  }
 }
 
 /** 按 stats_keys 汇总单个任务的近 30 天 Token 与调用次数（可叠加当前折叠归属的子任务用量）。 */
@@ -286,6 +369,12 @@ export interface StarSatelliteItem {
   /** 二级节点是否已脱离母节点独立绑定了配置（能力代理已 split，或低频任务连向不同于母节点的星核） */
   isDetachedChild: boolean;
   metricValue: number;
+  /** 占当前图谱总用量的比例 [0, 1] */
+  usageShare: number;
+  /** 占所属配置星核总用量的比例 [0, 1] */
+  hubUsageShare: number;
+  /** 当前可见任务中按用量降序的名次（1 起；零用量为 null） */
+  usageRank: number | null;
   tokens: number;
   requests: number;
   radius: number;
@@ -300,11 +389,19 @@ export interface StarHubLayoutItem {
   connectedTaskCount: number;
   totalTokens: number;
   totalRequests: number;
+  /** 当前指标下的总用量 */
+  metricValue: number;
+  /** 该配置星核承载的用量占全局总用量的比例 [0, 1] */
+  usageShare: number;
 }
 
 export interface StarGraphLayoutResult {
   hubs: StarHubLayoutItem[];
   satellites: StarSatelliteItem[];
+  /** 当前指标下的全局总用量（与各星核之和一致） */
+  totalMetric: number;
+  /** 当前可见任务中的最大单项用量 */
+  maxSatelliteMetric: number;
   bounds: { minX: number; maxX: number; minY: number; maxY: number };
   /** 当前视口与已存坐标横纵方向不一致时已做自动方向重映射（PC 横向 ↔ 移动端纵向） */
   isOrientationProjected?: boolean;
@@ -482,8 +579,8 @@ function placeExpandedChildFan(
   if (attachedDrafts.length > 0) {
     const sampleDistances =
       attachedDrafts.length > 5
-        ? [parentSat.radius + 82, parentSat.radius + 148]
-        : [parentSat.radius + 82];
+        ? [parentSat.radius + 94, parentSat.radius + 184]
+        : [parentSat.radius + 94];
     const spreadProbe = attachedDrafts.length > 1 ? [-0.36, 0, 0.36] : [0];
     let bestScore = Number.NEGATIVE_INFINITY;
     const candidateCount = 24;
@@ -496,7 +593,7 @@ function placeExpandedChildFan(
           const sx = parentSat.x + Math.cos(cand + delta) * dist;
           const sy = parentSat.y + Math.sin(cand + delta) * dist;
           for (const obs of obstacles) {
-            const clr = pointObstacleClearance(sx, sy, 28, obs);
+            const clr = pointObstacleClearance(sx, sy, 32, obs);
             if (clr < minClear) minClear = clr;
           }
         }
@@ -519,9 +616,9 @@ function placeExpandedChildFan(
     const row = Math.floor(i / maxPerRow);
     const indexInRow = i % maxPerRow;
     const itemsInThisRow = Math.min(maxPerRow, attachedDrafts.length - row * maxPerRow);
-    const stepRad = itemsInThisRow <= 3 ? 0.52 : 0.4;
+    const stepRad = itemsInThisRow <= 3 ? 0.56 : 0.45;
     const rowSpan = (itemsInThisRow - 1) * stepRad;
-    const baseDist = parentSat.radius + 78 + row * 74;
+    const baseDist = parentSat.radius + 94 + row * 94;
     const rowPhase = row % 2 === 1 && itemsInThisRow < maxPerRow ? 0.12 : 0;
     const baseTheta =
       itemsInThisRow === 1 ? bestAngle : bestAngle - rowSpan / 2 + indexInRow * stepRad + rowPhase;
@@ -530,7 +627,7 @@ function placeExpandedChildFan(
     let chosenY = Math.round(parentSat.y + Math.sin(baseTheta) * baseDist);
 
     const hasCollision = (tx: number, ty: number) =>
-      localObstacles.some((obs) => pointObstacleClearance(tx, ty, item.radius + 8, obs) < 0);
+      localObstacles.some((obs) => pointObstacleClearance(tx, ty, item.radius + 16, obs) < 0);
 
     if (hasCollision(chosenX, chosenY)) {
       let resolved = false;
@@ -611,6 +708,8 @@ export function computeStarGraphLayout(params: {
     return {
       hubs: [],
       satellites: [],
+      totalMetric: 0,
+      maxSatelliteMetric: 0,
       bounds: { minX: -400, maxX: 400, minY: -260, maxY: 260 },
     };
   }
@@ -819,6 +918,9 @@ export function computeStarGraphLayout(params: {
         isExpandedParent: isExpanded,
         isDetachedChild: false,
         metricValue: val,
+        usageShare: 0,
+        hubUsageShare: 0,
+        usageRank: null,
         tokens: u.tokens,
         requests: u.requests,
         radius: computeSatelliteRadius(val, maxSingleMetric),
@@ -832,6 +934,8 @@ export function computeStarGraphLayout(params: {
       connectedTaskCount: hubTaskCount,
       totalTokens: hubTokens,
       totalRequests: hubRequests,
+      metricValue: metric === 'tokens' ? hubTokens : hubRequests,
+      usageShare: 0,
     });
 
     coreSatellites.push(
@@ -893,6 +997,9 @@ export function computeStarGraphLayout(params: {
         isExpandedParent: false,
         isDetachedChild: isDetached,
         metricValue: val,
+        usageShare: 0,
+        hubUsageShare: 0,
+        usageRank: null,
         tokens: u.tokens,
         requests: u.requests,
         radius: computeSatelliteRadius(
@@ -926,6 +1033,31 @@ export function computeStarGraphLayout(params: {
 
   const allSatellites = [...coreSatellites, ...childSatellites];
 
+  const totalHubMetric = hubs.reduce((sum, h) => sum + h.metricValue, 0);
+  const totalSatMetric = allSatellites.reduce((sum, s) => sum + s.metricValue, 0);
+  const totalMetric = Math.max(totalHubMetric, totalSatMetric);
+
+  const hubMetricById = new Map<string, number>();
+  for (const h of hubs) {
+    h.usageShare = totalMetric > 0 ? Math.min(1, h.metricValue / totalMetric) : 0;
+    hubMetricById.set(h.node.id, h.metricValue);
+  }
+
+  let maxSatelliteMetric = 0;
+  for (const s of allSatellites) {
+    if (s.metricValue > maxSatelliteMetric) maxSatelliteMetric = s.metricValue;
+    s.usageShare = totalMetric > 0 ? Math.min(1, s.metricValue / totalMetric) : 0;
+    const hubTotal = hubMetricById.get(s.hubId) ?? 0;
+    s.hubUsageShare = hubTotal > 0 ? Math.min(1, s.metricValue / hubTotal) : 0;
+  }
+
+  const rankedActive = allSatellites
+    .filter((s) => s.metricValue > 0)
+    .sort((a, b) => b.metricValue - a.metricValue);
+  rankedActive.forEach((sat, idx) => {
+    sat.usageRank = idx + 1;
+  });
+
   let minX = isNarrow ? -210 : -360;
   let maxX = isNarrow ? 210 : 360;
   let minY = -240;
@@ -934,19 +1066,21 @@ export function computeStarGraphLayout(params: {
   for (const h of hubs) {
     minX = Math.min(minX, h.x - 140);
     maxX = Math.max(maxX, h.x + 140);
-    minY = Math.min(minY, h.y - 105);
-    maxY = Math.max(maxY, h.y + 105);
+    minY = Math.min(minY, h.y - 112);
+    maxY = Math.max(maxY, h.y + 112);
   }
   for (const s of allSatellites) {
-    minX = Math.min(minX, s.x - s.radius - 52);
-    maxX = Math.max(maxX, s.x + s.radius + 52);
-    minY = Math.min(minY, s.y - s.radius - 42);
-    maxY = Math.max(maxY, s.y + s.radius + 60);
+    minX = Math.min(minX, s.x - s.radius - 60);
+    maxX = Math.max(maxX, s.x + s.radius + 60);
+    minY = Math.min(minY, s.y - s.radius - 46);
+    maxY = Math.max(maxY, s.y + s.radius + 66);
   }
 
   return {
     hubs,
     satellites: allSatellites,
+    totalMetric,
+    maxSatelliteMetric,
     bounds: { minX, maxX, minY, maxY },
     isOrientationProjected,
   };

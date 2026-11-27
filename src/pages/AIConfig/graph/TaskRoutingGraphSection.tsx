@@ -51,14 +51,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { useThemeMisc } from '@/contexts/ThemeContext';
 import { resolveKindTitle } from '@/lib/aiTaskKinds';
 import type { AITaskGraphHubNode, AITaskGraphPos, AllConfigItem } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, formatTokens } from '@/lib/utils';
 import type { UseTaskGraphConfigReturn } from '../hooks/useTaskGraphConfig';
-import { HUB_CARD_HALF_H, HUB_CARD_HALF_W, StarHubCard } from './StarHubCard';
-import { StarSatelliteBubble } from './StarSatelliteBubble';
+import {
+  HUB_CARD_HALF_H,
+  HUB_CARD_HALF_H_WITH_USAGE,
+  HUB_CARD_HALF_W,
+  StarHubCard,
+} from './StarHubCard';
+import { SATELLITE_RING_OUTSET, StarSatelliteBubble } from './StarSatelliteBubble';
 import {
   computeStarGraphLayout,
+  formatUsageShare,
+  resolveSatelliteAccentColor,
   type StarHubLayoutItem,
   type StarSatelliteItem,
   type StarUsageMetric,
@@ -200,6 +208,7 @@ export function TaskRoutingGraphSection({
     isGraphUnsupported,
     setUsageMetric,
     toggleExpandParent,
+    collapseExpandedParents,
     reload,
     recordUndoCheckpoint,
     undo,
@@ -235,10 +244,13 @@ export function TaskRoutingGraphSection({
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(() => new Set());
   const [marquee, setMarquee] = useState<ActiveMarquee | null>(null);
 
+  const { borderRadius } = useThemeMisc();
   const [addHubPopoverOpen, setAddHubPopoverOpen] = useState(false);
   const [openHubPopoverId, setOpenHubPopoverId] = useState<string | null>(null);
   const [openSatPopoverId, setOpenSatPopoverId] = useState<string | null>(null);
   const [hoveredHubId, setHoveredHubId] = useState<string | null>(null);
+  const [stripHoveredSatId, setStripHoveredSatId] = useState<string | null>(null);
+  const [canvasHoveredSatId, setCanvasHoveredSatId] = useState<string | null>(null);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [removingHubState, setRemovingHubState] = useState<{
     node: AITaskGraphHubNode;
@@ -306,6 +318,8 @@ export function TaskRoutingGraphSection({
       return {
         hubs: [],
         satellites: [],
+        totalMetric: 0,
+        maxSatelliteMetric: 0,
         bounds: { minX: -360, maxX: 360, minY: -240, maxY: 240 },
         isOrientationProjected: false,
       };
@@ -330,6 +344,17 @@ export function TaskRoutingGraphSection({
     activeDraggingIds,
     isNarrow,
   ]);
+
+  const hasAnyGraphUsage = layout.totalMetric > 0;
+  const hubHalfH = hasAnyGraphUsage ? HUB_CARD_HALF_H_WITH_USAGE : HUB_CARD_HALF_H;
+
+  const rankedActiveSatellites = useMemo(
+    () =>
+      layout.satellites
+        .filter((s) => s.metricValue > 0)
+        .sort((a, b) => b.metricValue - a.metricValue),
+    [layout.satellites],
+  );
 
   const fitCameraToBounds = useCallback(() => {
     const { minX, maxX, minY, maxY } = layout.bounds;
@@ -360,12 +385,17 @@ export function TaskRoutingGraphSection({
     }
   }, [fitCameraToBounds, isNarrow, layout.hubs.length, viewportSize.width]);
 
-  // Escape 键退出框选；Ctrl+Z / Cmd+Z 撤回最近一步图谱操作（焦点在输入框时不劫持）
+  // Escape 键退出框选、关闭弹窗并收回已展开的子节点；Ctrl+Z / Cmd+Z 撤回最近一步图谱操作（焦点在输入框时不劫持）
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelectedTaskIds(new Set());
         setIsSelectMode(false);
+        setOpenSatPopoverId(null);
+        setOpenHubPopoverId(null);
+        if (!showAllChildren) {
+          collapseExpandedParents();
+        }
         return;
       }
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
@@ -387,7 +417,26 @@ export function TaskRoutingGraphSection({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canUndo, undo]);
+  }, [canUndo, collapseExpandedParents, showAllChildren, undo]);
+
+  // 点击画布外部区域（排除弹窗与顶部占比条）时自动收回单独展开的子节点
+  useEffect(() => {
+    if (expandedParentIds.size === 0 || showAllChildren) return;
+    const handleOutsidePointerDown = (e: PointerEvent) => {
+      const target = e.target as Element | null;
+      if (!target) return;
+      if (
+        target.closest('[data-star-canvas="true"]') ||
+        target.closest('[data-star-strip="true"]') ||
+        target.closest('[data-radix-popper-content-wrapper]')
+      ) {
+        return;
+      }
+      collapseExpandedParents();
+    };
+    document.addEventListener('pointerdown', handleOutsidePointerDown);
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+  }, [collapseExpandedParents, expandedParentIds.size, showAllChildren]);
 
   // 自动剔除因收起母节点而暂时不在可见列表中的已选子节点 ID
   useEffect(() => {
@@ -433,8 +482,7 @@ export function TaskRoutingGraphSection({
       let bestDist = Number.POSITIVE_INFINITY;
       for (const h of layout.hubs) {
         const inRect =
-          Math.abs(wx - h.x) <= HUB_CARD_HALF_W + padX &&
-          Math.abs(wy - h.y) <= HUB_CARD_HALF_H + padY;
+          Math.abs(wx - h.x) <= HUB_CARD_HALF_W + padX && Math.abs(wy - h.y) <= hubHalfH + padY;
         const d = Math.hypot(wx - h.x, wy - h.y);
         if ((inRect || (radialMax > 0 && d <= radialMax)) && d < bestDist) {
           bestDist = d;
@@ -443,7 +491,7 @@ export function TaskRoutingGraphSection({
       }
       return bestId;
     },
-    [layout.hubs],
+    [hubHalfH, layout.hubs],
   );
 
   const satById = useMemo(() => {
@@ -491,7 +539,7 @@ export function TaskRoutingGraphSection({
       const hub = hubById.get(hubId);
       if (!hub) return { x: Math.round(droppedX), y: Math.round(droppedY) };
       const clearW = HUB_CARD_HALF_W + satRadius + 16;
-      const clearH = HUB_CARD_HALF_H + satRadius + 18;
+      const clearH = hubHalfH + satRadius + 18;
       if (Math.abs(droppedX - hub.x) >= clearW || Math.abs(droppedY - hub.y) >= clearH) {
         return { x: Math.round(droppedX), y: Math.round(droppedY) };
       }
@@ -524,7 +572,7 @@ export function TaskRoutingGraphSection({
         y: Math.round(hub.y + Math.sin(angle) * parkDist),
       };
     },
-    [hubById, isNarrow, layout.satellites],
+    [hubById, hubHalfH, isNarrow, layout.satellites],
   );
 
   // 全局指针移动与抬起：支持双指缩放、框选多节点、拖动星核带走全部附属节点、单选/多选拖拽改绑与拉线连接
@@ -718,6 +766,9 @@ export function TaskRoutingGraphSection({
       if (panDragRef.current) {
         if (!panDragRef.current.moved && !isSelectMode) {
           setSelectedTaskIds((prev) => (prev.size > 0 ? new Set() : prev));
+          if (!showAllChildren) {
+            collapseExpandedParents();
+          }
         }
         panDragRef.current = null;
       }
@@ -816,6 +867,7 @@ export function TaskRoutingGraphSection({
     camera.zoom,
     clientToWorld,
     clearTransientChildPosition,
+    collapseExpandedParents,
     commitCurrentProjectedSnapshot,
     computeNonOverlappingHubParkPos,
     connectTaskToHub,
@@ -829,6 +881,7 @@ export function TaskRoutingGraphSection({
     reattachChildToParent,
     recordUndoCheckpoint,
     satById,
+    showAllChildren,
     updateTaskPosition,
     wireDrag,
   ]);
@@ -1038,14 +1091,66 @@ export function TaskRoutingGraphSection({
       }
 
       const isAlreadyOpen = openSatPopoverId === sat.id;
-      if (sat.childKinds.length > 0 && !sat.isExpandedParent) {
-        toggleExpandParent(sat.id, true);
+      if (sat.childKinds.length > 0) {
+        if (!sat.isExpandedParent) {
+          if (!showAllChildren) collapseExpandedParents(sat.id);
+          toggleExpandParent(sat.id, true);
+          setOpenSatPopoverId(sat.id);
+          return;
+        }
+        if (isAlreadyOpen) {
+          setOpenSatPopoverId(null);
+          if (!showAllChildren) {
+            toggleExpandParent(sat.id, false);
+          }
+          return;
+        }
+        if (!showAllChildren) collapseExpandedParents(sat.id);
         setOpenSatPopoverId(sat.id);
         return;
       }
+
+      if (!showAllChildren) {
+        // 点击展开中的子节点时保留其所属母节点展开，点击其它无关节点则收回已展开的母节点
+        collapseExpandedParents(sat.parentTaskId);
+      }
       setOpenSatPopoverId(isAlreadyOpen ? null : sat.id);
     },
-    [isSelectMode, openSatPopoverId, toggleExpandParent],
+    [collapseExpandedParents, isSelectMode, openSatPopoverId, showAllChildren, toggleExpandParent],
+  );
+
+  const handleFocusSatelliteFromStrip = useCallback(
+    (sat: StarSatelliteItem) => {
+      setOpenHubPopoverId(null);
+      if (!showAllChildren) {
+        collapseExpandedParents(sat.parentTaskId ?? (sat.isExpandedParent ? sat.id : null));
+      }
+      setOpenSatPopoverId(sat.id);
+      const sx = sat.x * camera.zoom + camera.x;
+      const sy = sat.y * camera.zoom + camera.y;
+      const margin = 72;
+      if (
+        sx < margin ||
+        sx > viewportSize.width - margin ||
+        sy < margin ||
+        sy > viewportSize.height - margin
+      ) {
+        setCamera((prev) => ({
+          ...prev,
+          x: viewportSize.width / 2 - sat.x * prev.zoom,
+          y: viewportSize.height / 2 - sat.y * prev.zoom,
+        }));
+      }
+    },
+    [
+      camera.x,
+      camera.y,
+      camera.zoom,
+      collapseExpandedParents,
+      showAllChildren,
+      viewportSize.height,
+      viewportSize.width,
+    ],
   );
 
   const usedPrimarySet = useMemo(
@@ -1303,7 +1408,13 @@ export function TaskRoutingGraphSection({
                     : t('aiConfig.starGraph.expandAllTasks')
                 }
                 onClick={() => {
-                  setShowAllChildren((v) => !v);
+                  setShowAllChildren((prev) => {
+                    const next = !prev;
+                    if (!next) {
+                      collapseExpandedParents();
+                    }
+                    return next;
+                  });
                   window.setTimeout(fitCameraToBounds, 40);
                 }}
               >
@@ -1390,9 +1501,125 @@ export function TaskRoutingGraphSection({
           </div>
         )}
 
+        {/* 全局用量相对占比分布条（仅存在非零统计时展示，悬停/点击联动对应任务节点） */}
+        {hasAnyGraphUsage && rankedActiveSatellites.length > 0 && (
+          <div
+            data-star-strip="true"
+            className="border-b border-border/30 bg-muted/15 px-3 sm:px-4 py-2 space-y-1.5"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-1.5 shrink-0 text-[11px]">
+                <span className="text-muted-foreground">
+                  {t('aiConfig.starGraph.usageShareTitle')}
+                </span>
+                <span className="font-semibold tabular-nums text-foreground">
+                  {usageMetric === 'tokens'
+                    ? `${formatTokens(layout.totalMetric)} tok`
+                    : t('aiConfig.starGraph.requestsShort', {
+                        count: layout.totalMetric.toLocaleString(),
+                      })}
+                </span>
+              </div>
+
+              <div className="flex h-2.5 flex-1 min-w-0 items-stretch gap-[2px] overflow-hidden rounded-full bg-foreground/10 p-[1.5px]">
+                {rankedActiveSatellites.map((sat) => {
+                  const title = resolveKindTitle(sat.kind, tr);
+                  const valLabel =
+                    usageMetric === 'tokens'
+                      ? formatTokens(sat.tokens)
+                      : t('aiConfig.starGraph.requestsShort', {
+                          count: sat.requests.toLocaleString(),
+                        });
+                  const shareStr = formatUsageShare(sat.usageShare);
+                  const color = resolveSatelliteAccentColor(sat.kind, sat.isDetachedChild);
+                  const activeFocusId = stripHoveredSatId ?? canvasHoveredSatId;
+                  const isActive = activeFocusId === sat.id;
+                  const isOtherDimmed = Boolean(activeFocusId && activeFocusId !== sat.id);
+                  return (
+                    <button
+                      key={`bar-${sat.id}`}
+                      type="button"
+                      aria-label={`${title} ${valLabel} ${shareStr}`}
+                      title={`${title} · ${valLabel} (${shareStr})`}
+                      style={{
+                        flexGrow: sat.usageShare,
+                        flexBasis: 0,
+                        minWidth: 5,
+                        backgroundColor: color,
+                      }}
+                      onMouseEnter={() => setStripHoveredSatId(sat.id)}
+                      onMouseLeave={() => setStripHoveredSatId(null)}
+                      onFocus={() => setStripHoveredSatId(sat.id)}
+                      onBlur={() => setStripHoveredSatId(null)}
+                      onClick={() => handleFocusSatelliteFromStrip(sat)}
+                      className={cn(
+                        'h-full rounded-full transition-opacity duration-150 cursor-pointer focus:outline-none',
+                        isOtherDimmed ? 'opacity-35' : 'opacity-95 hover:opacity-100',
+                        isActive && 'opacity-100 brightness-110',
+                      )}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1 min-w-0">
+              {rankedActiveSatellites.slice(0, 5).map((sat) => {
+                const title = resolveKindTitle(sat.kind, tr);
+                const valLabel =
+                  usageMetric === 'tokens'
+                    ? formatTokens(sat.tokens)
+                    : t('aiConfig.starGraph.requestsShort', {
+                        count: sat.requests.toLocaleString(),
+                      });
+                const shareStr = formatUsageShare(sat.usageShare);
+                const color = resolveSatelliteAccentColor(sat.kind, sat.isDetachedChild);
+                const activeFocusId = stripHoveredSatId ?? canvasHoveredSatId;
+                const isActive = activeFocusId === sat.id || openSatPopoverId === sat.id;
+                return (
+                  <button
+                    key={`chip-${sat.id}`}
+                    type="button"
+                    title={`${title} · ${valLabel} (${shareStr})`}
+                    onMouseEnter={() => setStripHoveredSatId(sat.id)}
+                    onMouseLeave={() => setStripHoveredSatId(null)}
+                    onClick={() => handleFocusSatelliteFromStrip(sat)}
+                    className={cn(
+                      'inline-flex max-w-[180px] items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-[11px] transition-colors cursor-pointer',
+                      isActive
+                        ? 'border-primary/55 bg-primary/10 text-foreground'
+                        : 'border-transparent bg-foreground/[0.04] text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground',
+                    )}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="truncate text-foreground/90">{title}</span>
+                    <span className="font-semibold tabular-nums text-foreground shrink-0">
+                      {shareStr}
+                    </span>
+                    <span className="hidden sm:inline text-[10px] tabular-nums text-muted-foreground shrink-0">
+                      {valLabel}
+                    </span>
+                  </button>
+                );
+              })}
+              {rankedActiveSatellites.length > 5 && (
+                <span className="px-1.5 text-[10px] text-muted-foreground shrink-0">
+                  {t('aiConfig.starGraph.usageShareOthers', {
+                    count: rankedActiveSatellites.length - 5,
+                  })}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 星型交互画布视口 */}
         <div
           ref={viewportRef}
+          data-star-canvas="true"
           onPointerDown={handlePointerDownCanvas}
           style={{
             backgroundImage:
@@ -1473,9 +1700,9 @@ export function TaskRoutingGraphSection({
                     <rect
                       key={`drop-halo-${hub.node.id}`}
                       x={hub.x - HUB_CARD_HALF_W - 18}
-                      y={hub.y - HUB_CARD_HALF_H - 18}
+                      y={hub.y - hubHalfH - 18}
                       width={(HUB_CARD_HALF_W + 18) * 2}
-                      height={(HUB_CARD_HALF_H + 18) * 2}
+                      height={(hubHalfH + 18) * 2}
                       rx={24}
                       fill={isTarget ? 'hsl(var(--primary) / 0.08)' : 'none'}
                       stroke={isTarget ? 'hsl(var(--primary) / 0.65)' : 'hsl(var(--border) / 0.35)'}
@@ -1491,13 +1718,14 @@ export function TaskRoutingGraphSection({
                 const hub = hubById.get(sat.hubId);
                 if (!hub) return null;
                 const angle = Math.atan2(hub.y - sat.y, hub.x - sat.x);
-                const sx = sat.x + Math.cos(angle) * sat.radius;
-                const sy = sat.y + Math.sin(angle) * sat.radius;
+                const ringR = sat.radius + SATELLITE_RING_OUTSET;
+                const sx = sat.x + Math.cos(angle) * ringR;
+                const sy = sat.y + Math.sin(angle) * ringR;
                 const targetPt = rectBoundaryPoint(
                   hub.x,
                   hub.y,
                   HUB_CARD_HALF_W,
-                  HUB_CARD_HALF_H,
+                  hubHalfH,
                   sat.x,
                   sat.y,
                 );
@@ -1508,11 +1736,14 @@ export function TaskRoutingGraphSection({
                   hoveredHubId === hub.node.id ||
                   openHubPopoverId === hub.node.id ||
                   openSatPopoverId === sat.id ||
+                  stripHoveredSatId === sat.id ||
                   selectedTaskIds.has(sat.id);
                 const isDim =
                   Boolean(hoveredHubId && hoveredHubId !== hub.node.id) ||
+                  Boolean(stripHoveredSatId && stripHoveredSatId !== sat.id) ||
                   Boolean(wireDrag && !wireDrag.sourceTaskIds.includes(sat.id));
 
+                const accentStroke = resolveSatelliteAccentColor(sat.kind, sat.isDetachedChild);
                 const strokeColor = isMainChat
                   ? 'hsl(var(--primary))'
                   : isAutonomy
@@ -1520,8 +1751,18 @@ export function TaskRoutingGraphSection({
                     : sat.isDetachedChild
                       ? 'hsl(199 89% 48% / 0.78)'
                       : isFocus
-                        ? 'hsl(var(--primary) / 0.85)'
-                        : 'hsl(var(--muted-foreground) / 0.4)';
+                        ? accentStroke
+                        : sat.usageShare >= 0.05
+                          ? accentStroke
+                          : 'hsl(var(--muted-foreground) / 0.42)';
+
+                const usageWeightedWidth =
+                  sat.usageShare > 0 ? 1.45 + Math.sqrt(sat.usageShare) * 1.65 : 1.3;
+                const finalStrokeWidth = isFocus
+                  ? Math.max(2.2, usageWeightedWidth + 0.35)
+                  : isMainChat || isAutonomy
+                    ? Math.max(2, usageWeightedWidth)
+                    : usageWeightedWidth;
 
                 return (
                   <path
@@ -1529,9 +1770,15 @@ export function TaskRoutingGraphSection({
                     d={buildCurvedRayPath(sx, sy, targetPt.x, targetPt.y)}
                     fill="none"
                     stroke={strokeColor}
-                    strokeWidth={isMainChat || isAutonomy ? 2.4 : isFocus ? 2 : 1.5}
+                    strokeWidth={finalStrokeWidth}
                     strokeDasharray={isPlaceholderHub ? '5 5' : undefined}
-                    opacity={isDim ? 0.2 : 1}
+                    opacity={
+                      isDim
+                        ? 0.18
+                        : sat.usageShare >= 0.05 || isFocus || isMainChat || isAutonomy
+                          ? 0.92
+                          : 0.72
+                    }
                   />
                 );
               })}
@@ -1542,16 +1789,21 @@ export function TaskRoutingGraphSection({
                 const parentSat = satById.get(sat.visualParentTaskId);
                 if (!parentSat) return null;
                 const angle = Math.atan2(parentSat.y - sat.y, parentSat.x - sat.x);
-                const sx = sat.x + Math.cos(angle) * sat.radius;
-                const sy = sat.y + Math.sin(angle) * sat.radius;
-                const px = parentSat.x - Math.cos(angle) * parentSat.radius;
-                const py = parentSat.y - Math.sin(angle) * parentSat.radius;
+                const sx = sat.x + Math.cos(angle) * (sat.radius + SATELLITE_RING_OUTSET);
+                const sy = sat.y + Math.sin(angle) * (sat.radius + SATELLITE_RING_OUTSET);
+                const px =
+                  parentSat.x - Math.cos(angle) * (parentSat.radius + SATELLITE_RING_OUTSET);
+                const py =
+                  parentSat.y - Math.sin(angle) * (parentSat.radius + SATELLITE_RING_OUTSET);
                 const isFocus =
                   openSatPopoverId === sat.id ||
                   openSatPopoverId === parentSat.id ||
+                  stripHoveredSatId === sat.id ||
                   hoveredHubId === sat.hubId ||
                   selectedTaskIds.has(sat.id);
-                const isDim = Boolean(hoveredHubId && hoveredHubId !== sat.hubId);
+                const isDim =
+                  Boolean(hoveredHubId && hoveredHubId !== sat.hubId) ||
+                  Boolean(stripHoveredSatId && stripHoveredSatId !== sat.id);
 
                 return (
                   <path
@@ -1563,7 +1815,7 @@ export function TaskRoutingGraphSection({
                     }
                     strokeWidth={isFocus ? 1.8 : 1.35}
                     strokeDasharray="4 4"
-                    opacity={isDim ? 0.2 : 1}
+                    opacity={isDim ? 0.18 : 1}
                   />
                 );
               })}
@@ -1622,9 +1874,17 @@ export function TaskRoutingGraphSection({
                   allConfigsList={allConfigsList}
                   configByName={configByName}
                   metric={usageMetric}
+                  hasAnyGraphUsage={hasAnyGraphUsage}
+                  halfHeight={hubHalfH}
                   isHighDefault={hub.node.id === highDefaultHubId}
                   isLowDefault={hub.node.id === lowDefaultHubId}
-                  isHighlighted={hoveredHubId === hub.node.id || openHubPopoverId === hub.node.id}
+                  isHighlighted={
+                    hoveredHubId === hub.node.id ||
+                    openHubPopoverId === hub.node.id ||
+                    Boolean(
+                      stripHoveredSatId && satById.get(stripHoveredSatId)?.hubId === hub.node.id,
+                    )
+                  }
                   isDropTarget={dropTargetHubId === hub.node.id}
                   isUnconfiguredBlocked={unconfiguredHubIds.includes(hub.node.id)}
                   isDragging={activeDraggingIds.has(hub.node.id)}
@@ -1633,7 +1893,10 @@ export function TaskRoutingGraphSection({
                   onPopoverOpenChange={(next) => {
                     if (suppressNextClickRef.current) return;
                     setOpenHubPopoverId(next ? hub.node.id : null);
-                    if (next) setOpenSatPopoverId(null);
+                    if (next) {
+                      setOpenSatPopoverId(null);
+                      if (!showAllChildren) collapseExpandedParents();
+                    }
                   }}
                   onPointerDownHub={handlePointerDownHub}
                   onSelectPrimary={assignHubPrimary}
@@ -1668,12 +1931,19 @@ export function TaskRoutingGraphSection({
                   hubNodes={draftGraph.nodes}
                   configByName={configByName}
                   metric={usageMetric}
+                  borderRadius={borderRadius}
+                  hasAnyGraphUsage={hasAnyGraphUsage}
                   isHighlighted={openSatPopoverId === sat.id}
+                  isStripFocused={stripHoveredSatId === sat.id}
                   isBatchSelected={selectedTaskIds.has(sat.id)}
                   isParentDropTarget={dropTargetParentId === sat.id}
-                  isDimmed={Boolean(hoveredHubId && hoveredHubId !== sat.hubId)}
+                  isDimmed={
+                    Boolean(hoveredHubId && hoveredHubId !== sat.hubId) ||
+                    Boolean(stripHoveredSatId && stripHoveredSatId !== sat.id)
+                  }
                   isDragging={activeDraggingIds.has(sat.id)}
                   popoverOpen={openSatPopoverId === sat.id}
+                  onHoverChange={setCanvasHoveredSatId}
                   onSelectSatellite={handleSelectSatellite}
                   onToggleExpandParent={toggleExpandParent}
                   onPopoverOpenChange={(next) => {

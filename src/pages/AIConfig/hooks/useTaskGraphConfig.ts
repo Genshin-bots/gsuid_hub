@@ -63,6 +63,8 @@ export interface UseTaskGraphConfigReturn {
   isGraphUnsupported: boolean;
   setUsageMetric: (metric: StarUsageMetric) => void;
   toggleExpandParent: (parentTaskId: string, force?: boolean) => void;
+  /** 收起当前所有已单独展开的一级父节点（可选保留某一个父节点 ID） */
+  collapseExpandedParents: (keepParentId?: string | null) => void;
   reload: () => Promise<void>;
   recordUndoCheckpoint: () => void;
   undo: () => boolean;
@@ -269,6 +271,17 @@ export function useTaskGraphConfig(
         next.delete(parentTaskId);
       }
       return next;
+    });
+  }, []);
+
+  const collapseExpandedParents = useCallback((keepParentId?: string | null) => {
+    setExpandedParentIds((prev) => {
+      if (prev.size === 0) return prev;
+      if (keepParentId && prev.has(keepParentId)) {
+        if (prev.size === 1) return prev;
+        return new Set([keepParentId]);
+      }
+      return new Set();
     });
   }, []);
 
@@ -719,6 +732,7 @@ export function useTaskGraphConfig(
     isGraphUnsupported,
     setUsageMetric,
     toggleExpandParent,
+    collapseExpandedParents,
     reload,
     recordUndoCheckpoint,
     undo,

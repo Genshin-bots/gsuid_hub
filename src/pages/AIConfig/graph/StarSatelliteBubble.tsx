@@ -12,7 +12,17 @@ import {
 } from '@/lib/aiTaskKinds';
 import type { AITaskGraphHubNode, AllConfigItem } from '@/lib/api';
 import { cn, formatTokens } from '@/lib/utils';
-import type { StarSatelliteItem, StarUsageMetric } from './starGraphModel';
+import {
+  buildRoundedRectRingPath,
+  computeRingFillPercent,
+  formatUsageShare,
+  resolveSatelliteAccentColor,
+  type StarSatelliteItem,
+  type StarUsageMetric,
+} from './starGraphModel';
+
+/** 环绕进度条中心线相对卡片外边缘的外扩距离（px），供连线起点与拉线圆点对齐。 */
+export const SATELLITE_RING_OUTSET = 4;
 
 export interface StarSatelliteBubbleProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -25,12 +35,18 @@ export interface StarSatelliteBubbleProps {
   hubNodes: readonly AITaskGraphHubNode[];
   configByName: ReadonlyMap<string, AllConfigItem>;
   metric: StarUsageMetric;
+  /** 当前主题全局圆角（px），用于让环绕进度条与 glass-card 圆角保持同心 */
+  borderRadius: number;
+  /** 图谱中是否存在任意非零用量 */
+  hasAnyGraphUsage: boolean;
   isHighlighted: boolean;
+  isStripFocused?: boolean;
   isBatchSelected?: boolean;
   isParentDropTarget?: boolean;
   isDimmed: boolean;
   isDragging?: boolean;
   popoverOpen: boolean;
+  onHoverChange?: (satelliteId: string | null) => void;
   onSelectSatellite: (
     satellite: StarSatelliteItem,
     e: React.MouseEvent | React.KeyboardEvent,
@@ -57,12 +73,16 @@ export function StarSatelliteBubble({
   hubNodes,
   configByName,
   metric,
+  borderRadius,
+  hasAnyGraphUsage,
   isHighlighted,
+  isStripFocused = false,
   isBatchSelected = false,
   isParentDropTarget = false,
   isDimmed,
   isDragging = false,
   popoverOpen,
+  onHoverChange,
   onSelectSatellite,
   onToggleExpandParent,
   onPopoverOpenChange,
@@ -81,6 +101,9 @@ export function StarSatelliteBubble({
     radius,
     x,
     y,
+    metricValue,
+    usageShare,
+    hubUsageShare,
     tokens,
     requests,
   } = satellite;
@@ -90,9 +113,23 @@ export function StarSatelliteBubble({
   const isChild = tier === 'child';
   const childCount = childKinds.length;
 
+  const ringOuterRadius = radius + SATELLITE_RING_OUTSET;
+  const ringStrokeWidth = isChild ? 2.75 : 3.5;
+  const ringSvgBleed = 4;
+  const ringSvgSize = (ringOuterRadius + ringSvgBleed) * 2;
+  const cardCornerRadius = Math.min(borderRadius, radius);
+  const ringCornerRadius =
+    cardCornerRadius <= 0 ? 0 : Math.min(cardCornerRadius + SATELLITE_RING_OUTSET, ringOuterRadius);
+  const ringPath = buildRoundedRectRingPath(ringSvgSize, ringSvgBleed, ringCornerRadius);
+  const ringFillPercent = computeRingFillPercent(usageShare, metricValue > 0);
+  const accentColor = resolveSatelliteAccentColor(kind, isDetachedChild);
+  const shareText = formatUsageShare(usageShare);
+  const showShareOnLabel = hasAnyGraphUsage && metricValue > 0;
+  const showHubShareSeparately = hubUsageShare > 0 && Math.abs(hubUsageShare - usageShare) >= 0.005;
+
   const angleToAnchor = Math.atan2(anchorY - y, anchorX - x);
-  const handleOffsetX = Math.cos(angleToAnchor) * radius;
-  const handleOffsetY = Math.sin(angleToAnchor) * radius;
+  const handleOffsetX = Math.cos(angleToAnchor) * ringOuterRadius;
+  const handleOffsetY = Math.sin(angleToAnchor) * ringOuterRadius;
 
   const title = resolveKindTitle(kind, tr);
   const desc = tr(`aiConfig.taskModels.kinds.${kind.id}.desc`, kind.desc);
@@ -102,8 +139,8 @@ export function StarSatelliteBubble({
       ? formatTokens(tokens)
       : t('aiConfig.starGraph.requestsShort', { count: requests.toLocaleString() });
 
-  const iconSize = Math.round(radius * 1.04);
-  const iconStrokeWidth = radius >= 40 ? 1.8 : 2;
+  const iconSize = Math.round(radius * 0.96);
+  const iconStrokeWidth = radius >= 38 ? 1.85 : 2;
   const IconComp = resolveTaskKindIcon(kind);
 
   const hubDisplayLabel = (hub: AITaskGraphHubNode) => {
@@ -143,8 +180,12 @@ export function StarSatelliteBubble({
               marginTop: -radius,
             }}
             onPointerDown={(e) => onPointerDownSatellite(e, id)}
+            onMouseEnter={() => onHoverChange?.(id)}
+            onMouseLeave={() => onHoverChange?.(null)}
             onClick={(e) => {
               e.stopPropagation();
+              // 由 onSelectSatellite 统一裁决弹窗开关与子节点展开/收回，避免 Radix PopoverTrigger 二次翻转状态
+              e.preventDefault();
               onSelectSatellite(satellite, e);
             }}
             onKeyDown={(e) => {
@@ -156,9 +197,9 @@ export function StarSatelliteBubble({
             className={cn(
               'relative flex items-center justify-center rounded-full border transition-transform duration-200 cursor-grab active:cursor-grabbing glass-card',
               isMainChat
-                ? 'border-primary ring-4 ring-primary/25 bg-primary/15 text-primary shadow-md'
+                ? 'border-primary/80 bg-primary/15 text-primary shadow-md'
                 : isAutonomy
-                  ? 'border-amber-500 ring-4 ring-amber-500/20 bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-md'
+                  ? 'border-amber-500/80 bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-md'
                   : isChild
                     ? isDetachedChild
                       ? 'border-sky-500/75 bg-sky-500/12 text-sky-600 dark:text-sky-400 shadow-sm'
@@ -168,13 +209,58 @@ export function StarSatelliteBubble({
                 !isMainChat &&
                 !isAutonomy &&
                 'ring-2 ring-primary/30 border-primary/65',
-              isHighlighted && 'scale-105 ring-2 ring-primary/55',
+              (isHighlighted || isStripFocused) && 'scale-105 ring-2 ring-primary/55',
               isBatchSelected && 'scale-105 border-primary ring-[3px] ring-primary/70 shadow-lg',
               isParentDropTarget && 'scale-110 ring-4 ring-emerald-500/50 border-emerald-500',
             )}
           >
+            {/* 贴合圆角外缘的顺时针环绕用量进度条（从 12 点钟方向起顺时针填充） */}
+            <svg
+              aria-hidden="true"
+              width={ringSvgSize}
+              height={ringSvgSize}
+              viewBox={`0 0 ${ringSvgSize} ${ringSvgSize}`}
+              style={{
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+              }}
+              className="pointer-events-none absolute overflow-visible"
+            >
+              <path
+                d={ringPath}
+                fill="none"
+                stroke={
+                  metricValue > 0
+                    ? 'hsl(var(--foreground) / 0.14)'
+                    : 'hsl(var(--foreground) / 0.08)'
+                }
+                strokeWidth={ringStrokeWidth}
+                strokeDasharray={metricValue === 0 && hasAnyGraphUsage ? '3 3' : undefined}
+              />
+              {ringFillPercent > 0 && (
+                <path
+                  d={ringPath}
+                  pathLength={100}
+                  fill="none"
+                  stroke={accentColor}
+                  strokeWidth={isStripFocused ? ringStrokeWidth + 0.75 : ringStrokeWidth}
+                  strokeLinecap={ringFillPercent >= 100 ? 'butt' : 'round'}
+                  strokeDasharray={ringFillPercent >= 100 ? undefined : `${ringFillPercent} 102`}
+                  strokeDashoffset={0}
+                  style={{
+                    transition: 'stroke-dasharray 320ms ease, stroke-width 200ms ease',
+                    filter:
+                      usageShare >= 0.05 || isStripFocused
+                        ? `drop-shadow(0 0 3px ${accentColor})`
+                        : undefined,
+                  }}
+                />
+              )}
+            </svg>
+
             {isBatchSelected && (
-              <span className="absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+              <span className="absolute -left-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
                 <Check className="h-2.5 w-2.5 shrink-0 stroke-[3]" />
               </span>
             )}
@@ -192,7 +278,7 @@ export function StarSatelliteBubble({
 
             {kind.fast && (
               <span
-                className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-border/60 bg-background text-amber-500 shadow-sm"
+                className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-border/60 bg-background text-amber-500 shadow-sm"
                 title={t('aiConfig.taskModels.fastBadge')}
               >
                 <Zap className="h-2.5 w-2.5 shrink-0" />
@@ -213,7 +299,7 @@ export function StarSatelliteBubble({
                     : t('aiConfig.starGraph.expandChildrenBtn', { count: childCount })
                 }
                 className={cn(
-                  'absolute -bottom-1 -right-1.5 inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none shadow-sm transition-colors',
+                  'absolute -bottom-1.5 -right-2 z-10 inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none shadow-sm transition-colors',
                   isExpandedParent
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-primary/45 bg-background text-primary hover:bg-primary/10',
@@ -251,12 +337,12 @@ export function StarSatelliteBubble({
           )}
         />
 
-        {/* 气泡正下方单行截断标签 */}
+        {/* 气泡正下方单行截断标签与占比读数 */}
         <div
-          style={{ top: radius + 5 }}
+          style={{ top: ringOuterRadius + 6 }}
           className={cn(
             'pointer-events-none absolute left-1/2 -translate-x-1/2 flex flex-col items-center',
-            isChild ? 'w-24' : 'w-28',
+            isChild ? 'w-28' : 'w-32',
           )}
         >
           <span
@@ -275,20 +361,32 @@ export function StarSatelliteBubble({
           >
             {title}
           </span>
-          <span className="max-w-full truncate text-[10px] tabular-nums text-muted-foreground">
+          <span
+            className={cn(
+              'mt-0.5 max-w-full truncate text-[10px] tabular-nums',
+              showShareOnLabel ? 'text-muted-foreground' : 'text-muted-foreground/70',
+            )}
+            title={showShareOnLabel ? `${metricShort} · ${shareText}` : metricShort}
+          >
             {metricShort}
+            {showShareOnLabel && (
+              <>
+                {' · '}
+                <span className="font-semibold text-foreground/90">{shareText}</span>
+              </>
+            )}
           </span>
         </div>
 
         <PopoverContent
           side={preferredPopoverSide}
           align="center"
-          sideOffset={12}
+          sideOffset={14}
           collisionPadding={12}
           className="w-72 p-3 space-y-2.5 glass-card"
           onWheel={(e) => e.stopPropagation()}
         >
-          <div className="space-y-1 min-w-0">
+          <div className="space-y-1.5 min-w-0">
             <div className="flex items-center justify-between gap-2 min-w-0">
               <span className="text-xs font-semibold truncate text-foreground" title={title}>
                 {title}
@@ -313,6 +411,39 @@ export function StarSatelliteBubble({
                 requests: requests.toLocaleString(),
               })}
             </p>
+            {hasAnyGraphUsage && (
+              <div className="space-y-1 pt-0.5">
+                {metricValue > 0 ? (
+                  <>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-300 ease-out"
+                        style={{
+                          width: `${Math.min(100, Math.max(2, usageShare * 100))}%`,
+                          backgroundColor: accentColor,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-[10px] tabular-nums text-muted-foreground">
+                      <span className="truncate font-medium text-foreground/85">
+                        {t('aiConfig.starGraph.usageShareOfTotal', { share: shareText })}
+                      </span>
+                      {showHubShareSeparately && (
+                        <span className="truncate shrink-0">
+                          {t('aiConfig.starGraph.usageShareOfHub', {
+                            share: formatUsageShare(hubUsageShare),
+                          })}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground/80">
+                    {t('aiConfig.starGraph.usageShareZero')}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {childCount > 0 && (

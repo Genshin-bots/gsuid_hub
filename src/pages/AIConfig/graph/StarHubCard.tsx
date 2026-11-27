@@ -5,7 +5,7 @@ import { ModelBrandIcon, ProviderBrandIcon } from '@/components/ui/model-brand-i
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { AITaskGraphHubNode, AllConfigItem } from '@/lib/api';
 import { cn, formatTokens } from '@/lib/utils';
-import type { StarHubLayoutItem, StarUsageMetric } from './starGraphModel';
+import { formatUsageShare, type StarHubLayoutItem, type StarUsageMetric } from './starGraphModel';
 
 export interface StarHubCardProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -13,6 +13,10 @@ export interface StarHubCardProps {
   allConfigsList: readonly AllConfigItem[];
   configByName: ReadonlyMap<string, AllConfigItem>;
   metric: StarUsageMetric;
+  /** 图谱内是否存在非零用量，用于决定是否渲染星核底部占比进度条 */
+  hasAnyGraphUsage?: boolean;
+  /** 动态半高（显示占比进度条时略高，供坐标居中与连线终点保持一致） */
+  halfHeight?: number;
   /** 实际高档默认槽位（chat 连向的星核，与后端槽位推导语义一致） */
   isHighDefault: boolean;
   /** 实际低档默认槽位（turn_router 连向的星核） */
@@ -34,6 +38,7 @@ export interface StarHubCardProps {
 
 export const HUB_CARD_HALF_W = 112;
 export const HUB_CARD_HALF_H = 50;
+export const HUB_CARD_HALF_H_WITH_USAGE = 58;
 
 function providerShortLabel(provider: string): string {
   if (provider === 'openai') return 'OpenAI';
@@ -48,6 +53,8 @@ export function StarHubCard({
   allConfigsList,
   configByName,
   metric,
+  hasAnyGraphUsage = false,
+  halfHeight = HUB_CARD_HALF_H,
   isHighDefault,
   isLowDefault,
   isHighlighted,
@@ -64,7 +71,7 @@ export function StarHubCard({
   onOpenEditConfig,
   onRequestRemoveHub,
 }: StarHubCardProps) {
-  const { node, x, y, connectedTaskCount, totalTokens, totalRequests } = item;
+  const { node, x, y, connectedTaskCount, totalTokens, totalRequests, usageShare } = item;
   const primaryItem = node.primary ? configByName.get(node.primary) : undefined;
   const secondaryItem = node.secondary ? configByName.get(node.secondary) : undefined;
   const isPlaceholder = !node.primary;
@@ -96,7 +103,7 @@ export function StarHubCard({
     <div
       data-hub-id={node.id}
       style={{
-        transform: `translate(${x - HUB_CARD_HALF_W}px, ${y - HUB_CARD_HALF_H}px)`,
+        transform: `translate(${x - HUB_CARD_HALF_W}px, ${y - halfHeight}px)`,
         width: HUB_CARD_HALF_W * 2,
       }}
       className={cn(
@@ -212,21 +219,53 @@ export function StarHubCard({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-1.5 border-t border-border/40 pt-1.5 text-[10px] text-muted-foreground">
-                  <span className="truncate shrink-0">
-                    {t('aiConfig.starGraph.connectedCount', { count: connectedTaskCount })} ·{' '}
-                    {usageSummaryText}
-                  </span>
-                  {node.secondary && (
-                    <span
-                      className="inline-flex min-w-0 items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300"
-                      title={`${t('aiConfig.starGraph.backupLabel')}: ${secondaryItem?.config_name ?? node.secondary}`}
-                    >
-                      <ShieldCheck className="h-3 w-3 shrink-0" />
-                      <span className="truncate">
-                        {secondaryItem?.config_name ?? node.secondary}
-                      </span>
+                <div className="space-y-1.5 border-t border-border/40 pt-1.5">
+                  <div className="flex items-center justify-between gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="truncate shrink-0">
+                      {t('aiConfig.starGraph.connectedCount', { count: connectedTaskCount })} ·{' '}
+                      {usageSummaryText}
                     </span>
+                    {node.secondary && (
+                      <span
+                        className="inline-flex min-w-0 items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300"
+                        title={`${t('aiConfig.starGraph.backupLabel')}: ${secondaryItem?.config_name ?? node.secondary}`}
+                      >
+                        <ShieldCheck className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          {secondaryItem?.config_name ?? node.secondary}
+                        </span>
+                      </span>
+                    )}
+                  </div>
+
+                  {hasAnyGraphUsage && (
+                    <div
+                      className="flex items-center gap-2"
+                      title={t('aiConfig.starGraph.usageShareOfTotal', {
+                        share: formatUsageShare(usageShare),
+                      })}
+                    >
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-foreground/10">
+                        {usageShare > 0 && (
+                          <div
+                            className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+                            style={{
+                              width: `${Math.min(100, Math.max(3, usageShare * 100))}%`,
+                            }}
+                          />
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          'shrink-0 text-[10px] tabular-nums',
+                          usageShare > 0
+                            ? 'font-semibold text-foreground/90'
+                            : 'text-muted-foreground/70',
+                        )}
+                      >
+                        {formatUsageShare(usageShare)}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>

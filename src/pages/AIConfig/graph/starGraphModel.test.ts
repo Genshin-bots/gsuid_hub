@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { AITaskKindInfo, AITaskModelsData } from '@/lib/api';
 import {
+  buildRoundedRectRingPath,
+  computeRingFillPercent,
   computeSatelliteRadius,
   computeStarGraphLayout,
   findUnconfiguredConnectedHubIds,
+  formatUsageShare,
   materializeGraphPositions,
   MAX_SATELLITE_RADIUS,
   MIN_SATELLITE_RADIUS,
   rearrangeGraphPositions,
+  resolveSatelliteAccentColor,
   synthesizeGraphFromTaskModels,
 } from './starGraphModel';
 
@@ -308,5 +312,116 @@ describe('starGraphModel', () => {
     expect(mobileLayout.hubs[0].x).toBe(0);
     expect(mobileLayout.hubs[1].x).toBe(0);
     expect(mobileLayout.hubs[0].y).toBeLessThan(mobileLayout.hubs[1].y);
+  });
+
+  it('computes accurate global and per-hub usage shares, rankings, and ring fill percentages', () => {
+    const kinds: AITaskKindInfo[] = [
+      makeKind('chat', 'high'),
+      makeKind('capability_agent', 'high', { group: 'agent' }),
+      makeKind('memory_algebra', 'low', { group: 'memory' }),
+      makeKind('turn_router', 'low'),
+    ];
+    const graph = {
+      nodes: [
+        {
+          id: 'slot_high',
+          primary: 'anthropic++Claude',
+          secondary: '',
+          role: 'high' as const,
+          pos: null,
+        },
+        {
+          id: 'slot_low',
+          primary: 'openai++Flash',
+          secondary: '',
+          role: 'low' as const,
+          pos: null,
+        },
+      ],
+      edges: {
+        chat: 'slot_high',
+        capability_agent: 'slot_high',
+        memory_algebra: 'slot_low',
+        turn_router: 'slot_low',
+      },
+      split_subagents: [],
+      task_positions: {},
+    };
+    const usage = new Map([
+      ['chat', { tokens: 900_000, requests: 30 }],
+      ['capability_agent', { tokens: 80_000, requests: 10 }],
+      ['memory_algebra', { tokens: 20_000, requests: 60 }],
+    ]);
+
+    const tokenLayout = computeStarGraphLayout({
+      graph,
+      kinds,
+      usageByStatKey: usage,
+      metric: 'tokens',
+      showAllLowFreq: false,
+    });
+    expect(tokenLayout.totalMetric).toBe(1_000_000);
+    expect(tokenLayout.hubs.find((h) => h.node.id === 'slot_high')?.usageShare).toBeCloseTo(
+      0.98,
+      5,
+    );
+    expect(tokenLayout.hubs.find((h) => h.node.id === 'slot_low')?.usageShare).toBeCloseTo(0.02, 5);
+
+    const chatSat = tokenLayout.satellites.find((s) => s.id === 'chat');
+    const capSat = tokenLayout.satellites.find((s) => s.id === 'capability_agent');
+    const memSat = tokenLayout.satellites.find((s) => s.id === 'memory_algebra');
+    const routerSat = tokenLayout.satellites.find((s) => s.id === 'turn_router');
+
+    expect(chatSat?.usageShare).toBeCloseTo(0.9, 5);
+    expect(chatSat?.usageRank).toBe(1);
+    expect(capSat?.usageShare).toBeCloseTo(0.08, 5);
+    expect(capSat?.usageRank).toBe(2);
+    expect(memSat?.usageShare).toBeCloseTo(0.02, 5);
+    expect(memSat?.hubUsageShare).toBeCloseTo(1, 5);
+    expect(memSat?.usageRank).toBe(3);
+    expect(routerSat?.usageShare).toBe(0);
+    expect(routerSat?.usageRank).toBeNull();
+
+    // Switching metric to requests flips ranking so memory_algebra (60 calls) ranks #1
+    const reqLayout = computeStarGraphLayout({
+      graph,
+      kinds,
+      usageByStatKey: usage,
+      metric: 'requests',
+      showAllLowFreq: false,
+    });
+    expect(reqLayout.totalMetric).toBe(100);
+    expect(reqLayout.satellites.find((s) => s.id === 'memory_algebra')?.usageRank).toBe(1);
+    expect(reqLayout.satellites.find((s) => s.id === 'chat')?.usageRank).toBe(2);
+  });
+
+  it('formats shares, computes ring fill bounds, builds valid clockwise paths, and maps accents', () => {
+    expect(formatUsageShare(0)).toBe('0%');
+    expect(formatUsageShare(0.0004)).toBe('<0.1%');
+    expect(formatUsageShare(0.018)).toBe('1.8%');
+    expect(formatUsageShare(0.05)).toBe('5%');
+    expect(formatUsageShare(0.44)).toBe('44%');
+    expect(formatUsageShare(0.997)).toBe('99.9%');
+    expect(formatUsageShare(1)).toBe('100%');
+
+    expect(computeRingFillPercent(0, false)).toBe(0);
+    expect(computeRingFillPercent(0.0004, true)).toBe(0.8);
+    expect(computeRingFillPercent(0.18, true)).toBeCloseTo(18, 5);
+    expect(computeRingFillPercent(0.99, true)).toBe(97.5);
+    expect(computeRingFillPercent(1, true)).toBe(100);
+
+    const sharpPath = buildRoundedRectRingPath(80, 4, 0);
+    expect(sharpPath.startsWith('M 40 4')).toBe(true);
+    expect(sharpPath).not.toContain('A ');
+
+    const roundedPath = buildRoundedRectRingPath(80, 4, 12);
+    expect(roundedPath.startsWith('M 40 4')).toBe(true);
+    expect(roundedPath).toContain('A 12 12 0 0 1');
+
+    expect(resolveSatelliteAccentColor({ id: 'chat', group: 'conversation' })).toBe(
+      'hsl(var(--primary))',
+    );
+    expect(resolveSatelliteAccentColor({ id: 'autonomy', group: 'agent' })).toBe('#f59e0b');
+    expect(resolveSatelliteAccentColor({ id: 'memory_algebra', group: 'memory' })).toBe('#a855f7');
   });
 });
