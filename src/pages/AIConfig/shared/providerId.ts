@@ -40,7 +40,10 @@ function escapeRegExp(str: string): string {
 }
 
 function stripCoreAiPrefix(value: string): string {
-  return value.trim().replace(/^gscore\s*ai\s*/i, '').trim();
+  return value
+    .trim()
+    .replace(/^gscore\s*ai\s*/i, '')
+    .trim();
 }
 
 function getProviderSearchableText(cfg: LocalFrameworkConfig): string {
@@ -93,15 +96,13 @@ export function resolveProviderFrameworkConfig(
     if (exact) return exact;
   }
 
-  const preferredKeywords =
-    kind === 'search' ? ['搜索', 'search'] : ['抓取', 'fetch', 'reader'];
+  const preferredKeywords = kind === 'search' ? ['搜索', 'search'] : ['抓取', 'fetch', 'reader'];
   const fallbackKeywords = ['搜索', '抓取', 'search', 'fetch', 'reader'];
 
   const candidates = list.filter((c) => {
     const combined = getProviderSearchableText(c);
     return (
-      containsProviderToken(combined, key) &&
-      fallbackKeywords.some((kw) => combined.includes(kw))
+      containsProviderToken(combined, key) && fallbackKeywords.some((kw) => combined.includes(kw))
     );
   });
 

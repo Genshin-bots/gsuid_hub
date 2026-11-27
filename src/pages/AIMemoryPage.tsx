@@ -1,9 +1,17 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
@@ -52,7 +60,6 @@ import {
   Brain,
   MessageSquare,
   GitBranch,
-  FolderTree,
   Network,
   Search,
   Trash2,
@@ -62,7 +69,7 @@ import {
   ChevronRight,
   Layers,
   Users,
-  Settings,
+  User,
   Eye,
   Clock,
   Zap,
@@ -75,6 +82,7 @@ import {
   Pencil,
   Save,
   Power,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -82,10 +90,25 @@ import {
   api,
   agentDebugApi,
   cognitionApi,
+  getAuthToken,
+  memoryApi,
+  resolveApiAssetUrl,
   type AgentDebugMemoryConflict,
   type AgentDebugMemoryEdge,
   type CognitionAttachment,
   type CognitionNode,
+  type MemoryStats,
+  type MemoryScope,
+  type MemoryEpisode as Episode,
+  type MemoryEntity as Entity,
+  type MemoryEdge as Edge,
+  type MemoryThread,
+  type MemoryThreadDetail as ThreadDetail,
+  type MemoryConfig,
+  type MemoryMigrationReport as MigrationV21Report,
+  type MemoryHierGraphStatus as HierGraphStatus,
+  type MemoryPreference as Preference,
+  type MemoryEntityDetail as EntityDetailData,
 } from '@/lib/api';
 import { CognitionArticlePreview } from '@/components/cognition/CognitionArticlePreview';
 import { CognitionAttachments } from '@/components/cognition/CognitionAttachments';
@@ -99,357 +122,11 @@ import {
   worldGraphId,
 } from '@/lib/cognition';
 import MemorySettingsDialog from '@/components/memory/MemorySettingsDialog';
+import { EntityCurationDrawer } from '@/components/memory/EntityCurationDrawer';
 import Graph from 'graphology';
 import Sigma from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface MemoryStats {
-  scope_key: string | null;
-  episode_count: number;
-  entity_count: number;
-  speaker_entity_count: number;
-  edge_count: number;
-  active_edge_count: number;
-  category_count?: number;
-  thread_count?: number;
-  edge_state_counts?: Partial<Record<ResolutionState, number>>;
-  preference_count?: number;
-  preference_correction_count?: number;
-  observation_queue_size: number;
-  scope_keys: string[];
-}
-
-interface MemoryScope {
-  scope_key: string;
-  scope_type: string;
-  scope_id: string;
-  episode_count: number;
-  entity_count: number;
-  edge_count: number;
-  category_count?: number;
-  thread_count?: number;
-  preference_count?: number;
-}
-
-interface Episode {
-  id: string;
-  scope_key: string;
-  content: string;
-  speaker_ids: string[];
-  valid_at: string;
-  created_at: string;
-}
-
-interface Entity {
-  id: string;
-  scope_key: string;
-  name: string;
-  summary: string;
-  tag: string[];
-  is_speaker: boolean;
-  user_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-type ResolutionState = 'active' | 'staging' | 'superseded' | 'contradicted';
-type EdgeKind = 'attribute' | 'relation' | 'milestone';
-
-interface Edge {
-  id: string;
-  scope_key: string;
-  fact: string;
-  source_entity_id: string;
-  target_entity_id: string;
-  valid_at: string;
-  invalid_at: string | null;
-  created_at: string;
-  edge_kind?: EdgeKind;
-  slot_key?: string;
-  resolution_state?: ResolutionState;
-  provenance_tier?: string;
-  superseded_by_id?: string | null;
-  contradicts_edge_id?: string | null;
-  thread_id?: string | null;
-  event_at?: string | null;
-  mention_count?: number;
-  decay_score?: number;
-  last_accessed?: string | null;
-}
-
-interface MemoryThread {
-  id: string;
-  scope_key: string;
-  title: string;
-  aliases: string[];
-  summary: string;
-  status: string;
-  milestone_count: number;
-  first_at: string | null;
-  last_at: string | null;
-}
-
-interface ThreadMilestone {
-  id: string;
-  fact: string;
-  slot_key?: string;
-  source_entity_id: string;
-  target_entity_id: string;
-  event_at: string | null;
-  valid_at: string | null;
-}
-
-interface ThreadEpisode {
-  id: string;
-  content: string;
-  valid_at: string | null;
-  session_id?: string;
-}
-
-interface ThreadEntity {
-  id: string;
-  name: string;
-  summary: string;
-  entity_type?: string;
-  is_speaker: boolean;
-}
-
-interface ThreadDetail extends MemoryThread {
-  milestones: ThreadMilestone[];
-  episodes: ThreadEpisode[];
-  entities: ThreadEntity[];
-}
-
-interface MemoryConfig {
-  observer_enabled: boolean;
-  observer_blacklist: string[];
-  ingestion_enabled: boolean;
-  llm_semaphore_limit: number;
-  enable_retrieval: boolean;
-  enable_user_global_memory: boolean;
-  enable_heartbeat_memory: boolean;
-  retrieval_top_k: number;
-  dedup_similarity_threshold: number;
-  memory_inject_max_chars?: number;
-  session_gap_seconds?: number;
-  enable_preference_memory?: boolean;
-}
-
-interface HierGraphStatus {
-  scope_key?: string | null;
-  initialized: boolean;
-  mode?: string;
-  l1_count?: number;
-  thread_count?: number;
-  active_edges?: number;
-  max_layer: number;
-  last_rebuild_at: string | null;
-  entity_count_at_last_rebuild: number;
-  current_entity_count: number;
-  group_summary_cache?: string | null;
-  group_summary_updated_at?: string | null;
-}
-
-interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  page_size: number;
-}
-
-interface Preference {
-  id: string;
-  scope_key: string;
-  user_id: string;
-  target_context: string;
-  preference_rule: string;
-  polarity: 'do' | 'dont';
-  is_correction: boolean;
-  is_active: boolean;
-  mention_count: number;
-  source_episode_id: string | null;
-  created_at: string;
-  updated_at: string;
-  last_applied_at: string | null;
-}
-
-// ============================================================================
-// API
-// ============================================================================
-
-const memoryApi = {
-  getStats: (params?: { group_id?: string; scope_key?: string }) => {
-    const query = new URLSearchParams();
-    if (params?.group_id) query.set('group_id', params.group_id);
-    if (params?.scope_key) query.set('scope_key', params.scope_key);
-    const queryStr = query.toString();
-    return api.get<MemoryStats>(`/api/ai/memory/stats${queryStr ? `?${queryStr}` : ''}`);
-  },
-  getScopes: () => api.get<MemoryScope[]>('/api/ai/memory/scopes'),
-  getEpisodes: (params: {
-    group_id?: string;
-    scope_key?: string;
-    all_scopes?: boolean;
-    page?: number;
-    page_size?: number;
-  }) => {
-    const query = new URLSearchParams();
-    if (params.group_id) query.set('group_id', params.group_id);
-    if (params.scope_key) query.set('scope_key', params.scope_key);
-    if (params.all_scopes) query.set('all_scopes', 'true');
-    if (params.page) query.set('page', String(params.page));
-    if (params.page_size) query.set('page_size', String(params.page_size));
-    return api.get<PaginatedResponse<Episode>>(`/api/ai/memory/episodes?${query.toString()}`);
-  },
-  getEpisodeDetail: (episodeId: string) =>
-    api.get<Episode & { mentioned_entities: Entity[] }>(`/api/ai/memory/episodes/${episodeId}`),
-  deleteEpisode: (episodeId: string) => api.delete<void>(`/api/ai/memory/episodes/${episodeId}`),
-  getEntities: (params: {
-    group_id?: string;
-    scope_key?: string;
-    all_scopes?: boolean;
-    is_speaker?: boolean;
-    search?: string;
-    page?: number;
-    page_size?: number;
-  }) => {
-    const query = new URLSearchParams();
-    if (params.group_id) query.set('group_id', params.group_id);
-    if (params.scope_key) query.set('scope_key', params.scope_key);
-    if (params.all_scopes) query.set('all_scopes', 'true');
-    if (params.is_speaker !== undefined) query.set('is_speaker', String(params.is_speaker));
-    if (params.search) query.set('search', params.search);
-    if (params.page) query.set('page', String(params.page));
-    if (params.page_size) query.set('page_size', String(params.page_size));
-    return api.get<PaginatedResponse<Entity>>(`/api/ai/memory/entities?${query.toString()}`);
-  },
-  getEntityDetail: (entityId: string) =>
-    api.get<Entity & { episodes: Episode[]; edges: (Edge & { direction: string })[] }>(
-      `/api/ai/memory/entities/${entityId}`,
-    ),
-  deleteEntity: (entityId: string) => api.delete<void>(`/api/ai/memory/entities/${entityId}`),
-  getEdges: (params: {
-    group_id?: string;
-    scope_key?: string;
-    all_scopes?: boolean;
-    entity_id?: string;
-    include_history?: boolean;
-    page?: number;
-    page_size?: number;
-  }) => {
-    const query = new URLSearchParams();
-    if (params.group_id) query.set('group_id', params.group_id);
-    if (params.scope_key) query.set('scope_key', params.scope_key);
-    if (params.all_scopes) query.set('all_scopes', 'true');
-    if (params.entity_id) query.set('entity_id', params.entity_id);
-    if (params.include_history) query.set('include_history', 'true');
-    if (params.page) query.set('page', String(params.page));
-    if (params.page_size) query.set('page_size', String(params.page_size));
-    return api.get<PaginatedResponse<Edge>>(`/api/ai/memory/edges?${query.toString()}`);
-  },
-  getEdgeDetail: (edgeId: string) =>
-    api.get<Edge & { source_entity: Entity; target_entity: Entity }>(
-      `/api/ai/memory/edges/${edgeId}`,
-    ),
-  deleteEdge: (edgeId: string) => api.delete<void>(`/api/ai/memory/edges/${edgeId}`),
-  getThreadDetail: (threadId: string) =>
-    api.get<ThreadDetail>(`/api/ai/memory/threads/${threadId}`),
-  getThreads: (params: {
-    group_id?: string;
-    scope_key?: string;
-    status?: string;
-    page?: number;
-    page_size?: number;
-  }) => {
-    const query = new URLSearchParams();
-    if (params.group_id) query.set('group_id', params.group_id);
-    if (params.scope_key) query.set('scope_key', params.scope_key);
-    if (params.status) query.set('status', params.status);
-    if (params.page) query.set('page', String(params.page));
-    if (params.page_size) query.set('page_size', String(params.page_size));
-    return api.get<PaginatedResponse<MemoryThread>>(`/api/ai/memory/threads?${query.toString()}`);
-  },
-  getHierGraphStatus: (params: { group_id?: string; scope_key?: string }) => {
-    const query = new URLSearchParams();
-    if (params.group_id) query.set('group_id', params.group_id);
-    if (params.scope_key) query.set('scope_key', params.scope_key);
-    return api.get<HierGraphStatus>(`/api/ai/memory/hiergraph/status?${query.toString()}`);
-  },
-  getConfig: () => api.get<MemoryConfig>('/api/ai/memory/config'),
-  updateConfig: (data: Partial<MemoryConfig>) =>
-    api.put<MemoryConfig>('/api/ai/memory/config', data),
-  deleteScope: (scopeKey: string) =>
-    api.delete<{
-      scope_key: string;
-      deleted_episodes: number;
-      deleted_entities: number;
-      deleted_edges: number;
-      deleted_threads?: number;
-      deleted_categories: number;
-      deleted_preferences?: number;
-    }>(`/api/ai/memory/scopes/${encodeURIComponent(scopeKey)}`),
-  rebuildProjection: (params: { group_id?: string; scope_key?: string }) => {
-    const query = new URLSearchParams();
-    if (params.group_id) query.set('group_id', params.group_id);
-    if (params.scope_key) query.set('scope_key', params.scope_key);
-    return api.post<{
-      scope_key: string;
-      fts_rows: number;
-      vectors_repaired: number;
-      elapsed_ms: number;
-    }>(`/api/ai/memory/hiergraph/rebuild?${query.toString()}`, {});
-  },
-  clearMemory: (params: { scope_key?: string; scope_pattern?: string; dry_run?: boolean }) =>
-    api.post<{
-      affected_scope_keys: string[];
-      deleted_episodes: number;
-      deleted_entities: number;
-      deleted_edges: number;
-      deleted_threads?: number;
-      deleted_categories: number;
-      deleted_preferences?: number;
-    }>('/api/ai/memory/clear', params),
-  getPreferences: (params: {
-    scope_key?: string;
-    user_id?: string;
-    target_context?: string;
-    is_correction?: boolean;
-    polarity?: 'do' | 'dont';
-    is_active?: boolean;
-    all_scopes?: boolean;
-    page?: number;
-    page_size?: number;
-    keyword?: string;
-  }) => {
-    const query = new URLSearchParams();
-    if (params.scope_key) query.set('scope_key', params.scope_key);
-    if (params.user_id) query.set('user_id', params.user_id);
-    if (params.target_context) query.set('target_context', params.target_context);
-    if (params.is_correction !== undefined)
-      query.set('is_correction', String(params.is_correction));
-    if (params.polarity) query.set('polarity', params.polarity);
-    if (params.is_active !== undefined) query.set('is_active', String(params.is_active));
-    if (params.all_scopes) query.set('all_scopes', 'true');
-    if (params.page) query.set('page', String(params.page));
-    if (params.page_size) query.set('page_size', String(params.page_size));
-    if (params.keyword) query.set('keyword', params.keyword);
-    return api.get<PaginatedResponse<Preference>>(`/api/ai/memory/preferences?${query.toString()}`);
-  },
-  getPreferenceDetail: (prefId: string) =>
-    api.get<Preference>(`/api/ai/memory/preferences/${prefId}`),
-  updatePreference: (
-    prefId: string,
-    data: Partial<
-      Pick<Preference, 'preference_rule' | 'polarity' | 'target_context' | 'is_active'>
-    >,
-  ) => api.patch<Preference>(`/api/ai/memory/preferences/${prefId}`, data),
-  deletePreference: (prefId: string) => api.delete<null>(`/api/ai/memory/preferences/${prefId}`),
-};
 
 // ============================================================================
 // Utility
@@ -465,6 +142,96 @@ function formatScopeType(scopeKey: string): { type: string; id: string } {
   }
   if (scopeKey.startsWith('self:')) return { type: 'self', id: scopeKey.replace('self:', '') };
   return { type: 'unknown', id: scopeKey };
+}
+
+function resolveMemoryAssetUrl(rawUrl: string): string {
+  const raw = rawUrl.trim();
+  if (!raw) return '';
+  const resolved = resolveApiAssetUrl(raw);
+  if (!raw.startsWith('/api/')) return resolved;
+  const token = getAuthToken();
+  if (!token || resolved.includes('token=')) return resolved;
+  return `${resolved}${resolved.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+}
+
+function isValidScopeAvatarUrl(rawUrl: string | undefined): rawUrl is string {
+  const raw = (rawUrl || '').trim();
+  return /^https?:\/\//i.test(raw) || raw.startsWith('/api/') || raw.startsWith('data:image/');
+}
+
+function scopeAvatarUrl(scope: MemoryScope, type: string, id: string): string {
+  const direct = (scope.avatar_url || '').trim();
+  if (isValidScopeAvatarUrl(direct)) return resolveMemoryAssetUrl(direct);
+  if (/^\d{5,12}$/.test(id)) {
+    if (type === 'group') return `https://p.qlogo.cn/gh/${id}/${id}/100`;
+    if (type === 'user_global' || type === 'user_in_group') {
+      return `https://q1.qlogo.cn/g?b=qq&nk=${id}&s=100`;
+    }
+  }
+  const speaker = (scope.speaker_previews ?? []).find((item) =>
+    isValidScopeAvatarUrl(item.avatar_url),
+  );
+  return speaker ? resolveMemoryAssetUrl(speaker.avatar_url) : '';
+}
+
+function ScopeAvatar({
+  scope,
+  type,
+  id,
+  name,
+}: {
+  scope: MemoryScope;
+  type: string;
+  id: string;
+  name: string;
+}) {
+  const url = scopeAvatarUrl(scope, type, id);
+  const FallbackIcon = type === 'group' ? Users : type === 'self' ? Brain : User;
+  return (
+    <Avatar className="h-10 w-10 border border-primary/25 bg-primary/10 shadow-sm">
+      {url && (
+        <AvatarImage
+          src={url}
+          alt={name}
+          referrerPolicy="no-referrer"
+          className="object-cover"
+          loading="lazy"
+        />
+      )}
+      <AvatarFallback className="bg-primary/10 text-primary">
+        <FallbackIcon className="h-5 w-5" />
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+function ScopeSpeakerPreviews({ scope }: { scope: MemoryScope }) {
+  const speakers = (scope.speaker_previews ?? [])
+    .filter((speaker) => isValidScopeAvatarUrl(speaker.avatar_url))
+    .slice(0, 3);
+  if (speakers.length === 0) return null;
+  return (
+    <div className="mt-1 flex items-center -space-x-1.5">
+      {speakers.map((speaker) => (
+        <Avatar
+          key={speaker.user_id}
+          title={`${speaker.name} (${speaker.user_id})`}
+          className="h-4 w-4 border border-background bg-primary/10"
+        >
+          <AvatarImage
+            src={resolveMemoryAssetUrl(speaker.avatar_url)}
+            alt={speaker.name}
+            referrerPolicy="no-referrer"
+            className="object-cover"
+            loading="lazy"
+          />
+          <AvatarFallback className="bg-primary/15 text-[8px] text-primary">
+            {speaker.name.slice(0, 1)}
+          </AvatarFallback>
+        </Avatar>
+      ))}
+    </div>
+  );
 }
 
 function sanitizeScopes(rawScopes: MemoryScope[] | null | undefined): MemoryScope[] {
@@ -518,6 +285,8 @@ interface NodeMeta {
   degree: number;
   kind: NodeKind;
   centerRank?: number;
+  avatarUrl?: string;
+  aliases?: string[];
 }
 
 // Even, overlap-free disk layout used as the starting point — and as the final
@@ -582,6 +351,8 @@ function KnowledgeGraph({
   const { t } = useLanguage();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const avatarCanvasRef = useRef<HTMLCanvasElement>(null);
+  const avatarImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const sigmaRef = useRef<Sigma | null>(null);
   const graphRef = useRef<Graph | null>(null);
   const fa2Ref = useRef<FA2Layout | null>(null);
@@ -599,9 +370,9 @@ function KnowledgeGraph({
   const [nodeSearchQuery, setNodeSearchQuery] = useState('');
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [isLayoutRunning, setIsLayoutRunning] = useState(false);
+  const [showIsolatedItems, setShowIsolatedItems] = useState(false);
 
-  // Node metadata: degree, kind and TOP-N center ranking. Drives both the graph
-  // build and the search panel.
+  // 默认展示所有说话人节点 + 有关系的节点；仅在开启「显示孤立事物节点」时显示度为 0 的非人节点。
   const nodeMeta = useMemo(() => {
     const degree = new Map<string, number>();
     for (const edge of edges) {
@@ -611,14 +382,21 @@ function KnowledgeGraph({
     }
     const meta = new Map<string, NodeMeta>();
     for (const entity of entities) {
+      const deg = degree.get(entity.id) || 0;
+      if (!entity.is_speaker && deg === 0 && !showIsolatedItems) continue;
+      const rawAv = (entity.avatar_url || '').trim();
+      const avatarUrl = /^https?:\/\//i.test(rawAv) ? rawAv : undefined;
       meta.set(entity.id, {
         id: entity.id,
         label: entity.name,
-        degree: degree.get(entity.id) || 0,
+        degree: deg,
         kind: entity.is_speaker ? 'speaker' : 'entity',
+        avatarUrl,
+        aliases: entity.aliases ?? [],
       });
     }
     for (const edge of edges) {
+      if (edge.source_entity_id === edge.target_entity_id) continue;
       for (const id of [edge.source_entity_id, edge.target_entity_id]) {
         if (!meta.has(id)) {
           meta.set(id, {
@@ -638,32 +416,45 @@ function KnowledgeGraph({
         m.centerRank = i + 1;
       });
     return meta;
-  }, [entities, edges]);
+  }, [entities, edges, showIsolatedItems]);
+
+  const visibleEntityCount = useMemo(
+    () => Array.from(nodeMeta.values()).filter((m) => m.kind !== 'placeholder').length,
+    [nodeMeta],
+  );
 
   const nodeSearchResults = useMemo(() => {
     const query = nodeSearchQuery.trim().toLowerCase();
     if (!query) return [];
     return Array.from(nodeMeta.values())
-      .filter((m) => m.label.toLowerCase().includes(query) || m.id.toLowerCase().includes(query))
+      .filter(
+        (m) =>
+          m.label.toLowerCase().includes(query) ||
+          m.id.toLowerCase().includes(query) ||
+          (m.aliases ?? []).some((al) => al.toLowerCase().includes(query)),
+      )
       .sort((a, b) => b.degree - a.degree)
       .slice(0, 8);
   }, [nodeMeta, nodeSearchQuery]);
 
-  // Build the graphology graph + sigma renderer. Rebuilt only when data changes.
+  // Build the graphology graph + sigma renderer + circular QQ avatar canvas overlay.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    let active = true;
     const graph = new Graph({ multi: true, type: 'directed' });
     const spacing = nodeMeta.size > HUGE_GRAPH_NODE_THRESHOLD ? 12 : 24;
+    const avatarNodes: Array<{ id: string; url: string; centerRank: number }> = [];
 
     let index = 0;
     nodeMeta.forEach((m) => {
       const pos = phyllotaxisPosition(index++, spacing);
+      const hasAvatar = m.kind === 'speaker' && Boolean(m.avatarUrl);
       const size = m.centerRank
-        ? 13 - m.centerRank
+        ? 14 - m.centerRank
         : m.kind === 'speaker'
-          ? 6.5
+          ? 8.5
           : m.kind === 'placeholder'
             ? 3.5
             : 5;
@@ -675,7 +466,11 @@ function KnowledgeGraph({
         kind: m.kind,
         centerRank: m.centerRank ?? 0,
         degree: m.degree,
+        hasAvatar,
       });
+      if (hasAvatar && m.avatarUrl) {
+        avatarNodes.push({ id: m.id, url: m.avatarUrl, centerRank: m.centerRank ?? 0 });
+      }
     });
 
     let renderedEdges = 0;
@@ -696,8 +491,7 @@ function KnowledgeGraph({
     }
     graphRef.current = graph;
 
-    // Draw the node label centered on the node — inside a small pill — so the
-    // entity name reads as sitting inside the node rather than floating beside it.
+    // 圆形头像节点将名称胶囊下移至头像下方，避免遮挡人脸。
     const drawNodeLabel = (context: CanvasRenderingContext2D, data: any, settings: any) => {
       if (!data.label) return;
       const palette = getGraphPalette(isDarkRef.current);
@@ -707,14 +501,15 @@ function KnowledgeGraph({
       const padX = 5;
       const boxW = textWidth + padX * 2;
       const boxH = fontSize + 6;
+      const labelY = data.hasAvatar ? data.y + Math.max(8, Number(data.size) || 9) + 10 : data.y;
       context.fillStyle = palette.labelBg;
       context.beginPath();
-      context.roundRect(data.x - boxW / 2, data.y - boxH / 2, boxW, boxH, 4);
+      context.roundRect(data.x - boxW / 2, labelY - boxH / 2, boxW, boxH, 4);
       context.fill();
       context.fillStyle = settings.labelColor?.color || palette.label;
       context.textAlign = 'center';
       context.textBaseline = 'middle';
-      context.fillText(data.label, data.x, data.y);
+      context.fillText(data.label, data.x, labelY);
     };
 
     // Draw the edge fact horizontally at the edge midpoint (never rotated along
@@ -813,6 +608,88 @@ function KnowledgeGraph({
       },
     });
     sigmaRef.current = renderer;
+
+    const drawAvatars = () => {
+      const canvas = avatarCanvasRef.current;
+      if (!canvas || !active) return;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      if (width <= 0 || height <= 0) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const targetW = Math.round(width * dpr);
+      const targetH = Math.round(height * dpr);
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      if (avatarNodes.length === 0) return;
+
+      const palette = getGraphPalette(isDarkRef.current);
+      const highlight = highlightRef.current;
+      const hovered = hoveredRef.current;
+      const focused = focusedRef.current;
+
+      for (const item of avatarNodes) {
+        const img = avatarImagesRef.current.get(item.url);
+        if (!img || !img.complete || img.naturalWidth <= 0) continue;
+        const display = renderer.getNodeDisplayData(item.id);
+        if (!display || display.hidden) continue;
+        const vp = renderer.framedGraphToViewport({ x: display.x, y: display.y });
+        const radius = Math.max(1.5, renderer.scaleSize(display.size));
+        if (
+          vp.x + radius < 0 ||
+          vp.x - radius > width ||
+          vp.y + radius < 0 ||
+          vp.y - radius > height
+        ) {
+          continue;
+        }
+        const dimmed = highlight !== null && !highlight.has(item.id);
+        ctx.save();
+        ctx.globalAlpha = dimmed ? 0.2 : 1;
+        ctx.beginPath();
+        ctx.arc(vp.x, vp.y, radius, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, vp.x - radius, vp.y - radius, radius * 2, radius * 2);
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha = dimmed ? 0.25 : 0.95;
+        ctx.beginPath();
+        ctx.arc(vp.x, vp.y, radius, 0, Math.PI * 2);
+        ctx.lineWidth = item.id === hovered || item.id === focused ? 2.5 : 1.5;
+        ctx.strokeStyle =
+          item.centerRank > 0
+            ? palette.center
+            : item.id === hovered || item.id === focused
+              ? '#ffffff'
+              : palette.speaker;
+        ctx.stroke();
+        ctx.restore();
+      }
+    };
+
+    renderer.on('afterRender', drawAvatars);
+    // 预加载说话人 QQ 头像（不设 crossOrigin 以兼容 QQ 头像 CDN，加载失败自动退回蓝色圆点）
+    for (const item of avatarNodes) {
+      if (avatarImagesRef.current.has(item.url)) continue;
+      const img = new Image();
+      img.referrerPolicy = 'no-referrer';
+      img.onload = () => {
+        if (active) drawAvatars();
+      };
+      img.onerror = () => {
+        avatarImagesRef.current.delete(item.url);
+      };
+      avatarImagesRef.current.set(item.url, img);
+      img.src = item.url;
+    }
+    drawAvatars();
 
     renderer.on('enterNode', ({ node }) => {
       hoveredRef.current = node;
@@ -915,6 +792,7 @@ function KnowledgeGraph({
     }
 
     return () => {
+      active = false;
       window.clearTimeout(layoutTimer);
       container.removeEventListener('mousedown', handlePointerDown);
       container.removeEventListener('auxclick', handleAuxClick);
@@ -1025,7 +903,11 @@ function KnowledgeGraph({
         className={cn('w-full h-full glass-card', isFullscreen ? '' : 'rounded-lg')}
         style={{ cursor: 'grab' }}
       />
-      {/* 顶部悬浮工具栏：左 = 范围选择器 + 搜索框；右 = 操作胶囊 + 缩放控件 */}
+      <canvas
+        ref={avatarCanvasRef}
+        className="pointer-events-none absolute inset-0 w-full h-full"
+      />
+      {/* 顶部悬浮工具栏：左 = 范围选择器 + 统计 + 孤立开关 + 搜索框；右 = 操作胶囊 + 缩放控件 */}
       <div className="absolute top-3 left-3 max-w-[calc(100%-130px)] sm:max-w-[calc(100%-250px)] flex flex-wrap items-center gap-2.5 z-10 pointer-events-auto">
         {/* 范围选择器（独立胶囊，scope 名较长给足宽度） */}
         {scopes && onScopeChange && (
@@ -1046,7 +928,7 @@ function KnowledgeGraph({
             <Brain className="w-3.5 h-3.5 text-primary" />
             <span className="text-muted-foreground">{t('aiMemory.legendEntity')}:</span>
             <span className="font-mono font-semibold tabular-nums">
-              {entities.length.toLocaleString()}
+              {visibleEntityCount.toLocaleString()}
             </span>
           </span>
           <span className="text-border/60">|</span>
@@ -1058,6 +940,12 @@ function KnowledgeGraph({
             </span>
           </span>
         </div>
+
+        {/* 显示孤立事物节点开关（默认隐藏 0 度非人节点，说话人始终保留） */}
+        <label className="glass-float flex items-center gap-2 h-[42px] rounded-lg px-3 border border-border/50 shadow-sm text-xs text-muted-foreground shrink-0 cursor-pointer select-none">
+          <Switch checked={showIsolatedItems} onCheckedChange={setShowIsolatedItems} />
+          <span className="whitespace-nowrap">{t('aiMemory.showIsolatedItems')}</span>
+        </label>
 
         {/* 节点搜索框（独立搜索控件，清晰明显的输入底板与边框） */}
         <form
@@ -1244,56 +1132,110 @@ function StatsCard({
 
 function ScopeCard({
   scope,
-  isGlass,
   onDelete,
-  onSelect,
+  onOpen,
 }: {
   scope: MemoryScope;
-  isGlass: boolean;
   onDelete: () => void;
-  onSelect: () => void;
+  onOpen: (tab: string) => void;
 }) {
   const { t } = useLanguage();
   const { type, id } = formatScopeType(scope.scope_key);
+  const typeLabelKeys: Record<string, string> = {
+    group: 'aiMemory.scopeTypeGroup',
+    user_global: 'aiMemory.scopeTypeUserGlobal',
+    user_in_group: 'aiMemory.scopeTypeUserInGroup',
+    self: 'aiMemory.scopeTypeSelf',
+    unknown: 'aiMemory.scopeTypeUnknown',
+  };
+  const typeLabel = typeLabelKeys[type] ? t(typeLabelKeys[type]) : type;
+  const displayName = (scope.display_name || '').trim() || id;
+  const scopeIdLabel = scope.scope_id || id;
+  const metricButtonClass =
+    'w-full rounded-md px-1.5 py-1 text-left transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  const openMetric = (e: ReactMouseEvent<HTMLButtonElement>, tab: string) => {
+    e.stopPropagation();
+    onOpen(tab);
+  };
   return (
     <Card
+      role="button"
+      tabIndex={0}
       className={cn(
-        'cursor-pointer transition-all hover:shadow-md hover:border-primary/50',
+        'group cursor-pointer transition-all hover:shadow-md hover:border-primary/50',
         'glass-card',
       )}
-      onClick={onSelect}
+      onClick={() => onOpen('graph')}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        onOpen('graph');
+      }}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-lg flex items-center gap-2 min-w-0">
-            {type === 'group' && <Users className="w-5 h-5 text-primary" />}
-            {type === 'user_global' && <Globe className="w-5 h-5 text-primary" />}
-            {type === 'user_in_group' && <Users className="w-5 h-5 text-primary" />}
-            <span className="font-mono text-sm truncate">{id}</span>
-          </CardTitle>
-          <Badge variant="outline">{type}</Badge>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <ScopeAvatar scope={scope} type={type} id={id} name={displayName} />
+            <div className="min-w-0">
+              <CardTitle className="text-base leading-tight truncate">{displayName}</CardTitle>
+              <p className="mt-0.5 font-mono text-xs text-muted-foreground truncate">
+                {scopeIdLabel}
+              </p>
+              {type === 'group' && <ScopeSpeakerPreviews scope={scope} />}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <Badge variant="outline" className="shrink-0">
+              {typeLabel}
+            </Badge>
+            <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">对话片段</p>
-            <p className="font-semibold">{scope.episode_count}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">实体</p>
-            <p className="font-semibold">{scope.entity_count}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">关系</p>
-            <p className="font-semibold">{scope.edge_count}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">{t('aiMemory.statsThreads')}</p>
-            <p className="font-semibold">{scope.thread_count ?? 0}</p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 text-sm">
+          <button
+            type="button"
+            className={metricButtonClass}
+            onClick={(e) => openMetric(e, 'episodes')}
+          >
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
+              {t('aiMemory.tabEpisodes')}
+            </p>
+            <p className="font-semibold tabular-nums">{scope.episode_count}</p>
+          </button>
+          <button
+            type="button"
+            className={metricButtonClass}
+            onClick={(e) => openMetric(e, 'entities')}
+          >
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
+              {t('aiMemory.tabEntities')}
+            </p>
+            <p className="font-semibold tabular-nums">{scope.entity_count}</p>
+          </button>
+          <button
+            type="button"
+            className={metricButtonClass}
+            onClick={(e) => openMetric(e, 'edges')}
+          >
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
+              {t('aiMemory.tabEdges')}
+            </p>
+            <p className="font-semibold tabular-nums">{scope.edge_count}</p>
+          </button>
+          <button
+            type="button"
+            className={metricButtonClass}
+            onClick={(e) => openMetric(e, 'threads')}
+          >
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
+              {t('aiMemory.statsThreads')}
+            </p>
+            <p className="font-semibold tabular-nums">{scope.thread_count ?? 0}</p>
+          </button>
         </div>
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-end mt-3">
           <Button
             variant="ghost"
             size="sm"
@@ -1304,7 +1246,7 @@ function ScopeCard({
             }}
           >
             <Trash2 className="w-4 h-4 mr-1" />
-            删除
+            {t('common.delete')}
           </Button>
         </div>
       </CardContent>
@@ -1316,18 +1258,26 @@ function EntityNode({
   entity,
   isGlass,
   onClick,
+  onDelete,
   worldHub,
 }: {
   entity: Entity;
   isGlass: boolean;
   onClick: () => void;
+  onDelete?: () => void;
   worldHub?: CognitionNode | null;
 }) {
+  const { t } = useLanguage();
+  const [imgErr, setImgErr] = useState(false);
   const articleCount = worldHub?.attachments?.length ?? 0;
+  const aliases = entity.aliases ?? [];
+  const hasAvatar = Boolean(
+    entity.avatar_url && /^https?:\/\//i.test(entity.avatar_url) && !imgErr,
+  );
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all hover:shadow-md hover:border-primary/50',
+        'cursor-pointer transition-all hover:shadow-md hover:border-primary/50 h-full',
         'glass-card',
         entity.is_speaker && 'border-l-4 border-l-primary/60',
       )}
@@ -1335,23 +1285,70 @@ function EntityNode({
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <p className="font-medium truncate">{entity.name}</p>
-            {entity.summary && (
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                {truncateText(entity.summary, 100)}
-              </p>
+          <div className="flex items-start gap-2.5 flex-1 min-w-0">
+            {entity.is_speaker && (
+              <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-primary/40 bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary mt-0.5">
+                {hasAvatar ? (
+                  <img
+                    src={entity.avatar_url}
+                    alt={entity.name}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                    onError={() => setImgErr(true)}
+                  />
+                ) : (
+                  (entity.name || '?').slice(0, 1).toUpperCase()
+                )}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">{entity.name}</p>
+              {entity.summary && (
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                  {truncateText(entity.summary, 100)}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {entity.is_speaker && <Badge variant="secondary">Speaker</Badge>}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 text-destructive hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
             )}
           </div>
-          {entity.is_speaker && (
-            <Badge variant="secondary" className="shrink-0">
-              Speaker
-            </Badge>
-          )}
         </div>
-        {(entity.tag.length > 0 || worldHub) && (
+        {(aliases.length > 0 ||
+          entity.tag.length > 0 ||
+          worldHub ||
+          (entity.self_edge_count ?? 0) > 0 ||
+          (entity.relation_edge_count ?? 0) > 0) && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {entity.tag.slice(0, 3).map((tag) => (
+            {aliases.slice(0, 2).map((al) => (
+              <Badge key={`al-${al}`} variant="secondary" className="text-[10px]">
+                {al}
+              </Badge>
+            ))}
+            {(entity.self_edge_count ?? 0) > 0 && (
+              <Badge variant="outline" className="text-[10px]">
+                {t('aiMemory.entityTabSelfAttrs')} {entity.self_edge_count}
+              </Badge>
+            )}
+            {(entity.relation_edge_count ?? 0) > 0 && (
+              <Badge variant="outline" className="text-[10px]">
+                {t('aiMemory.entityTabRelations')} {entity.relation_edge_count}
+              </Badge>
+            )}
+            {entity.tag.slice(0, 2).map((tag) => (
               <Badge key={tag} variant="outline" className="text-xs">
                 {tag}
               </Badge>
@@ -1433,6 +1430,26 @@ function EdgeItem({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ParticipantAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
+  const [failed, setFailed] = useState(false);
+  const valid = Boolean(avatarUrl && /^https?:\/\//i.test(avatarUrl) && !failed);
+  return (
+    <span className="w-5 h-5 rounded-full overflow-hidden bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
+      {valid ? (
+        <img
+          src={avatarUrl}
+          alt={name}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        (name || '?').slice(0, 1).toUpperCase()
+      )}
+    </span>
   );
 }
 
@@ -1592,9 +1609,9 @@ export default function AIMemoryPage() {
   const [selectedEpisode, setSelectedEpisode] = useState<
     (Episode & { mentioned_entities: Entity[] }) | null
   >(null);
-  const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<EntityDetailData | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<
-    ({ source_entity: Entity; target_entity: Entity } & Edge) | null
+    ({ source_entity: Entity | null; target_entity: Entity | null } & Edge) | null
   >(null);
   const [selectedThreadDetail, setSelectedThreadDetail] = useState<ThreadDetail | null>(null);
   const [activeTab, setActiveTab] = useState('graph');
@@ -1605,7 +1622,12 @@ export default function AIMemoryPage() {
   const [threads, setThreads] = useState<MemoryThread[]>([]);
   const [totalThreads, setTotalThreads] = useState(0);
   const [threadPage, setThreadPage] = useState(1);
+  const [showArchivedThreads, setShowArchivedThreads] = useState(false);
+  const [selectedParticipantUid, setSelectedParticipantUid] = useState('');
+  const [selectedParticipantName, setSelectedParticipantName] = useState('');
   const [isLoadingThreads, setIsLoadingThreads] = useState(false);
+  const [migrationReport, setMigrationReport] = useState<MigrationV21Report | null>(null);
+  const [migrationDialogOpen, setMigrationDialogOpen] = useState(false);
   const [isLoadingDebug, setIsLoadingDebug] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingInvalidateEdge, setPendingInvalidateEdge] = useState<Pick<
@@ -1686,9 +1708,11 @@ export default function AIMemoryPage() {
         void Promise.all([
           memoryApi.getHierGraphStatus({}).catch(() => null),
           memoryApi.getConfig().catch(() => null),
-        ]).then(([hierData, configData]) => {
+          memoryApi.getMigrationReport().catch(() => null),
+        ]).then(([hierData, configData, migData]) => {
           if (hierData) setHierGraphStatus(hierData);
           if (configData) setConfig(configData);
+          if (migData) setMigrationReport(migData);
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : t('aiMemory.loadFailed'));
@@ -1723,10 +1747,17 @@ export default function AIMemoryPage() {
     }
   };
 
-  const fetchEntities = async (page = 1, scopeOverride?: string): Promise<boolean> => {
+  const fetchEntities = async (
+    page = 1,
+    scopeOverride?: string,
+    opts?: { search?: string; isSpeaker?: boolean | null },
+  ): Promise<boolean> => {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
+      const searchVal = opts && 'search' in opts ? (opts.search ?? '') : entitySearch;
+      const speakerVal =
+        opts && 'isSpeaker' in opts ? (opts.isSpeaker ?? undefined) : entityFilterSpeaker;
       const params: {
         page: number;
         page_size: number;
@@ -1735,10 +1766,10 @@ export default function AIMemoryPage() {
         search?: string;
         is_speaker?: boolean;
       } = {
-        page,
+        page: 1,
         page_size: 9999,
-        search: entitySearch || undefined,
-        is_speaker: entityFilterSpeaker,
+        search: searchVal || undefined,
+        is_speaker: speakerVal,
       };
       if (scope !== 'all') {
         params.scope_key = scope;
@@ -1758,17 +1789,22 @@ export default function AIMemoryPage() {
     }
   };
 
-  const fetchEdges = async (page = 1, scopeOverride?: string): Promise<boolean> => {
+  const fetchEdges = async (
+    page = 1,
+    scopeOverride?: string,
+    opts?: { includeHistory?: boolean },
+  ): Promise<boolean> => {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
+      const includeHistory = opts?.includeHistory ?? includeEdgeHistory;
       const params: {
         page: number;
         page_size: number;
         scope_key?: string;
         all_scopes?: boolean;
         include_history?: boolean;
-      } = { page, page_size: 9999, include_history: includeEdgeHistory };
+      } = { page: 1, page_size: 9999, include_history: includeHistory };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
@@ -1787,16 +1823,32 @@ export default function AIMemoryPage() {
     }
   };
 
-  const fetchThreads = async (page = 1, scopeOverride?: string): Promise<boolean> => {
+  const fetchThreads = async (
+    page = 1,
+    scopeOverride?: string,
+    opts?: { includeArchived?: boolean; participantUid?: string },
+  ): Promise<boolean> => {
     try {
       setIsLoadingThreads(true);
       const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string } = {
+      const includeArchived = opts?.includeArchived ?? showArchivedThreads;
+      const participantUid = opts?.participantUid ?? selectedParticipantUid;
+      const params: {
+        page: number;
+        page_size: number;
+        scope_key?: string;
+        include_archived?: boolean;
+        participant_uid?: string;
+      } = {
         page,
         page_size: 20,
+        include_archived: includeArchived,
       };
       if (scope !== 'all') {
         params.scope_key = scope;
+      }
+      if (participantUid) {
+        params.participant_uid = participantUid;
       }
       const data = await memoryApi.getThreads(params);
       setThreads(data.items);
@@ -1882,11 +1934,83 @@ export default function AIMemoryPage() {
       if (dialogType === 'edge' && selectedEdge?.id === pendingInvalidateEdge.id) {
         setSelectedEdge({ ...selectedEdge, invalid_at: new Date().toISOString() });
       }
+      if (dialogType === 'entity' && selectedEntity) {
+        const refreshed = await memoryApi.getEntityDetail(selectedEntity.id).catch(() => null);
+        if (refreshed) setSelectedEntity(refreshed);
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '';
       toast.error(errorMsg || 'Edge 失效失败');
     } finally {
       setInvalidateEdgeLoading(false);
+    }
+  };
+
+  const refreshAfterEntityMutation = async () => {
+    const [statsData, scopesData] = await Promise.all([
+      memoryApi.getStats().catch(() => null),
+      memoryApi.getScopes().catch(() => null),
+      fetchEntities(entityPage),
+      fetchEdges(edgePage),
+      fetchCognition(),
+    ]);
+    if (statsData) setStats(statsData);
+    if (scopesData) setScopes(sanitizeScopes(scopesData));
+  };
+
+  const handlePatchEntity = async (
+    entityId: string,
+    payload: {
+      name?: string;
+      summary?: string;
+      entity_kind?: string;
+      aliases?: string[];
+      promote_pending_alias?: string;
+      dismiss_pending_alias?: string;
+    },
+  ): Promise<EntityDetailData | null> => {
+    try {
+      const updated = await memoryApi.patchEntity(entityId, payload);
+      setSelectedEntity(updated);
+      void refreshAfterEntityMutation();
+      return updated;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '';
+      toast.error(msg || t('aiMemory.loadFailed'));
+      return null;
+    }
+  };
+
+  const handleMergeEntity = async (
+    sourceId: string,
+    targetId: string,
+  ): Promise<EntityDetailData | null> => {
+    try {
+      const merged = await memoryApi.mergeEntity(sourceId, targetId);
+      setSelectedEntity(merged);
+      void refreshAfterEntityMutation();
+      return merged;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '';
+      toast.error(msg || t('aiMemory.loadFailed'));
+      return null;
+    }
+  };
+
+  const handleSplitEntity = async (
+    sourceId: string,
+    payload: { edge_ids: string[]; new_name: string; entity_kind: string; summary: string },
+  ): Promise<{ new_entity: EntityDetailData | null; moved_edges: number } | null> => {
+    try {
+      const result = await memoryApi.splitEntity(sourceId, payload);
+      const refreshed = await memoryApi.getEntityDetail(sourceId).catch(() => null);
+      if (refreshed) setSelectedEntity(refreshed);
+      void refreshAfterEntityMutation();
+      return result;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '';
+      toast.error(msg || t('aiMemory.loadFailed'));
+      return null;
     }
   };
 
@@ -1900,14 +2024,18 @@ export default function AIMemoryPage() {
         setIsLoadingGraph(true);
         try {
           const results = await Promise.all([
-            fetchEntities(1, scope),
-            fetchEdges(1, scope),
+            fetchEntities(1, scope, { search: '', isSpeaker: null }),
+            fetchEdges(1, scope, { includeHistory: false }),
             fetchCognition(scope),
           ]);
           ok = results.every(Boolean);
           if (ok) {
-            loadedTabDataRef.current.add(`entities:${scope}`);
-            loadedTabDataRef.current.add(`edges:${scope}`);
+            if (!entitySearch && entityFilterSpeaker === undefined) {
+              loadedTabDataRef.current.add(`entities:${scope}`);
+            }
+            if (!includeEdgeHistory) {
+              loadedTabDataRef.current.add(`edges:${scope}`);
+            }
             loadedTabDataRef.current.add(`world:${scope}`);
           }
         } finally {
@@ -1948,7 +2076,14 @@ export default function AIMemoryPage() {
     setEntityPage(1);
     setEdgePage(1);
     setThreadPage(1);
+    setSelectedParticipantUid('');
+    setSelectedParticipantName('');
     void loadTabData(activeTab, scope);
+  };
+
+  const handleOpenScope = (scope: string, tab = 'graph') => {
+    handleScopeChange(scope);
+    setActiveTab(tab);
   };
 
   useEffect(() => {
@@ -2024,10 +2159,21 @@ export default function AIMemoryPage() {
     }
   };
 
-  const fetchPreferences = async (page = 1, scopeOverride?: string): Promise<boolean> => {
+  const fetchPreferences = async (
+    page = 1,
+    scopeOverride?: string,
+    opts?: {
+      keyword?: string;
+      filter?: 'all' | 'active' | 'inactive' | 'correction';
+      polarity?: 'all' | 'do' | 'dont';
+    },
+  ): Promise<boolean> => {
     try {
       setIsLoadingPreferences(true);
       const scope = scopeOverride ?? selectedScope;
+      const kw = (opts && 'keyword' in opts ? (opts.keyword ?? '') : preferenceSearch).trim();
+      const filterVal = opts?.filter ?? preferenceFilter;
+      const polarityVal = opts?.polarity ?? preferencePolarityFilter;
       const params: {
         page: number;
         page_size: number;
@@ -2043,11 +2189,11 @@ export default function AIMemoryPage() {
       } else {
         params.all_scopes = true;
       }
-      if (preferenceSearch.trim()) params.keyword = preferenceSearch.trim();
-      if (preferenceFilter === 'active') params.is_active = true;
-      if (preferenceFilter === 'inactive') params.is_active = false;
-      if (preferenceFilter === 'correction') params.is_correction = true;
-      if (preferencePolarityFilter !== 'all') params.polarity = preferencePolarityFilter;
+      if (kw) params.keyword = kw;
+      if (filterVal === 'active') params.is_active = true;
+      if (filterVal === 'inactive') params.is_active = false;
+      if (filterVal === 'correction') params.is_correction = true;
+      if (polarityVal !== 'all') params.polarity = polarityVal;
       const data = await memoryApi.getPreferences(params);
       setPreferences(data.items);
       setTotalPreferences(data.total);
@@ -2158,10 +2304,14 @@ export default function AIMemoryPage() {
   };
 
   const handleReconcileIndex = async () => {
+    if (!selectedScope || selectedScope === 'all') {
+      toast.error(t('aiMemory.reconcileFailed'));
+      return;
+    }
     try {
       setIsReconciling(true);
-      const result = await memoryApi.rebuildProjection({
-        scope_key: selectedScope === 'all' ? undefined : selectedScope,
+      const result = await memoryApi.rebuildHierGraph({
+        scope_key: selectedScope,
       });
       toast.success(
         t('aiMemory.reconcileDone', {
@@ -2169,9 +2319,7 @@ export default function AIMemoryPage() {
           vectors: result.vectors_repaired,
         }),
       );
-      const statsData = await memoryApi.getStats({
-        scope_key: selectedScope === 'all' ? undefined : selectedScope,
-      });
+      const statsData = await memoryApi.getStats().catch(() => null);
       if (statsData) setStats(statsData);
       if (activeTab === 'threads') {
         await fetchThreads(threadPage);
@@ -2210,6 +2358,9 @@ export default function AIMemoryPage() {
         case 'entity': {
           const data = await memoryApi.getEntityDetail(id);
           setSelectedEntity(data);
+          if (!entities.some((e) => e.scope_key === data.scope_key)) {
+            void fetchEntities(1, data.scope_key, { search: '', isSpeaker: null });
+          }
           break;
         }
         case 'edge': {
@@ -2287,25 +2438,6 @@ export default function AIMemoryPage() {
     }
   };
 
-  const selectedEntityConnectedEdges = useMemo(() => {
-    if (!selectedEntity) return [];
-    return edges
-      .filter(
-        (edge) =>
-          edge.source_entity_id === selectedEntity.id ||
-          edge.target_entity_id === selectedEntity.id,
-      )
-      .map((edge) => {
-        const connectedEntityId =
-          edge.source_entity_id === selectedEntity.id
-            ? edge.target_entity_id
-            : edge.source_entity_id;
-        const connectedEntity = entities.find((entity) => entity.id === connectedEntityId);
-        const direction = edge.source_entity_id === selectedEntity.id ? 'out' : 'in';
-        return { edge, connectedEntityId, connectedEntity, direction };
-      });
-  }, [edges, entities, selectedEntity]);
-
   const edgeSlices: RatioSlice[] = useMemo(() => {
     if (!stats) return [];
     const counts = stats.edge_state_counts ?? {};
@@ -2313,7 +2445,8 @@ export default function AIMemoryPage() {
     const staging = counts.staging ?? 0;
     const superseded = counts.superseded ?? 0;
     const contradicted = counts.contradicted ?? 0;
-    const classifiedTotal = active + staging + superseded + contradicted;
+    const retracted = counts.retracted ?? 0;
+    const classifiedTotal = active + staging + superseded + contradicted + retracted;
     const inactiveOrHistorical = Math.max(0, stats.edge_count - classifiedTotal);
 
     const slices: RatioSlice[] = [];
@@ -2347,6 +2480,14 @@ export default function AIMemoryPage() {
         value: contradicted,
         text: contradicted.toLocaleString(),
         color: '#f43f5e',
+      });
+    }
+    if (retracted > 0) {
+      slices.push({
+        label: t('aiMemory.edgeState_retracted'),
+        value: retracted,
+        text: retracted.toLocaleString(),
+        color: '#a855f7',
       });
     }
     if (inactiveOrHistorical > 0) {
@@ -2404,11 +2545,20 @@ export default function AIMemoryPage() {
             <Button
               variant="outline"
               className={cn(tabToolbarControlClass, 'w-full sm:w-auto sm:shrink-0')}
-              disabled={isReconciling}
+              disabled={isReconciling || !selectedScope || selectedScope === 'all'}
+              title={selectedScope === 'all' ? t('aiMemory.allScopes') : t('aiMemory.reconcile')}
               onClick={handleReconcileIndex}
             >
               <Zap className={cn('w-4 h-4', isReconciling && 'animate-spin')} />
               {t('aiMemory.reconcile')}
+            </Button>
+            <Button
+              variant="outline"
+              className={cn(tabToolbarControlClass, 'w-full sm:w-auto sm:shrink-0')}
+              onClick={() => setMigrationDialogOpen(true)}
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              {t('aiMemory.migrationReport')}
             </Button>
             <Button
               variant="outline"
@@ -2447,8 +2597,20 @@ export default function AIMemoryPage() {
       <MemorySettingsDialog
         open={memorySettingsOpen}
         onOpenChange={setMemorySettingsOpen}
-        scopeKey={scopes[0]?.scope_key ?? undefined}
-        onAfterSave={() => setMemorySettingsVersion((v) => v + 1)}
+        scopeKey={
+          selectedScope && selectedScope !== 'all'
+            ? selectedScope
+            : (scopes[0]?.scope_key ?? undefined)
+        }
+        onAfterSave={() => {
+          setMemorySettingsVersion((v) => v + 1);
+          void memoryApi
+            .getConfig()
+            .then((cfgData) => {
+              if (cfgData) setConfig(cfgData);
+            })
+            .catch(() => {});
+        }}
       />
       {error && (
         <GlassAlert tone="danger" icon={AlertCircle}>
@@ -2782,7 +2944,7 @@ export default function AIMemoryPage() {
                     onClick={() => {
                       setPreferenceSearch('');
                       setPreferencePage(1);
-                      setTimeout(() => fetchPreferences(1), 0);
+                      void fetchPreferences(1, selectedScope, { keyword: '' });
                     }}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
@@ -2800,9 +2962,10 @@ export default function AIMemoryPage() {
               <Select
                 value={preferenceFilter}
                 onValueChange={(v) => {
-                  setPreferenceFilter(v as typeof preferenceFilter);
+                  const next = v as typeof preferenceFilter;
+                  setPreferenceFilter(next);
                   setPreferencePage(1);
-                  setTimeout(() => fetchPreferences(1), 0);
+                  void fetchPreferences(1, selectedScope, { filter: next });
                 }}
               >
                 <SelectTrigger className={cn(tabToolbarControlClass, 'w-28')}>
@@ -2820,9 +2983,10 @@ export default function AIMemoryPage() {
               <Select
                 value={preferencePolarityFilter}
                 onValueChange={(v) => {
-                  setPreferencePolarityFilter(v as typeof preferencePolarityFilter);
+                  const next = v as typeof preferencePolarityFilter;
+                  setPreferencePolarityFilter(next);
                   setPreferencePage(1);
-                  setTimeout(() => fetchPreferences(1), 0);
+                  void fetchPreferences(1, selectedScope, { polarity: next });
                 }}
               >
                 <SelectTrigger className={cn(tabToolbarControlClass, 'w-28')}>
@@ -3132,9 +3296,8 @@ export default function AIMemoryPage() {
               <ScopeCard
                 key={scope.scope_key}
                 scope={scope}
-                isGlass={isGlass}
                 onDelete={() => handleDeleteScope(scope.scope_key)}
-                onSelect={() => handleScopeChange(scope.scope_key)}
+                onOpen={(tab) => handleOpenScope(scope.scope_key, tab)}
               />
             ))}
           </div>
@@ -3261,9 +3424,22 @@ export default function AIMemoryPage() {
                 placeholder={t('aiMemory.searchEntities')}
                 value={entitySearch}
                 onChange={(e) => setEntitySearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    loadedTabDataRef.current.delete(`graph:${selectedScope}`);
+                    void fetchEntities(1, selectedScope, { search: entitySearch });
+                  }
+                }}
                 className="max-w-xs"
               />
-              <Button variant="outline" size="sm" onClick={() => fetchEntities(1)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  loadedTabDataRef.current.delete(`graph:${selectedScope}`);
+                  void fetchEntities(1, selectedScope, { search: entitySearch });
+                }}
+              >
                 {t('common.search')}
               </Button>
             </div>
@@ -3279,14 +3455,15 @@ export default function AIMemoryPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setEntityFilterSpeaker(
+                  const next =
                     entityFilterSpeaker === undefined
                       ? true
                       : entityFilterSpeaker === true
                         ? false
-                        : undefined,
-                  );
-                  fetchEntities(1);
+                        : undefined;
+                  setEntityFilterSpeaker(next);
+                  loadedTabDataRef.current.delete(`graph:${selectedScope}`);
+                  void fetchEntities(1, selectedScope, { isSpeaker: next ?? null });
                 }}
               >
                 <Users className="w-4 h-4 mr-1" />
@@ -3303,7 +3480,10 @@ export default function AIMemoryPage() {
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
-            {t('aiMemory.entityCount', { count: entities.length, total: totalEntities })}
+            {t('aiMemory.entityCount', {
+              count: Math.min(20, Math.max(0, entities.length - (entityPage - 1) * 20)),
+              total: totalEntities,
+            })}
           </p>
           {isLoadingData ? (
             <div
@@ -3330,47 +3510,39 @@ export default function AIMemoryPage() {
                 pageGapClass,
               )}
             >
-              {entities.map((entity) => (
-                <div key={entity.id} className="relative group">
+              {entities.slice((entityPage - 1) * 20, entityPage * 20).map((entity) => (
+                <div key={entity.id} className="group">
                   <EntityNode
                     entity={entity}
                     isGlass={isGlass}
                     worldHub={hubForEntity(entity.id, entity.name, cognitionNodes)}
                     onClick={() => openDetailDialog('entity', entity.id)}
+                    onDelete={() => handleDeleteEntity(entity.id)}
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteEntity(entity.id);
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               ))}
             </div>
           )}
-          {totalEntities > 20 && (
+          {entities.length > 20 && (
             <div className="flex justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={entityPage <= 1}
-                onClick={() => fetchEntities(entityPage - 1)}
+                onClick={() => setEntityPage((p) => Math.max(1, p - 1))}
               >
                 {t('common.previousPage')}
               </Button>
               <span className="flex items-center text-sm text-muted-foreground">
-                {entityPage} / {Math.ceil(totalEntities / 20)}
+                {entityPage} / {Math.ceil(entities.length / 20)}
               </span>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={entityPage >= Math.ceil(totalEntities / 20)}
-                onClick={() => fetchEntities(entityPage + 1)}
+                disabled={entityPage >= Math.ceil(entities.length / 20)}
+                onClick={() =>
+                  setEntityPage((p) => Math.min(Math.ceil(entities.length / 20), p + 1))
+                }
               >
                 {t('common.nextPage')}
               </Button>
@@ -3384,7 +3556,10 @@ export default function AIMemoryPage() {
         <div className={pageStackClass}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
-              {t('aiMemory.edgeCount', { count: edges.length, total: totalEdges })}
+              {t('aiMemory.edgeCount', {
+                count: Math.min(20, Math.max(0, edges.length - (edgePage - 1) * 20)),
+                total: totalEdges,
+              })}
             </p>
             <div className="flex gap-2">
               <ScopeSelector
@@ -3394,12 +3569,13 @@ export default function AIMemoryPage() {
                 allLabel={t('aiMemory.allScopes')}
                 className="w-[180px]"
               />
-              <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
                 <Switch
                   checked={includeEdgeHistory}
                   onCheckedChange={(checked) => {
                     setIncludeEdgeHistory(checked);
-                    setTimeout(() => fetchEdges(1), 0);
+                    loadedTabDataRef.current.delete(`graph:${selectedScope}`);
+                    void fetchEdges(1, selectedScope, { includeHistory: checked });
                   }}
                 />
                 {t('aiMemory.showEdgeHistory')}
@@ -3425,7 +3601,7 @@ export default function AIMemoryPage() {
             </Card>
           ) : (
             <div className="space-y-2">
-              {edges.map((edge) => (
+              {edges.slice((edgePage - 1) * 20, edgePage * 20).map((edge) => (
                 <div key={edge.id} className="relative group">
                   <EdgeItem
                     edge={edge}
@@ -3449,24 +3625,24 @@ export default function AIMemoryPage() {
               ))}
             </div>
           )}
-          {totalEdges > 20 && (
+          {edges.length > 20 && (
             <div className="flex justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={edgePage <= 1}
-                onClick={() => fetchEdges(edgePage - 1)}
+                onClick={() => setEdgePage((p) => Math.max(1, p - 1))}
               >
                 {t('common.previousPage')}
               </Button>
               <span className="flex items-center text-sm text-muted-foreground">
-                {edgePage} / {Math.ceil(totalEdges / 20)}
+                {edgePage} / {Math.ceil(edges.length / 20)}
               </span>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={edgePage >= Math.ceil(totalEdges / 20)}
-                onClick={() => fetchEdges(edgePage + 1)}
+                disabled={edgePage >= Math.ceil(edges.length / 20)}
+                onClick={() => setEdgePage((p) => Math.min(Math.ceil(edges.length / 20), p + 1))}
               >
                 {t('common.nextPage')}
               </Button>
@@ -3479,10 +3655,30 @@ export default function AIMemoryPage() {
       {activeTab === 'threads' && (
         <div className={pageStackClass}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p className="text-sm text-muted-foreground">
-              {t('aiMemory.threadCount', { count: threads.length, total: totalThreads })}
-            </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {t('aiMemory.threadCount', { count: threads.length, total: totalThreads })}
+              </p>
+              {selectedParticipantUid && (
+                <Badge variant="secondary" className="gap-1 text-xs">
+                  {t('aiMemory.filterByParticipant')}:{' '}
+                  {selectedParticipantName || selectedParticipantUid}
+                  <button
+                    type="button"
+                    className="ml-1 hover:text-foreground"
+                    title={t('aiMemory.clearParticipantFilter')}
+                    onClick={() => {
+                      setSelectedParticipantUid('');
+                      setSelectedParticipantName('');
+                      void fetchThreads(1, selectedScope, { participantUid: '' });
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <ScopeSelector
                 value={selectedScope}
                 onChange={handleScopeChange}
@@ -3490,6 +3686,16 @@ export default function AIMemoryPage() {
                 allLabel={t('aiMemory.allScopes')}
                 className="w-[180px]"
               />
+              <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+                <Switch
+                  checked={showArchivedThreads}
+                  onCheckedChange={(checked) => {
+                    setShowArchivedThreads(checked);
+                    void fetchThreads(1, selectedScope, { includeArchived: checked });
+                  }}
+                />
+                {t('aiMemory.showArchivedThreads')}
+              </label>
               <Button variant="outline" size="sm" onClick={() => fetchThreads(threadPage)}>
                 <RefreshCw className="w-4 h-4 mr-1" />
                 {t('common.refresh')}
@@ -3511,48 +3717,104 @@ export default function AIMemoryPage() {
             </Card>
           ) : (
             <div className="space-y-2">
-              {threads.map((thread) => (
-                <Card
-                  key={thread.id}
-                  className={cn('glass-card cursor-pointer transition-all hover:border-primary/50')}
-                  onClick={() => openDetailDialog('thread', thread.id)}
-                >
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium truncate">{thread.title || thread.id}</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {t('aiMemory.milestones')} {thread.milestone_count}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {thread.status}
-                        </Badge>
-                      </div>
-                    </div>
-                    {thread.summary && (
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                        {thread.summary}
-                      </p>
+              {threads.map((thread) => {
+                const participants = thread.participants ?? [];
+                const statusKey =
+                  thread.status === 'active' ||
+                  thread.status === 'dormant' ||
+                  thread.status === 'archived'
+                    ? `aiMemory.threadStatus_${thread.status}`
+                    : '';
+                return (
+                  <Card
+                    key={thread.id}
+                    className={cn(
+                      'glass-card cursor-pointer transition-all hover:border-primary/50',
+                      thread.status === 'archived' && 'opacity-70',
                     )}
-                    {thread.aliases.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {thread.aliases.map((alias) => (
-                          <Badge key={alias} variant="outline" className="text-xs">
-                            {alias}
+                    onClick={() => openDetailDialog('thread', thread.id)}
+                  >
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-medium truncate">{thread.title || thread.id}</p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge variant="outline" className="text-xs">
+                            {t('aiMemory.milestones')} {thread.milestone_count}
                           </Badge>
-                        ))}
+                          {(thread.episode_count ?? 0) > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {t('aiMemory.threadEpisodesCount')} {thread.episode_count}
+                            </Badge>
+                          )}
+                          <Badge
+                            variant={thread.status === 'active' ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {statusKey ? t(statusKey) : thread.status}
+                          </Badge>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {t('aiMemory.lastActive')}: {formatDate(thread.last_at ?? '')}
-                      </span>
-                      <span className="font-mono truncate">{thread.scope_key}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      {thread.summary && (
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {thread.summary}
+                        </p>
+                      )}
+                      {participants.length > 0 && (
+                        <div
+                          className="flex flex-wrap items-center gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {participants.slice(0, 8).map((p) => {
+                            const isSelected = selectedParticipantUid === p.user_id;
+                            return (
+                              <button
+                                key={p.user_id}
+                                type="button"
+                                title={`${p.name} (${p.user_id})`}
+                                onClick={() => {
+                                  const nextUid = isSelected ? '' : p.user_id;
+                                  const nextName = isSelected ? '' : p.name;
+                                  setSelectedParticipantUid(nextUid);
+                                  setSelectedParticipantName(nextName);
+                                  void fetchThreads(1, selectedScope, { participantUid: nextUid });
+                                }}
+                                className={cn(
+                                  'inline-flex items-center gap-1.5 rounded-full border pl-0.5 pr-2 py-0.5 text-xs transition-colors hover:bg-accent/60',
+                                  isSelected
+                                    ? 'border-primary bg-primary/15 text-primary'
+                                    : 'border-border/50 bg-muted/30 text-muted-foreground',
+                                )}
+                              >
+                                <ParticipantAvatar
+                                  name={p.name || p.user_id}
+                                  avatarUrl={p.avatar_url}
+                                />
+                                <span className="max-w-[96px] truncate">{p.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {thread.aliases.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {thread.aliases.map((alias) => (
+                            <Badge key={alias} variant="outline" className="text-xs">
+                              {alias}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {t('aiMemory.lastActive')}: {formatDate(thread.last_at ?? '')}
+                        </span>
+                        <span className="font-mono truncate">{thread.scope_key}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
           {totalThreads > 20 && (
@@ -3807,7 +4069,31 @@ export default function AIMemoryPage() {
                       <Label className="text-muted-foreground">{t('aiMemory.llmSemaphore')}</Label>
                       <p className="font-semibold">{config.llm_semaphore_limit}</p>
                     </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('memorySettings.fields.windowMaxMessages')}
+                      </Label>
+                      <p className="font-semibold">{config.window_max_messages ?? 50}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('memorySettings.fields.windowIdleSeconds')}
+                      </Label>
+                      <p className="font-semibold">{config.window_idle_seconds ?? 480}s</p>
+                    </div>
                   </div>
+                  {(config.external_bot_ids?.length ?? 0) > 0 && (
+                    <div>
+                      <Label>{t('memorySettings.fields.externalBotIds')}</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {(config.external_bot_ids ?? []).map((id) => (
+                          <Badge key={id} variant="outline" className="font-mono">
+                            {id}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               <Card className={cn('glass-card')}>
@@ -3897,7 +4183,12 @@ export default function AIMemoryPage() {
 
       {/* Detail Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
+        <DialogContent
+          className={cn(
+            'flex flex-col p-6',
+            dialogType === 'entity' ? 'max-w-3xl max-h-[88vh]' : 'max-w-2xl max-h-[85vh]',
+          )}
+        >
           <DialogHeader className="shrink-0 pb-1">
             <DialogTitle>
               {dialogType === 'episode' && t('aiMemory.episodeDetail')}
@@ -3950,7 +4241,12 @@ export default function AIMemoryPage() {
                     </Label>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {selectedEpisode.mentioned_entities.map((e) => (
-                        <Badge key={e.id} variant="secondary">
+                        <Badge
+                          key={e.id}
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-accent"
+                          onClick={() => openDetailDialog('entity', e.id)}
+                        >
                           {e.name}
                         </Badge>
                       ))}
@@ -3960,206 +4256,62 @@ export default function AIMemoryPage() {
               </div>
             )}
             {dialogType === 'entity' && selectedEntity && (
-              <div className="space-y-3 md:space-y-4">
-                <div className={cn('rounded-lg p-4', 'glass-card')}>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
-                      <p className="font-mono text-sm break-all">{selectedEntity.scope_key}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
-                      <p className="font-medium">{selectedEntity.name}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.isSpeaker')}</Label>
-                      <p>{selectedEntity.is_speaker ? t('common.yes') : t('common.no')}</p>
-                    </div>
-                    {selectedEntity.user_id && (
-                      <div>
-                        <Label className="text-muted-foreground">{t('aiMemory.userId')}</Label>
-                        <p className="font-mono">{selectedEntity.user_id}</p>
-                      </div>
-                    )}
-                    <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
-                      <p>{formatDate(selectedEntity.created_at)}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label>
-                      <p>{formatDate(selectedEntity.updated_at)}</p>
-                    </div>
-                  </div>
-                  {selectedEntity.summary && (
-                    <div className="mt-4">
-                      <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
-                      <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
-                        {selectedEntity.summary}
-                      </p>
-                    </div>
-                  )}
-                  {selectedEntity.tag.length > 0 && (
-                    <div className="mt-4">
-                      <Label className="text-muted-foreground">{t('aiMemory.tags')}</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {selectedEntity.tag.map((tag) => (
-                          <Badge key={tag} variant="outline">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {(() => {
-                    const hub = hubForEntity(
-                      selectedEntity.id,
-                      selectedEntity.name,
-                      cognitionNodes,
-                    );
-                    if (!hub) return null;
-                    const articles = hub.attachments ?? [];
-                    return (
-                      <div className="mt-4 space-y-2">
-                        <Label className="text-muted-foreground">
-                          {t('aiMemory.worldKnowledge')}
-                        </Label>
-                        <button
-                          type="button"
-                          className="flex w-full items-center justify-between gap-2 rounded-md border border-border/50 p-3 text-left hover:bg-accent/40"
-                          onClick={() => openDetailDialog('world', worldGraphId(hub))}
-                        >
-                          <span className="min-w-0">
-                            <span className="flex items-center gap-2 font-medium">
-                              <Globe className="w-4 h-4 shrink-0" />
-                              <span className="truncate">{hub.title || hub.ref}</span>
-                            </span>
-                            <span className="mt-1 block font-mono text-xs text-muted-foreground break-all">
-                              {hub.ref}
-                            </span>
-                          </span>
-                          <Badge variant="secondary" className="shrink-0">
-                            {t('aiMemory.articleCount', { count: articles.length })}
-                          </Badge>
-                        </button>
-                        {articles.length > 0 && (
-                          <CognitionAttachments
-                            attachments={articles}
-                            openLabel={t('aiMemory.openArticle')}
-                            writableLabel={t('aiMemory.articleWritable')}
-                            readonlyLabel={t('aiMemory.articleReadonly')}
-                          />
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                <div className={cn('rounded-lg p-4', 'glass-card')}>
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold">相连实体与关系 Edge</h3>
-                      <p className="text-xs text-muted-foreground">
-                        展示所有与当前实体直接相连的实体，可对错误 Edge 标记失效。
-                      </p>
-                    </div>
-                    <Badge variant="outline">{selectedEntityConnectedEdges.length}</Badge>
-                  </div>
-                  {selectedEntityConnectedEdges.length === 0 ? (
-                    <div className="py-6 text-center text-sm text-muted-foreground">
-                      暂无直接相连实体
-                    </div>
-                  ) : (
-                    <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
-                      {selectedEntityConnectedEdges.map(
-                        ({ edge, connectedEntity, connectedEntityId, direction }) => (
-                          <div
-                            key={edge.id}
-                            className={cn(
-                              'rounded-lg border border-border/50 p-3',
-                              edge.invalid_at && 'opacity-60',
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 space-y-2">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <Badge variant={edge.invalid_at ? 'destructive' : 'default'}>
-                                    {edge.invalid_at ? '已失效' : '有效'}
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    {direction === 'out' ? '当前实体 → 对方' : '对方 → 当前实体'}
-                                  </Badge>
-                                  <span className="font-mono text-xs text-muted-foreground">
-                                    {edge.id}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                  <span className="font-medium truncate">
-                                    {selectedEntity.name}
-                                  </span>
-                                  <ChevronRight
-                                    className={cn(
-                                      'h-4 w-4 text-primary/60',
-                                      direction === 'in' && 'rotate-180',
-                                    )}
-                                  />
-                                  <button
-                                    type="button"
-                                    className="font-medium text-primary hover:underline truncate"
-                                    onClick={() => openDetailDialog('entity', connectedEntityId)}
-                                  >
-                                    {connectedEntity?.name || connectedEntityId}
-                                  </button>
-                                </div>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                  {edge.fact}
-                                </p>
-                                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                                  <span>
-                                    生效: {edge.valid_at ? formatDate(edge.valid_at) : '-'}
-                                  </span>
-                                  <span>提及: {edge.mention_count ?? '-'}</span>
-                                  <span>
-                                    评分:{' '}
-                                    {typeof edge.decay_score === 'number'
-                                      ? edge.decay_score.toFixed(3)
-                                      : '-'}
-                                  </span>
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="shrink-0 text-destructive hover:text-destructive"
-                                disabled={!!edge.invalid_at}
-                                onClick={() => requestInvalidateEdge(edge)}
-                              >
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                失效
-                              </Button>
-                            </div>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <EntityCurationDrawer
+                entity={selectedEntity}
+                sameScopeEntities={entities}
+                worldHub={hubForEntity(selectedEntity.id, selectedEntity.name, cognitionNodes)}
+                formatDate={formatDate}
+                onOpenEntity={(entityId) => openDetailDialog('entity', entityId)}
+                onOpenWorldHub={(hub) => openDetailDialog('world', worldGraphId(hub))}
+                onInvalidateEdge={(edge) => requestInvalidateEdge(edge)}
+                onPatchEntity={handlePatchEntity}
+                onMergeEntity={handleMergeEntity}
+                onSplitEntity={handleSplitEntity}
+              />
             )}
             {dialogType === 'edge' && selectedEdge && (
               <div className="space-y-3 md:space-y-4">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge
+                    variant={
+                      selectedEdge.resolution_state === 'contradicted'
+                        ? 'destructive'
+                        : (selectedEdge.resolution_state ?? 'active') === 'active'
+                          ? 'default'
+                          : 'outline'
+                    }
+                    className="text-xs"
+                  >
+                    {t(`aiMemory.edgeState_${selectedEdge.resolution_state || 'active'}`)}
+                  </Badge>
+                  {selectedEdge.edge_kind && (
+                    <Badge variant="outline" className="text-xs">
+                      {t(`aiMemory.edgeKind_${selectedEdge.edge_kind}`)}
+                    </Badge>
+                  )}
+                  {selectedEdge.slot_key && (
+                    <Badge variant="secondary" className="font-mono text-xs">
+                      {selectedEdge.slot_key}
+                    </Badge>
+                  )}
+                </div>
                 <div>
                   <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
                   <p className="font-mono text-sm">{selectedEdge.scope_key}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">{t('aiMemory.fact')}</Label>
-                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm">{selectedEdge.fact}</p>
+                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
+                    {selectedEdge.fact}
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.sourceEntity')}</Label>
-                    <p className="font-medium">{selectedEdge.source_entity.name}</p>
-                    {selectedEdge.source_entity.summary && (
+                    <p className="font-medium">
+                      {selectedEdge.source_entity?.name ?? selectedEdge.source_entity_id}
+                    </p>
+                    {selectedEdge.source_entity?.summary && (
                       <p className="text-sm text-muted-foreground mt-1">
                         {truncateText(selectedEdge.source_entity.summary, 100)}
                       </p>
@@ -4167,8 +4319,10 @@ export default function AIMemoryPage() {
                   </div>
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.targetEntity')}</Label>
-                    <p className="font-medium">{selectedEdge.target_entity.name}</p>
-                    {selectedEdge.target_entity.summary && (
+                    <p className="font-medium">
+                      {selectedEdge.target_entity?.name ?? selectedEdge.target_entity_id}
+                    </p>
+                    {selectedEdge.target_entity?.summary && (
                       <p className="text-sm text-muted-foreground mt-1">
                         {truncateText(selectedEdge.target_entity.summary, 100)}
                       </p>
@@ -4178,7 +4332,7 @@ export default function AIMemoryPage() {
                 <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label>
-                    <p>{formatDate(selectedEdge.valid_at)}</p>
+                    <p>{formatDate(selectedEdge.event_at || selectedEdge.valid_at)}</p>
                   </div>
                   {selectedEdge.invalid_at && (
                     <div>
@@ -4257,11 +4411,33 @@ export default function AIMemoryPage() {
                       {selectedThreadDetail.milestones?.length ??
                         selectedThreadDetail.milestone_count}
                     </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      {selectedThreadDetail.status}
+                    <Badge
+                      variant={selectedThreadDetail.status === 'active' ? 'default' : 'secondary'}
+                      className="text-xs"
+                    >
+                      {selectedThreadDetail.status === 'active' ||
+                      selectedThreadDetail.status === 'dormant' ||
+                      selectedThreadDetail.status === 'archived'
+                        ? t(`aiMemory.threadStatus_${selectedThreadDetail.status}`)
+                        : selectedThreadDetail.status}
                     </Badge>
                   </div>
                 </div>
+                {selectedThreadDetail.participants &&
+                  selectedThreadDetail.participants.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {selectedThreadDetail.participants.map((p) => (
+                        <span
+                          key={p.user_id}
+                          title={`${p.name} (${p.user_id})`}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/30 pl-0.5 pr-2 py-0.5 text-xs text-muted-foreground"
+                        >
+                          <ParticipantAvatar name={p.name || p.user_id} avatarUrl={p.avatar_url} />
+                          <span className="max-w-[110px] truncate">{p.name}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 {selectedThreadDetail.summary && (
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
@@ -4351,6 +4527,107 @@ export default function AIMemoryPage() {
                   </div>
                 )}
               </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Migration v2.1 Audit Report Dialog */}
+      <Dialog open={migrationDialogOpen} onOpenChange={setMigrationDialogOpen}>
+        <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="shrink-0 pb-1">
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-500" />
+              {t('aiMemory.migrationReport')}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('aiMemory.migrationReport')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1 space-y-3 text-sm">
+            {!migrationReport ? (
+              <p className="py-6 text-center text-muted-foreground">
+                {t('aiMemory.migrationReportEmpty')}
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="default">{migrationReport.version}</Badge>
+                  <Badge variant="secondary">{migrationReport.status}</Badge>
+                  <Badge variant="outline">{migrationReport.duration_ms} ms</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(migrationReport.migrated_at)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="rounded-md border border-border/50 p-2.5">
+                    <p className="text-xs text-muted-foreground">
+                      {t('aiMemory.migrationStatSpeakers')}
+                    </p>
+                    <p className="font-semibold font-mono">
+                      +{migrationReport.missing_speakers_created} /{' '}
+                      {migrationReport.speaker_avatars_backfilled}
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-border/50 p-2.5">
+                    <p className="text-xs text-muted-foreground">
+                      {t('aiMemory.migrationStatTags')}
+                    </p>
+                    <p className="font-semibold font-mono">
+                      {migrationReport.non_human_speakers_demoted} /{' '}
+                      {migrationReport.speaker_tags_cleaned}
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-border/50 p-2.5">
+                    <p className="text-xs text-muted-foreground">
+                      {t('aiMemory.migrationStatThreads')}
+                    </p>
+                    <p className="font-semibold font-mono">
+                      {migrationReport.threads_active} / {migrationReport.threads_dormant} /{' '}
+                      {migrationReport.threads_archived}
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-border/50 p-2.5">
+                    <p className="text-xs text-muted-foreground">
+                      {t('aiMemory.migrationStatScopeVector')}
+                    </p>
+                    <p className="font-semibold font-mono">
+                      {migrationReport.malformed_self_scopes_fixed} /{' '}
+                      {migrationReport.vector_backfill_done}/{migrationReport.vector_backfill_total}
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-border/50 p-2.5 col-span-2">
+                    <p className="text-xs text-muted-foreground">
+                      {t('aiMemory.migrationStatDangling')}
+                    </p>
+                    <p className="font-semibold font-mono">
+                      {migrationReport.dangling_cog_episodes_cleaned} /{' '}
+                      {migrationReport.dangling_cog_env_cleaned} /{' '}
+                      {migrationReport.dangling_cog_edges_cleaned}
+                    </p>
+                  </div>
+                </div>
+                {migrationReport.backup_path && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      {t('aiMemory.migrationBackupPath')}
+                    </Label>
+                    <p className="font-mono text-xs break-all bg-muted/40 rounded p-2 mt-1">
+                      {migrationReport.backup_path}
+                    </p>
+                  </div>
+                )}
+                {migrationReport.audit_log_path && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      {t('aiMemory.migrationAuditLog')}
+                    </Label>
+                    <p className="font-mono text-xs break-all bg-muted/40 rounded p-2 mt-1">
+                      {migrationReport.audit_log_path}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </DialogContent>

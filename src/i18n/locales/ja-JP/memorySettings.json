@@ -23,6 +23,11 @@
     "llmSemaphoreLimit": "LLM 同時数",
     "observerBlacklist": "Observer ブラックリスト",
     "observerBlacklistPlaceholder": "群 ID を入力して Enter",
+    "externalBotIds": "外部ボットユーザー ID",
+    "externalBotIdsPlaceholder": "外部ボットの ID を入力して Enter（長期記憶から除外）",
+    "windowMaxMessages": "集約ウィンドウ最大件数",
+    "windowIdleSeconds": "ウィンドウ待機 flush(秒)",
+    "windowMaxAgeSeconds": "ウィンドウ最大保持(秒)",
     "enablePreferenceMemory": "好み記憶",
     "memoryInjectMaxChars": "注入予算(文字)",
     "sessionGapSeconds": "セッション区切り(秒)"

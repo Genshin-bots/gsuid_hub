@@ -23,6 +23,11 @@
     "llmSemaphoreLimit": "LLM 并发上限",
     "observerBlacklist": "Observer 黑名单群",
     "observerBlacklistPlaceholder": "输入群 ID 后回车",
+    "externalBotIds": "同群外部机器人账号",
+    "externalBotIdsPlaceholder": "输入外部 Bot 用户 ID 后回车（仅留短期历史不进长期记忆）",
+    "windowMaxMessages": "聚合窗口消息上限",
+    "windowIdleSeconds": "窗口空闲刷盘(秒)",
+    "windowMaxAgeSeconds": "窗口最长驻留(秒)",
     "enablePreferenceMemory": "偏好记忆",
     "memoryInjectMaxChars": "注入预算(字)",
     "sessionGapSeconds": "会话切分(秒)"

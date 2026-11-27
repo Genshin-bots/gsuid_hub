@@ -29,11 +29,12 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { TagsInput } from '@/components/config/TagsInput';
-import { memoryApi, memorySettingsApi, getApiErrorMessage } from '@/lib/api';
+import { memorySettingsApi, getApiErrorMessage } from '@/lib/api';
 
 interface MemoryConfig {
   observer_enabled?: boolean;
   observer_blacklist?: string[];
+  external_bot_ids?: string[];
   ingestion_enabled?: boolean;
   enable_retrieval?: boolean;
   enable_user_global_memory?: boolean;
@@ -42,6 +43,9 @@ interface MemoryConfig {
   batch_max_size?: number;
   batch_interval_seconds?: number;
   idle_flush_seconds?: number;
+  window_max_messages?: number;
+  window_idle_seconds?: number;
+  window_max_age_seconds?: number;
   llm_semaphore_limit?: number;
   dedup_similarity_threshold?: number;
   // read-only reflections from MEMORY_CONFIG
@@ -111,7 +115,7 @@ export default function MemorySettingsDialog({
   const onRebuildHierGraph = async () => {
     setRebuilding(true);
     try {
-      await memoryApi.rebuildHierGraph(scopeKey);
+      await memorySettingsApi.rebuildHierGraph(scopeKey);
       toast.success(t('memorySettings.rebuildTriggered'));
       onRebuild?.();
     } catch (e) {
@@ -173,14 +177,14 @@ export default function MemorySettingsDialog({
               value={cfg.retrieval_top_k ?? 8}
               onChange={(v) => onNumber('retrieval_top_k', v)}
               min={1}
-              max={64}
+              max={50}
             />
             <NumberRow
               label={t('memorySettings.fields.batchMaxSize')}
               value={cfg.batch_max_size ?? 20}
               onChange={(v) => onNumber('batch_max_size', v)}
-              min={1}
-              max={500}
+              min={5}
+              max={100}
             />
             <NumberRow
               label={t('memorySettings.fields.batchIntervalSeconds')}
@@ -195,6 +199,27 @@ export default function MemorySettingsDialog({
               onChange={(v) => onNumber('idle_flush_seconds', v)}
               min={0}
               max={86400}
+            />
+            <NumberRow
+              label={t('memorySettings.fields.windowMaxMessages')}
+              value={cfg.window_max_messages ?? 50}
+              onChange={(v) => onNumber('window_max_messages', v)}
+              min={10}
+              max={200}
+            />
+            <NumberRow
+              label={t('memorySettings.fields.windowIdleSeconds')}
+              value={cfg.window_idle_seconds ?? 480}
+              onChange={(v) => onNumber('window_idle_seconds', v)}
+              min={60}
+              max={3600}
+            />
+            <NumberRow
+              label={t('memorySettings.fields.windowMaxAgeSeconds')}
+              value={cfg.window_max_age_seconds ?? 3600}
+              onChange={(v) => onNumber('window_max_age_seconds', v)}
+              min={300}
+              max={14400}
             />
             <NumberRow
               label={t('memorySettings.fields.llmSemaphoreLimit')}
@@ -220,6 +245,17 @@ export default function MemorySettingsDialog({
                   setCfg((prev) => (prev ? { ...prev, observer_blacklist: tags } : prev))
                 }
                 placeholder={t('memorySettings.fields.observerBlacklistPlaceholder')}
+              />
+            </div>
+
+            <div className="col-span-2 space-y-1.5">
+              <Label>{t('memorySettings.fields.externalBotIds')}</Label>
+              <TagsInput
+                value={cfg.external_bot_ids ?? []}
+                onChange={(tags) =>
+                  setCfg((prev) => (prev ? { ...prev, external_bot_ids: tags } : prev))
+                }
+                placeholder={t('memorySettings.fields.externalBotIdsPlaceholder')}
               />
             </div>
 

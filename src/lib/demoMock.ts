@@ -800,19 +800,40 @@ export const generateMemoryScopes = () => {
       scope_key: MEMORY_SCOPE_KEY,
       scope_type: 'group',
       scope_id: '114514',
+      display_name: '演示群聊',
+      avatar_url: demoPlaceholderImage('memory-scope-group-114514', '群'),
+      speaker_previews: [
+        {
+          user_id: '100000001',
+          name: '演示用户甲',
+          avatar_url: demoPlaceholderImage('memory-user-100000001', '甲'),
+        },
+        {
+          user_id: '100000002',
+          name: '演示用户乙',
+          avatar_url: demoPlaceholderImage('memory-user-100000002', '乙'),
+        },
+      ],
       episode_count: 128,
       entity_count: g.entities.length,
       edge_count: g.edges.length,
       category_count: g.categories.length,
+      thread_count: 6,
+      preference_count: 2,
     },
     {
-      scope_key: 'private:10001',
-      scope_type: 'private',
+      scope_key: 'user_global:10001',
+      scope_type: 'user_global',
       scope_id: '10001',
+      display_name: '演示用户甲',
+      avatar_url: demoPlaceholderImage('memory-user-100000001', '甲'),
+      speaker_previews: [],
       episode_count: 42,
       entity_count: 9,
       edge_count: 14,
       category_count: 2,
+      thread_count: 3,
+      preference_count: 1,
     },
   ];
 };
@@ -828,7 +849,7 @@ export const generateMemoryStats = () => {
     active_edge_count: g.edges.length,
     category_count: g.categories.length,
     observation_queue_size: 3,
-    scope_keys: [MEMORY_SCOPE_KEY, 'private:10001'],
+    scope_keys: [MEMORY_SCOPE_KEY, 'user_global:10001'],
   };
 };
 

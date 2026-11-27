@@ -23,6 +23,11 @@
     "llmSemaphoreLimit": "LLM concurrency",
     "observerBlacklist": "Observer blacklist groups",
     "observerBlacklistPlaceholder": "Enter group id and press Enter",
+    "externalBotIds": "External bot user IDs",
+    "externalBotIdsPlaceholder": "Enter external bot ID and press Enter (excluded from long-term memory)",
+    "windowMaxMessages": "Window max messages",
+    "windowIdleSeconds": "Window idle flush (s)",
+    "windowMaxAgeSeconds": "Window max age (s)",
     "enablePreferenceMemory": "Preference memory",
     "memoryInjectMaxChars": "Inject budget (chars)",
     "sessionGapSeconds": "Session gap (s)"

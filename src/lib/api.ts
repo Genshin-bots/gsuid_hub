@@ -7046,13 +7046,306 @@ export const brandSettingsApi = {
  * 记忆子系统 API（2026-07-20 补全，导出后多个页面共用）。
  *
  * 历史：原本这是 AIMemoryPage 内私有 const，现在提到 api.ts 让
- * 记忆设置 Dialog 等都能复用。
+ * 记忆设置 Dialog 等都能复用。类型与 `webconsole/ai_memory_api.py` +
+ * `ai_memory_curation.py` 的序列化契约对齐。
  */
 export type MemorySearchIntent =
   | 'point_latest'
   | 'version_diff'
   | 'timeline_order'
   | 'broad_summary';
+
+export type MemoryResolutionState =
+  | 'active'
+  | 'staging'
+  | 'superseded'
+  | 'contradicted'
+  | 'retracted';
+
+export type MemoryEdgeKind = 'attribute' | 'relation' | 'milestone';
+
+export interface MemoryStats {
+  scope_key: string | null;
+  episode_count: number;
+  entity_count: number;
+  speaker_entity_count: number;
+  edge_count: number;
+  active_edge_count: number;
+  category_count?: number;
+  thread_count?: number;
+  edge_state_counts?: Partial<Record<MemoryResolutionState, number>>;
+  preference_count?: number;
+  preference_correction_count?: number;
+  observation_queue_size: number;
+  scope_keys: string[];
+}
+
+export interface MemoryScopeSpeakerPreview {
+  user_id: string;
+  name: string;
+  avatar_url: string;
+}
+
+export interface MemoryScope {
+  scope_key: string;
+  scope_type: string;
+  scope_id: string;
+  display_name?: string;
+  avatar_url?: string;
+  speaker_previews?: MemoryScopeSpeakerPreview[];
+  episode_count: number;
+  entity_count: number;
+  edge_count: number;
+  category_count?: number;
+  thread_count?: number;
+  preference_count?: number;
+}
+
+export interface MemoryEpisode {
+  id: string;
+  scope_key: string;
+  content: string;
+  speaker_ids: string[];
+  valid_at: string;
+  created_at: string;
+}
+
+export interface MemoryPendingAlias {
+  alias: string;
+  hits: number;
+  windows: string[];
+}
+
+export interface MemoryEntity {
+  id: string;
+  scope_key: string;
+  name: string;
+  summary: string;
+  tag: string[];
+  entity_kind?: string;
+  is_speaker: boolean;
+  user_id: string | null;
+  avatar_url?: string;
+  aliases?: string[];
+  pending_aliases?: MemoryPendingAlias[];
+  self_edge_count?: number;
+  relation_edge_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 实体抽屉内的边（`ai_memory_curation._serialize_edge_for_drawer` 契约）。 */
+export interface MemoryEntityEdge {
+  id: string;
+  scope_key: string;
+  fact: string;
+  source_entity_id: string;
+  target_entity_id: string;
+  source_entity_name?: string;
+  target_entity_name?: string;
+  edge_kind?: string;
+  slot_key?: string;
+  resolution_state?: string;
+  valid_at: string | null;
+  invalid_at: string | null;
+  event_at?: string | null;
+  expired_at?: string | null;
+  mention_count?: number;
+  decay_score?: number;
+  direction?: string;
+}
+
+/** Entity 四栏详情：基础字段 + 片段摘录与自环/关系/传闻/历史边分组。 */
+export interface MemoryEntityDetail extends MemoryEntity {
+  episodes?: Array<{ id: string; content: string; valid_at: string | null }>;
+  edges?: MemoryEntityEdge[];
+  self_attributes?: MemoryEntityEdge[];
+  relations?: MemoryEntityEdge[];
+  rumors_and_conflicts?: MemoryEntityEdge[];
+  history_edges?: MemoryEntityEdge[];
+}
+
+export interface MemoryEntityPatchRequest {
+  name?: string;
+  summary?: string;
+  entity_kind?: string;
+  aliases?: string[];
+  promote_pending_alias?: string;
+  dismiss_pending_alias?: string;
+}
+
+export interface MemoryEntitySplitRequest {
+  edge_ids: string[];
+  new_name: string;
+  entity_kind: string;
+  summary: string;
+}
+
+export interface MemoryEntitySplitResponse {
+  new_entity: MemoryEntityDetail | null;
+  moved_edges: number;
+}
+
+export interface MemoryEdge {
+  id: string;
+  scope_key: string;
+  fact: string;
+  source_entity_id: string;
+  target_entity_id: string;
+  valid_at: string;
+  invalid_at: string | null;
+  expired_at?: string | null;
+  created_at: string;
+  edge_kind?: MemoryEdgeKind;
+  slot_key?: string;
+  resolution_state?: MemoryResolutionState;
+  provenance_tier?: string;
+  superseded_by_id?: string | null;
+  contradicts_edge_id?: string | null;
+  thread_id?: string | null;
+  event_at?: string | null;
+  mention_count?: number;
+  decay_score?: number;
+  last_accessed?: string | null;
+}
+
+export interface MemoryThreadParticipant {
+  user_id: string;
+  name: string;
+  avatar_url: string;
+}
+
+export interface MemoryThread {
+  id: string;
+  scope_key: string;
+  title: string;
+  aliases: string[];
+  summary: string;
+  status: string;
+  milestone_count: number;
+  episode_count?: number;
+  participant_uids?: string[];
+  participants?: MemoryThreadParticipant[];
+  first_at: string | null;
+  last_at: string | null;
+}
+
+export interface MemoryThreadMilestone {
+  id: string;
+  fact: string;
+  slot_key?: string;
+  source_entity_id: string;
+  target_entity_id: string;
+  event_at: string | null;
+  valid_at: string | null;
+}
+
+export interface MemoryThreadEpisode {
+  id: string;
+  content: string;
+  valid_at: string | null;
+  session_id?: string;
+}
+
+export interface MemoryThreadEntity {
+  id: string;
+  name: string;
+  summary: string;
+  entity_type?: string;
+  is_speaker: boolean;
+}
+
+export interface MemoryThreadDetail extends MemoryThread {
+  milestones: MemoryThreadMilestone[];
+  episodes: MemoryThreadEpisode[];
+  entities: MemoryThreadEntity[];
+}
+
+export interface MemoryConfig {
+  observer_enabled: boolean;
+  observer_blacklist: string[];
+  ingestion_enabled: boolean;
+  llm_semaphore_limit: number;
+  enable_retrieval: boolean;
+  enable_user_global_memory: boolean;
+  enable_heartbeat_memory: boolean;
+  retrieval_top_k: number;
+  dedup_similarity_threshold: number;
+  memory_inject_max_chars?: number;
+  session_gap_seconds?: number;
+  enable_preference_memory?: boolean;
+  external_bot_ids?: string[];
+  window_max_messages?: number;
+  window_idle_seconds?: number;
+  window_max_age_seconds?: number;
+  batch_max_size?: number;
+  batch_interval_seconds?: number;
+  idle_flush_seconds?: number;
+}
+
+/** v2.1 无损迁移审计报告（`/api/ai/memory/migration_report`）。 */
+export interface MemoryMigrationReport {
+  version: string;
+  status: string;
+  migrated_at: string;
+  backup_path: string;
+  audit_log_path: string;
+  duration_ms: number;
+  malformed_self_scopes_fixed: number;
+  speaker_tags_cleaned: number;
+  speaker_avatars_backfilled: number;
+  non_human_speakers_demoted: number;
+  missing_speakers_created: number;
+  threads_backfilled: number;
+  threads_archived: number;
+  threads_dormant: number;
+  threads_active: number;
+  dangling_cog_episodes_cleaned: number;
+  dangling_cog_env_cleaned: number;
+  dangling_cog_edges_cleaned: number;
+  pending_vector_backfill_ids: string[];
+  pending_payload_patch_entity_ids?: string[];
+  vector_backfill_done: number;
+  vector_backfill_total: number;
+}
+
+export interface MemoryHierGraphStatus {
+  scope_key?: string | null;
+  initialized: boolean;
+  mode?: string;
+  l1_count?: number;
+  thread_count?: number;
+  active_edges?: number;
+  max_layer: number;
+  last_rebuild_at: string | null;
+  entity_count_at_last_rebuild: number;
+  current_entity_count: number;
+  group_summary_cache?: string | null;
+  group_summary_updated_at?: string | null;
+}
+
+export interface MemoryPaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface MemoryPreference {
+  id: string;
+  scope_key: string;
+  user_id: string;
+  target_context: string;
+  preference_rule: string;
+  polarity: 'do' | 'dont';
+  is_correction: boolean;
+  is_active: boolean;
+  mention_count: number;
+  source_episode_id: string | null;
+  created_at: string;
+  updated_at: string;
+  last_applied_at: string | null;
+}
 
 export interface MemorySearchRequest {
   query: string;
@@ -7086,24 +7379,203 @@ export interface MemorySearchResponse {
   prompt_text?: string;
 }
 
+export interface MemoryRebuildResponse {
+  scope_key: string;
+  fts_rows: number;
+  vectors_repaired: number;
+  elapsed_ms: number;
+}
+
 export const memoryApi = {
   getStats: (params?: { group_id?: string; scope_key?: string }) => {
     const query = new URLSearchParams();
     if (params?.group_id) query.set('group_id', params.group_id);
     if (params?.scope_key) query.set('scope_key', params.scope_key);
     const qs = query.toString();
-    return api.get(`/api/ai/memory/stats${qs ? `?${qs}` : ''}`);
+    return api.get<MemoryStats>(`/api/ai/memory/stats${qs ? `?${qs}` : ''}`);
   },
-  getScopes: () => api.get('/api/ai/memory/scopes'),
-  getConfig: () => api.get<Record<string, unknown>>('/api/ai/memory/config'),
+  getScopes: () => api.get<MemoryScope[]>('/api/ai/memory/scopes'),
+  getEpisodes: (params: {
+    group_id?: string;
+    scope_key?: string;
+    all_scopes?: boolean;
+    page?: number;
+    page_size?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.group_id) query.set('group_id', params.group_id);
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.all_scopes) query.set('all_scopes', 'true');
+    if (params.page) query.set('page', String(params.page));
+    if (params.page_size) query.set('page_size', String(params.page_size));
+    return api.get<MemoryPaginatedResponse<MemoryEpisode>>(
+      `/api/ai/memory/episodes?${query.toString()}`,
+    );
+  },
+  getEpisodeDetail: (episodeId: string) =>
+    api.get<MemoryEpisode & { mentioned_entities: MemoryEntity[] }>(
+      `/api/ai/memory/episodes/${episodeId}`,
+    ),
+  deleteEpisode: (episodeId: string) => api.delete<void>(`/api/ai/memory/episodes/${episodeId}`),
+  getEntities: (params: {
+    group_id?: string;
+    scope_key?: string;
+    all_scopes?: boolean;
+    is_speaker?: boolean;
+    search?: string;
+    page?: number;
+    page_size?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.group_id) query.set('group_id', params.group_id);
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.all_scopes) query.set('all_scopes', 'true');
+    if (params.is_speaker !== undefined) query.set('is_speaker', String(params.is_speaker));
+    if (params.search) query.set('search', params.search);
+    if (params.page) query.set('page', String(params.page));
+    if (params.page_size) query.set('page_size', String(params.page_size));
+    return api.get<MemoryPaginatedResponse<MemoryEntity>>(
+      `/api/ai/memory/entities?${query.toString()}`,
+    );
+  },
+  getEntityDetail: (entityId: string) =>
+    api.get<MemoryEntityDetail>(`/api/ai/memory/entities/${entityId}`),
+  patchEntity: (entityId: string, data: MemoryEntityPatchRequest) =>
+    api.patch<MemoryEntityDetail>(`/api/ai/memory/entities/${entityId}`, data),
+  mergeEntity: (sourceEntityId: string, targetEntityId: string) =>
+    api.post<MemoryEntityDetail>(`/api/ai/memory/entities/${sourceEntityId}/merge`, {
+      target_entity_id: targetEntityId,
+    }),
+  splitEntity: (entityId: string, data: MemoryEntitySplitRequest) =>
+    api.post<MemoryEntitySplitResponse>(`/api/ai/memory/entities/${entityId}/split`, data),
+  deleteEntity: (entityId: string) => api.delete<void>(`/api/ai/memory/entities/${entityId}`),
+  getEdges: (params: {
+    group_id?: string;
+    scope_key?: string;
+    all_scopes?: boolean;
+    entity_id?: string;
+    include_history?: boolean;
+    page?: number;
+    page_size?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.group_id) query.set('group_id', params.group_id);
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.all_scopes) query.set('all_scopes', 'true');
+    if (params.entity_id) query.set('entity_id', params.entity_id);
+    if (params.include_history) query.set('include_history', 'true');
+    if (params.page) query.set('page', String(params.page));
+    if (params.page_size) query.set('page_size', String(params.page_size));
+    return api.get<MemoryPaginatedResponse<MemoryEdge>>(`/api/ai/memory/edges?${query.toString()}`);
+  },
+  getEdgeDetail: (edgeId: string) =>
+    api.get<
+      MemoryEdge & { source_entity: MemoryEntity | null; target_entity: MemoryEntity | null }
+    >(`/api/ai/memory/edges/${edgeId}`),
+  deleteEdge: (edgeId: string) => api.delete<void>(`/api/ai/memory/edges/${edgeId}`),
+  getThreads: (params: {
+    group_id?: string;
+    scope_key?: string;
+    status?: string;
+    include_archived?: boolean;
+    participant_uid?: string;
+    page?: number;
+    page_size?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.group_id) query.set('group_id', params.group_id);
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.status) query.set('status', params.status);
+    if (params.include_archived) query.set('include_archived', 'true');
+    if (params.participant_uid) query.set('participant_uid', params.participant_uid);
+    if (params.page) query.set('page', String(params.page));
+    if (params.page_size) query.set('page_size', String(params.page_size));
+    return api.get<MemoryPaginatedResponse<MemoryThread>>(
+      `/api/ai/memory/threads?${query.toString()}`,
+    );
+  },
+  getThreadDetail: (threadId: string) =>
+    api.get<MemoryThreadDetail>(`/api/ai/memory/threads/${threadId}`),
+  getMigrationReport: () =>
+    api.get<MemoryMigrationReport | null>('/api/ai/memory/migration_report'),
+  getHierGraphStatus: (params?: { group_id?: string; scope_key?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.group_id) query.set('group_id', params.group_id);
+    if (params?.scope_key) query.set('scope_key', params.scope_key);
+    const qs = query.toString();
+    return api.get<MemoryHierGraphStatus>(`/api/ai/memory/hiergraph/status${qs ? `?${qs}` : ''}`);
+  },
+  getConfig: () => api.get<MemoryConfig>('/api/ai/memory/config'),
   updateConfig: (data: Record<string, unknown>) =>
-    api.put<Record<string, unknown>>('/api/ai/memory/config', data),
-  getHierGraphStatus: (scopeKey?: string) =>
-    scopeKey
-      ? api.get(`/api/ai/memory/hiergraph/status?scope_key=${encodeURIComponent(scopeKey)}`)
-      : api.get('/api/ai/memory/hiergraph/status'),
-  rebuildHierGraph: (scopeKey?: string) =>
-    api.post('/api/ai/memory/hiergraph/rebuild', scopeKey ? { scope_key: scopeKey } : {}),
+    api.put<MemoryConfig>('/api/ai/memory/config', data),
+  deleteScope: (scopeKey: string) =>
+    api.delete<{
+      scope_key: string;
+      deleted_episodes: number;
+      deleted_entities: number;
+      deleted_edges: number;
+      deleted_threads?: number;
+      deleted_categories: number;
+      deleted_preferences?: number;
+    }>(`/api/ai/memory/scopes/${encodeURIComponent(scopeKey)}`),
+  /** 零 LLM 索引对账重建。scope_key 是 query 参数（POST body 传不进去，后端只认 query）。 */
+  rebuildHierGraph: (params?: { group_id?: string; scope_key?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.group_id) query.set('group_id', params.group_id);
+    if (params?.scope_key) query.set('scope_key', params.scope_key);
+    const qs = query.toString();
+    return api.post<MemoryRebuildResponse>(
+      `/api/ai/memory/hiergraph/rebuild${qs ? `?${qs}` : ''}`,
+      {},
+    );
+  },
+  clearMemory: (params: { scope_key?: string; scope_pattern?: string; dry_run?: boolean }) =>
+    api.post<{
+      affected_scope_keys: string[];
+      deleted_episodes: number;
+      deleted_entities: number;
+      deleted_edges: number;
+      deleted_threads?: number;
+      deleted_categories: number;
+      deleted_preferences?: number;
+    }>('/api/ai/memory/clear', params),
+  getPreferences: (params: {
+    scope_key?: string;
+    user_id?: string;
+    target_context?: string;
+    is_correction?: boolean;
+    polarity?: 'do' | 'dont';
+    is_active?: boolean;
+    all_scopes?: boolean;
+    page?: number;
+    page_size?: number;
+    keyword?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.user_id) query.set('user_id', params.user_id);
+    if (params.target_context) query.set('target_context', params.target_context);
+    if (params.is_correction !== undefined)
+      query.set('is_correction', String(params.is_correction));
+    if (params.polarity) query.set('polarity', params.polarity);
+    if (params.is_active !== undefined) query.set('is_active', String(params.is_active));
+    if (params.all_scopes) query.set('all_scopes', 'true');
+    if (params.page) query.set('page', String(params.page));
+    if (params.page_size) query.set('page_size', String(params.page_size));
+    if (params.keyword) query.set('keyword', params.keyword);
+    return api.get<MemoryPaginatedResponse<MemoryPreference>>(
+      `/api/ai/memory/preferences?${query.toString()}`,
+    );
+  },
+  getPreferenceDetail: (prefId: string) =>
+    api.get<MemoryPreference>(`/api/ai/memory/preferences/${prefId}`),
+  updatePreference: (
+    prefId: string,
+    data: Partial<
+      Pick<MemoryPreference, 'preference_rule' | 'polarity' | 'target_context' | 'is_active'>
+    >,
+  ) => api.patch<MemoryPreference>(`/api/ai/memory/preferences/${prefId}`, data),
+  deletePreference: (prefId: string) => api.delete<null>(`/api/ai/memory/preferences/${prefId}`),
   /** 双路检索试跑 */
   search: (body: MemorySearchRequest) =>
     api.post<MemorySearchResponse>('/api/ai/memory/search', body),
@@ -7116,8 +7588,10 @@ export const memoryApi = {
 export const memorySettingsApi = {
   getConfig: () => memoryApi.getConfig(),
   updateConfig: (data: Record<string, unknown>) => memoryApi.updateConfig(data),
-  getHierGraphStatus: (scopeKey?: string) => memoryApi.getHierGraphStatus(scopeKey),
-  rebuildHierGraph: (scopeKey?: string) => memoryApi.rebuildHierGraph(scopeKey),
+  getHierGraphStatus: (scopeKey?: string) =>
+    memoryApi.getHierGraphStatus(scopeKey ? { scope_key: scopeKey } : undefined),
+  rebuildHierGraph: (scopeKey?: string) =>
+    memoryApi.rebuildHierGraph(scopeKey ? { scope_key: scopeKey } : undefined),
 };
 
 /**
