@@ -161,95 +161,17 @@ const configChanged =
 
 后续注意：复杂配置页考虑 `useReducer` 替代多个 `useState`；避免深层嵌套的 `useCallback` 依赖链；`PluginConfigItem` 从 `@/lib/api` 导出复用，勿重复定义。
 
-## 7.6 任务配置：主备双配置（Primary + Backup）★
+## 7.6 任务模型路由：星型节点图谱（Star-Topology Routing Graph）★★
 
-任务配置页（`TaskConfigSection`）展示 **2 个区块**，宽屏并排（`lg:grid-cols-2`）：
-- 左：高级任务（含主配置 + 备用配置）
-- 右：低级任务（含主配置 + 备用配置）
+`/ai-config`「模型服务」页签下半区使用零外部画布依赖（`React + SVG`）的星型节点路由图谱（`AIConfig/graph/TaskRoutingGraphSection.tsx` + `AIConfig/hooks/useTaskGraphConfig.ts`），替代早期的高/低级双下拉框。
 
-每个区块内的备用配置通过左侧的细竖线 (`border-l-2 border-primary/20 ml-1`) 视觉上
-弱化（图标/文字色用 `text-muted-foreground`），让用户一眼看出主备层级关系。
-**不要把主备拆成 4 个独立区块**——会破坏"一个任务一组配置"的语义，导致用户
-找不到归属。
-
-### 字段命名与持久化位置
-
-| 字段 key | 来源 | 类型 | 说明 |
-|----------|------|------|------|
-| `high_level_provider_config_name` | `aiConfig.config.*` | string | 高级任务主配置 |
-| `high_level_2nd_provider_config_name` | `aiConfig.config.*` | string | 高级任务备用配置 |
-| `low_level_provider_config_name` | `aiConfig.config.*` | string | 低级任务主配置 |
-| `low_level_2nd_provider_config_name` | `aiConfig.config.*` | string | 低级任务备用配置 |
-
-存储的是 `provider++config_name` 形式的 full name（与 `AllConfigItem.name` 同源）。
-真实数据来自 `GET /api/framework-config/GsCore AI AI配置`。
-
-### 主备双配置语义
-
-- **主配置**：正常请求使用。
-- **备用配置**：主配置失败或触发限流时由后端自动切换，确保服务可用。
-- 建议备用配置选**不同 provider**（避免单点故障）。
-
-### 读写路径——两套并存，**不要混用**
-
-⚠️ **重要**：主配置和备用配置**走两条不同的保存路径**，原因是历史原因：
-后端的 `provider_config` 系列接口只接受 `'high' | 'low'` 作为 task level（参见 `src/lib/api.ts:1064-1078`），
-不支持 `'high_2nd' | 'low_2nd'`。
-
-| 配置 | 读 | 写 |
-|------|-----|-----|
-| **主** high/low | `useProviderConfig.allConfigs.high_level_config / low_level_config`（来自 `providerConfigApi.getAllConfigs()`） | `providerConfigApi.setHighLevelConfig(...) / setLowLevelConfig(...)`（自动同步 framework-config） |
-| **备用** 2nd | `aiConfig.config.high_level_2nd_provider_config_name?.value`（直接读 framework-config） | `updateConfigValue(aiConfig.id, 'high_level_2nd_provider_config_name', v)`（与其它 framework-config 字段走同一保存流） |
-
-**踩坑记录**：曾尝试给 `providerConfigApi.setTaskConfig` 加上 `'high_2nd' | 'low_2nd'` 后端
-参数，**未确认后端支持前不要这么改**——可能 404。当前实现走 framework-config 路径，
-绕过 `providerConfigApi` 限制，跟现有 `websearch_provider` / `image_understand_provider` 等
-枚举型字段走的是同一条路。
-
-### 派生校验
-
-页面侧需要校验「选中的备用配置是否仍然存在」——避免出现「配置被删除但 framework-config
-字段还指向它」的悬挂引用：
-
-```tsx
-const isHighLevel2ndConfigValid =
-  !!highLevel2ndConfigValue &&
-  provider.allConfigsList.some((c) => c.name === highLevel2ndConfigValue);
-```
-
-不通过时显示红色 `notSelectedWarning`（复用现有 key），行为与主配置一致。
-
-### AdvancedSettingsSection 必须排除
-
-`AdvancedSettingsSection` 通过遍历 `aiConfig.config` 渲染"其它"字段，所以新加的 4 个 key
-**必须** 加进 `EXCLUDED_KEYS` 数组，否则会和 TaskConfigSection 重复展示：
-
-```ts
-const EXCLUDED_KEYS: string[] = [
-  // ...
-  'high_level_provider_config_name',
-  'low_level_provider_config_name',
-  'high_level_2nd_provider_config_name',
-  'low_level_2nd_provider_config_name',
-  // ...
-];
-```
-
-### i18n 同步点（参考 §02）
-
-每个语言文件需要同步：
-- `aiConfig.providerConfig.highLevelTask2nd` / `highLevelTask2ndDesc`
-- `aiConfig.providerConfig.lowLevelTask2nd` / `lowLevelTask2ndDesc`
-- `aiConfig.providerConfig.setHighLevel2ndSuccess` / `setLowLevel2ndSuccess`
-
-修改 `taskConfig.description` 时建议把「主备双配置语义」写进去，避免用户疑惑为什么要选
-两套配置。
-
-### 备用配置 UI 标签的措辞
-
-备用配置的 i18n key 文案**不要再带"高级 / 低级"前缀**（如"高级任务（备用）"），
-因为它已经被包裹在"高级任务"区块内，加前缀会重复并显得累赘。
-直接用「备用配置 / Backup Config / 予備設定」即可。
+- **中心配置枢纽（`StarHubCard`）**：圆角 `glass-card` 卡片，展示 `ModelBrandIcon`、配置名、模型名与卡片内部「备用配置（`secondary`）」。新增用户（`high=""`、`low=""`）默认展示两个 `+` 空枢纽（`slot_high` / `slot_low`）并预连默认任务线，点击选择已有配置或创建后自动绑定；存量用户即便高/低级指向同一配置也保留两个独立初始枢纽，支持从已添加配置中增删枢纽（删除有连线的枢纽时弹窗迁移任务）。
+- **「默认高级 / 默认低级」徽章是推导态而非 role 标签**：后端保存时按 `chat` / `turn_router` 连向的枢纽分别写入高/低档槽位，因此前端徽章也必须按 `edges.chat` / `edges.turn_router` 动态推导（连线目标缺失时回退 role 标签，对齐后端 fallback）。改线后徽章自动跟着走，**不要**退回按 `node.role` 静态标注。
+- **环绕任务卫星（`StarSatelliteBubble`）**：圆形气泡，半径按近 30 天用量（`Token 用量` / `调用次数` 可切换）做 `log1p` 对数映射并钳制在 `[26px, 54px]`（0 用量仍以最小半径展示）；主对话（`chat`）与自主行动（`autonomy`）带专属高亮环。层级是**父子扇形折叠**而非聚合球：`CORE_STAR_TASK_IDS`（11 个一级核心任务，`aiTaskKinds.ts`）常驻一级轨道；内置低频任务按 `BUILTIN_LOW_FREQ_PARENT_MAP` 挂为对应核心任务的子节点（`capability_agent:<node_id>` 挂 `capability_agent`；未知新任务按默认档位兜底归 `chat` / `turn_router`），点击父节点徽标逐个展开，或用工具栏「展开全部 / 收起」一键切换（`showAllChildren`）；子节点被改连到其他枢纽后自动脱离父级成为独立卫星（`capability_agent` 子代理的"拆分"就是这条路径，无独立拆分对话框），可通过「跟随父节点」并回。`follows_caller=true`（如 `image_understand`）不入图。
+- **主动保存与整包排除契约**：图谱上的连线、增删枢纽、主备切换、节点拖拽均先保存在 `useTaskGraphConfig` 草稿态并点亮页面右上角「保存配置」（`isConfigDirty`）；点击保存时校验所有有任务连线的枢纽已完成配置选择（否则拦截提示），通过 `PUT /api/ai_task_models/graph` 原子落库并由后端同步 `high_level_*` / `low_level_*` / `task_model_overrides`。因此 `AIConfigPage.executeSave` 向 `frameworkConfigApi.updateFrameworkConfig` 提交整包时**必须排除** `IMMEDIATE_TASK_CONFIG_KEYS`（`high_level_provider_config_name`、`low_level_provider_config_name`、`high_level_2nd_provider_config_name`、`low_level_2nd_provider_config_name`、`task_model_overrides`、`task_model_graph`），避免旧快照覆盖图谱刚写入的值。`AdvancedSettingsSection` 是**白名单制**（`ADVANCED_PRIMARY_GROUPS` / `EXPERT_TUNING_GROUPS`，见 `runtimeConfigKeys`）：这组键不在白名单内自然不会重复渲染，无需也不要维护排除清单。
+- **工具栏操作语义**：`undo`（拖拽起点压栈的快照回退，上限 50 步）、`放弃草稿`（`discardDraftChanges`，回滚到上次保存态，本身也可被 undo）、`自动整理`（重算布局）、`恢复默认双枢纽`（有确认弹窗）。拖拽占位 `+` 枢纽松手时的 click 会命中卡片本体，`handleRequestCreateForHub` 必须自查 `suppressNextClickRef`（popover 那条路径之外）。
+- **「+ 枢纽 → 新建配置 → 自动绑定」时序契约**：`markPendingBindHub` 记录的 pending 绑定在 `allConfigsList` 出现新配置时被消费；对话框**取消**时靠 `createDialogOpen` 关闭沿清除。无竞态的前提是 `useProviderConfig.handleCreateConfig` **先 `await fetchAllConfigs()` 再 `setIsCreateDialogOpen(false)`**——调换顺序会让成功路径被误判为取消。
+- **旧版 Core 降级（P-17）**：`GET /api/ai_task_models` 响应缺 `graph` 字段即判定旧后端（`isGraphUnsupported`），图谱顶部出横幅提示升级；此时草稿可编辑但**不计入页面脏状态**（否则保存按钮永久误亮）、保存流程跳过图谱提交。
 
 ## 7.6a OpenAI Provider：远端 Web Search（`remote_web_search`）
 

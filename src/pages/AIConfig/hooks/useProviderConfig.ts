@@ -8,8 +8,7 @@
  * - providerConfigOptions：当前 provider 的可选项
  * - 新建 / 编辑表单状态
  * - 4 个 Dialog 的 open 标志 + 触发函数
- * - 5 个 useCallback 异步动作：
- *   - handleSetHighLevelConfig / handleSetLowLevelConfig
+ * - 3 个 useCallback 异步动作：
  *   - handleCreateOpenaiConfig / handleSaveOpenaiConfig / handleDeleteConfig
  *
  * 由 [`src/pages/AIConfigPage.tsx`](src/pages/AIConfigPage.tsx) 调用。
@@ -138,8 +137,6 @@ export interface UseProviderConfigReturn {
   ) => Promise<void>;
   fetchConfigDetailForEdit: (provider: string, configName: string) => Promise<void>;
   refreshAllConfigs: () => Promise<void>;
-  handleSetHighLevelConfig: (configFullName: string) => Promise<boolean>;
-  handleSetLowLevelConfig: (configFullName: string) => Promise<boolean>;
   handleCreateOpenaiConfig: () => Promise<void>;
   handleSaveOpenaiConfig: () => Promise<void>;
   handleDeleteConfig: () => Promise<void>;
@@ -427,40 +424,6 @@ export function useProviderConfig(): UseProviderConfigReturn {
   // ============================================================================
   // Actions
   // ============================================================================
-  const handleSetHighLevelConfig = useCallback(
-    async (configFullName: string) => {
-      try {
-        await providerConfigApi.setHighLevelConfig(configFullName);
-        setHighLevelConfig(configFullName);
-        toast.success(t('aiConfig.providerConfig.setHighLevelSuccess', { name: configFullName }));
-        await fetchAllConfigs();
-        return true;
-      } catch (error) {
-        console.error('Failed to set high level config:', error);
-        toast.error(t('aiConfig.providerConfig.setFailed'));
-        return false;
-      }
-    },
-    [t, fetchAllConfigs],
-  );
-
-  const handleSetLowLevelConfig = useCallback(
-    async (configFullName: string) => {
-      try {
-        await providerConfigApi.setLowLevelConfig(configFullName);
-        setLowLevelConfig(configFullName);
-        toast.success(t('aiConfig.providerConfig.setLowLevelSuccess', { name: configFullName }));
-        await fetchAllConfigs();
-        return true;
-      } catch (error) {
-        console.error('Failed to set low level config:', error);
-        toast.error(t('aiConfig.providerConfig.setFailed'));
-        return false;
-      }
-    },
-    [t, fetchAllConfigs],
-  );
-
   const handleSaveOpenaiConfig = useCallback(async () => {
     if (!openaiConfigData || !editingConfigName || !editingConfigProvider) return;
     try {
@@ -608,9 +571,10 @@ export function useProviderConfig(): UseProviderConfigReturn {
       }
       await providerConfigApi.saveConfig(newConfigProvider, configName, configData);
       toast.success(t('aiConfig.openaiConfig.createSuccess', { name: configName }));
+      // 必须先刷新再关对话框：图谱「新配置自动绑星核」靠关闭瞬间 pending 是否已被消费来区分成功/取消
+      await fetchAllConfigs();
       setIsCreateDialogOpen(false);
       resetNewConfigForm();
-      await fetchAllConfigs();
     } catch (error) {
       console.error(`Failed to create ${newConfigProvider} config:`, error);
       toast.error(t('aiConfig.openaiConfig.createFailed'));
@@ -868,8 +832,6 @@ export function useProviderConfig(): UseProviderConfigReturn {
     fetchProviderModels,
     fetchConfigDetailForEdit,
     refreshAllConfigs,
-    handleSetHighLevelConfig,
-    handleSetLowLevelConfig,
     handleCreateOpenaiConfig,
     handleSaveOpenaiConfig,
     handleDeleteConfig,

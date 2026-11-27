@@ -14,8 +14,16 @@
     "when": "时间",
     "drive": "在做什么",
     "delivery": "怎么处理",
+    "target": "对象",
     "summary": "摘要",
     "steps": "步数"
+  },
+  "channel": {
+    "private": "私聊 · {id}",
+    "group": "群聊 · {id}",
+    "privateLabel": "私聊",
+    "groupLabel": "群聊",
+    "none": "—"
   },
   "drive": {
     "care_user": "关心某人",
@@ -31,6 +39,7 @@
   "detail": {
     "title": "这次行动",
     "target": "对象",
+    "mentionUser": "关联用户",
     "duration": "用时 {seconds} 秒",
     "summary": "摘要",
     "observations": "查到的事实",

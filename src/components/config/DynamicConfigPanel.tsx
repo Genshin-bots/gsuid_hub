@@ -118,9 +118,15 @@ function coerceValue(fieldType: string, rawType: string, rawValue: unknown): Con
     return [];
   }
 
-  if (fieldType === 'tags') {
+  if (fieldType === 'tags' || fieldType === 'multiselect') {
     if (Array.isArray(rawValue)) return rawValue.map((v) => (v == null ? '' : String(v)));
     return [];
+  }
+  if (fieldType === 'time' && Array.isArray(rawValue)) {
+    return rawValue as [number, number];
+  }
+  if (fieldType === 'timerange' && Array.isArray(rawValue)) {
+    return rawValue as [[number, number], [number, number]];
   }
   if (fieldType === 'number') {
     if (typeof rawValue === 'number') return rawValue;

@@ -71,6 +71,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
+import { PluginIcon } from '@/components/ui/plugin-icon';
+import {
+  buildPluginReadmeUrls,
+  getSourceBadgeInfo,
+  isHttpUrl,
+  resolveReadmeAssetUrl,
+  SOURCE_BADGE_CLASSES,
+} from '@/lib/pluginSource';
 import {
   TabButtonGroup,
   tabToolbarControlClass,
@@ -162,26 +170,6 @@ function createPluginOrderSeed(): string {
   crypto.getRandomValues(values);
   return Array.from(values, (value) => value.toString(16).padStart(8, '0')).join('');
 }
-
-// 根据 README 中图片 src 拼出 raw URL；处理 main / master 分支回退
-const buildRawUrl = (
-  owner: string,
-  repo: string,
-  path: string,
-  branch: 'main' | 'master',
-  mirror: string,
-): string => {
-  switch (mirror) {
-    case 'cnb':
-      return `https://cnb.cool/${owner}/${repo}/-/git/raw/${branch}/${path}`;
-    case 'gitcode':
-      return `https://raw.gitcode.com/${owner}/${repo}/raw/${branch}/${path}`;
-    case 'ghproxy':
-      return `https://ghproxy.com/https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-    default:
-      return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/${path}`;
-  }
-};
 
 const TAG_GAP = 6; // 与 gap-1.5 一致，量宽失败时的兜底
 
@@ -337,15 +325,10 @@ export default function PluginStorePage() {
   const isDeprecated = (plugin: StorePlugin) =>
     plugin.type === 'danger' && plugin.content === t('pluginStore.deprecated');
 
-  // 使用 ref 避免重建 components 对象时造成不必要的重渲染，
-  // 同时让 img 组件可以访问当前打开的插件与镜像信息
-  const selectedPluginRef = useRef<StorePlugin | null>(null);
-  const gitPluginsMapRef = useRef<Record<string, GitPluginInfo>>({});
-  selectedPluginRef.current = selectedPlugin;
-  gitPluginsMapRef.current = gitPluginsMap;
+  // 记录实际成功拉取 README 的完整 URL，供相对路径图片按同一仓库与分支解析（Fork/CNB/GitCode 均一致）
+  const readmeSourceUrlRef = useRef<string>('');
 
-  // 根据当前打开的插件与镜像信息构造 react-markdown components
-  // 其中 img 会将 README 内的相对路径（如 ./ICON.png）转换为对应镜像的 raw URL
+  // 根据当前成功拉取的 README 地址构造 react-markdown components
   const markdownComponents: Components = useMemo(
     () => ({
       pre: ({ children }) => (
@@ -386,41 +369,7 @@ export default function PluginStorePage() {
       tr: ({ children }) => <tr className="even:bg-muted/30">{children}</tr>,
       img: ({ src, alt, ...props }) => {
         const srcStr = typeof src === 'string' ? src : '';
-        const plugin = selectedPluginRef.current;
-        const gitInfo = plugin ? gitPluginsMapRef.current[plugin.id.toLowerCase()] : undefined;
-        const remoteUrl =
-          gitInfo?.remote_url || plugin?.link || (plugin ? `https://github.com/${plugin.id}` : '');
-
-        let resolved = srcStr;
-        // 仅处理相对路径（不带协议 / 非 data URI）
-        if (srcStr && !/^(https?:)?\/\//i.test(srcStr) && !srcStr.startsWith('data:')) {
-          const repoSlug = parseGitHubRepo(remoteUrl);
-          if (repoSlug) {
-            const [owner, repo] = repoSlug.split('/');
-            const mirror = gitInfo?.mirror || 'github';
-            const path = srcStr.replace(/^\.?\//, '');
-            // 默认走 main 分支；若加载失败会回退到 master
-            resolved = buildRawUrl(owner, repo, path, 'main', mirror);
-            // 通过 dataset 携带 master 回退信息
-            return (
-              <img
-                src={resolved}
-                alt={alt || ''}
-                data-fallback-master={buildRawUrl(owner, repo, path, 'master', mirror)}
-                data-asset-resolved="1"
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  if (target.dataset.fallbackTried !== '1') {
-                    target.dataset.fallbackTried = '1';
-                    target.src = target.dataset.fallbackMaster || target.src;
-                  }
-                }}
-                {...props}
-              />
-            );
-          }
-        }
-
+        const resolved = resolveReadmeAssetUrl(readmeSourceUrlRef.current, srcStr);
         return <img src={resolved} alt={alt || ''} {...props} />;
       },
     }),
@@ -475,7 +424,8 @@ export default function PluginStorePage() {
         order_seed: pluginOrderSeed,
       });
       applyPluginPayload(data);
-      if (sortBy === 'default' || data.sort === sortBy) {
+      // 断网降级快照不写入 24h 缓存，避免网络恢复后仍停留在离线态
+      if (!data.store_offline && (sortBy === 'default' || data.sort === sortBy)) {
         setCachedData(cacheKey, data);
       }
     } catch (error) {
@@ -498,7 +448,7 @@ export default function PluginStorePage() {
     }
 
     try {
-      const data = await gitMirrorApi.getInfo();
+      const data = await gitMirrorApi.getInfo(forceRefresh ? { fresh: true } : undefined);
       const map: Record<string, GitPluginInfo> = {};
       data.plugins.forEach((p) => {
         map[p.name.toLowerCase()] = p;
@@ -638,7 +588,8 @@ export default function PluginStorePage() {
   };
 
   const handleStarClick = (plugin: StorePlugin) => {
-    const repo = parseGitHubRepo(plugin.link || `https://github.com/${plugin.id}`);
+    if (plugin.in_store === false || !plugin.link) return;
+    const repo = parseGitHubRepo(plugin.link);
     if (!repo) return;
     if (!githubStatus?.connected) {
       setGithubConnectOpen(true);
@@ -670,11 +621,25 @@ export default function PluginStorePage() {
       setActionLoading(`${pluginId}:install`);
       await pluginStoreApi.installPlugin(pluginId);
       toast.success(t('pluginStore.installSuccess'));
-      // 直接更新本地状态，避免触发后端重新加载
-      patchPlugin(pluginId, { installed: true, hasUpdate: false });
-      // 清除缓存，确保下次进入页面数据一致
+      // 直接更新本地状态与已安装计数，避免触发整页重新加载
+      setStorePayload((prev) => {
+        if (!prev) return prev;
+        const alreadyInstalled = prev.plugins.some((p) => p.id === pluginId && p.installed);
+        return {
+          ...prev,
+          plugins: prev.plugins.map((p) =>
+            p.id === pluginId ? { ...p, installed: true, hasUpdate: false } : p,
+          ),
+          counts:
+            prev.counts && !alreadyInstalled
+              ? { ...prev.counts, installed: (prev.counts.installed ?? 0) + 1 }
+              : prev.counts,
+        };
+      });
+      // 清除缓存并刷新 Git 镜像状态，使镜像徽标即时生效
       clearPluginCache();
       localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
+      void fetchGitMirrorInfo(true);
     } catch (_error) {
       toast.error(t('pluginStore.installError'));
     } finally {
@@ -714,9 +679,39 @@ export default function PluginStorePage() {
         setActionLoading(`${pluginId}:uninstall`);
         await pluginStoreApi.uninstallPlugin(pluginId);
         toast.success(t('pluginStore.uninstallSuccess'));
-        // 直接更新本地状态，避免触发后端重新加载
-        patchPlugin(pluginId, { installed: false, hasUpdate: false });
-        // 清除缓存，确保下次进入页面数据一致
+        const removedTarget = visiblePlugins.find((p) => p.id === pluginId);
+        const shouldRemoveRow = removedTarget?.in_store === false || activeTab === 'installed';
+        setStorePayload((prev) => {
+          if (!prev) return prev;
+          const nextPlugins = shouldRemoveRow
+            ? prev.plugins.filter((p) => p.id !== pluginId)
+            : prev.plugins.map((p) =>
+                p.id === pluginId ? { ...p, installed: false, hasUpdate: false } : p,
+              );
+          const nextCounts = prev.counts
+            ? {
+                ...prev.counts,
+                installed: Math.max(0, (prev.counts.installed ?? 0) - 1),
+              }
+            : prev.counts;
+          return {
+            ...prev,
+            plugins: nextPlugins,
+            count:
+              shouldRemoveRow && typeof prev.count === 'number'
+                ? Math.max(0, prev.count - 1)
+                : prev.count,
+            counts: nextCounts,
+          };
+        });
+        // 清除缓存并同步清理内存中的 Git 镜像映射，确保下次打开页面与详情状态一致
+        setGitPluginsMap((prev) => {
+          const key = pluginId.toLowerCase();
+          if (!(key in prev)) return prev;
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
         clearPluginCache();
         localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
       } catch (_error) {
@@ -764,7 +759,7 @@ export default function PluginStorePage() {
         setInstallByUrlUrl('');
         setInstallByUrlBranch('');
         // 清除缓存并刷新列表，使新插件立即出现在已安装列表
-        localStorage.removeItem(PLUGIN_CACHE_KEY);
+        clearPluginCache();
         localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
         fetchPlugins(true);
         fetchGitMirrorInfo(true);
@@ -825,11 +820,12 @@ export default function PluginStorePage() {
 
   const visiblePlugins = storeView.items;
 
-  // 当前页插件对应的 GitHub 仓库（大小写不敏感去重；link 解析不出时按 id 兜底）
+  // 当前页插件对应的 GitHub 仓库（大小写不敏感去重；无 link 的本地插件绝不猜拼 github.com/<id>）
   const storeRepos = useMemo(() => {
     const map = new Map<string, string>();
     for (const plugin of visiblePlugins) {
-      const repo = parseGitHubRepo(plugin.link || `https://github.com/${plugin.id}`);
+      if (plugin.in_store === false || !plugin.link) continue;
+      const repo = parseGitHubRepo(plugin.link);
       if (repo) map.set(repo.toLowerCase(), repo);
     }
     return Array.from(map.values());
@@ -866,67 +862,33 @@ export default function PluginStorePage() {
   const storeStats = storeView.counts;
   const storeTotalPages = storeView.totalPages;
 
-  // Build README URLs based on mirror type
-  const buildReadmeUrls = (plugin: StorePlugin): string[] => {
-    const gitInfo = gitPluginsMap[plugin.id.toLowerCase()];
-    const mirror = gitInfo?.mirror || 'github';
-    const remoteUrl = gitInfo?.remote_url || plugin.link || `https://github.com/${plugin.id}`;
-
-    // Extract owner and repo from remote URL
-    const repoSlug = parseGitHubRepo(remoteUrl);
-    if (!repoSlug) {
-      // Fallback if URL parsing fails
-      return [`${remoteUrl}/raw/main/README.md`, `${remoteUrl}/raw/master/README.md`];
-    }
-    const [owner, repo] = repoSlug.split('/');
-
-    const urls: string[] = [];
-
-    switch (mirror) {
-      case 'cnb':
-        // cnb.cool format: https://cnb.cool/gscore-mirror/StarRailUID/-/git/raw/master/README.md
-        urls.push(`https://cnb.cool/${owner}/${repo}/-/git/raw/master/README.md`);
-        urls.push(`https://cnb.cool/${owner}/${repo}/-/git/raw/main/README.md`);
-        break;
-      case 'gitcode':
-        // gitcode.com format: https://raw.gitcode.com/gscore-mirror/StarRailUID/raw/master/README.md
-        urls.push(`https://raw.gitcode.com/${owner}/${repo}/raw/master/README.md`);
-        urls.push(`https://raw.gitcode.com/${owner}/${repo}/raw/main/README.md`);
-        break;
-      case 'ghproxy':
-        // ghproxy.com format
-        urls.push(
-          `https://ghproxy.com/https://raw.githubusercontent.com/${owner}/${repo}/master/README.md`,
-        );
-        urls.push(
-          `https://ghproxy.com/https://raw.githubusercontent.com/${owner}/${repo}/main/README.md`,
-        );
-        break;
-      default:
-        // Direct raw.githubusercontent.com format
-        urls.push(`https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/master/README.md`);
-        urls.push(`https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/main/README.md`);
-        break;
-    }
-
-    return urls;
-  };
-
   // Handle card click to show README
   const handleCardClick = async (plugin: StorePlugin) => {
     setSelectedPlugin(plugin);
     setReadmeDialogOpen(true);
     setReadmeLoading(true);
     setReadmeContent('');
+    readmeSourceUrlRef.current = '';
 
     try {
-      const urls = buildReadmeUrls(plugin);
+      const gitKey = (plugin.local_plugin_name || plugin.id).toLowerCase();
+      const gitInfo = gitPluginsMap[gitKey] ?? gitPluginsMap[plugin.id.toLowerCase()] ?? null;
+      const urls = buildPluginReadmeUrls(plugin, gitInfo);
+      if (urls.length === 0) {
+        setReadmeContent(
+          plugin.in_store === false
+            ? t('pluginStore.localPluginReadmeEmpty')
+            : t('pluginStore.noReadme'),
+        );
+        return;
+      }
 
       for (const url of urls) {
         try {
           const response = await fetch(url);
           if (response.ok) {
             const text = await response.text();
+            readmeSourceUrlRef.current = url;
             setReadmeContent(text);
             return;
           }
@@ -1113,6 +1075,13 @@ export default function PluginStorePage() {
         </div>
       }
     >
+      {storePayload?.store_offline && (
+        <Alert variant="warning" className="mb-3">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{t('pluginStore.storeOfflineTitle')}</AlertTitle>
+          <AlertDescription>{t('pluginStore.storeOfflineDesc')}</AlertDescription>
+        </Alert>
+      )}
       {isLoading ? (
         <div className={cn('grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', pageGapClass)}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -1159,7 +1128,37 @@ export default function PluginStorePage() {
           {visiblePlugins.map((plugin) => {
             const deprecated = isDeprecated(plugin);
             const isAi = isPluginAiContent(plugin);
-            const pluginLink = plugin.link || `https://github.com/${plugin.id}`;
+            const isStorePlugin = plugin.in_store !== false;
+            const externalLink = (plugin.link || '').trim();
+            const safeExternalLink = isHttpUrl(externalLink) ? externalLink : '';
+            const localSourceBadge = !isStorePlugin
+              ? getSourceBadgeInfo(
+                  plugin.local_source_kind || 'local',
+                  plugin.local_upstream_host,
+                  t,
+                  plugin.local_upstream_url,
+                )
+              : null;
+            const isStoreFork =
+              isStorePlugin && plugin.installed && plugin.local_source_kind === 'fork';
+            const isLoadFailed = plugin.load_status === 'failed';
+            const isLoadDisabled = plugin.load_status === 'disabled';
+
+            const coverVisual = plugin.cover ? (
+              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-border shadow-md bg-background">
+                <img src={plugin.cover} alt={plugin.id} className="w-full h-full object-cover" />
+              </div>
+            ) : !isStorePlugin ? (
+              <PluginIcon
+                pluginName={plugin.id}
+                variant="avatar"
+                className="w-14 h-14 border-2 border-border shadow-md"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-border shadow-md">
+                <Package className="w-7 h-7 text-muted-foreground/50" />
+              </div>
+            );
 
             return (
               <Card
@@ -1172,28 +1171,20 @@ export default function PluginStorePage() {
                   <div className="flex gap-3">
                     {/* Cover + Avatar 容器，self-start 防止被右侧内容撑高 */}
                     <div className="relative flex-shrink-0 self-start">
-                      {/* Cover - 可点击跳转github */}
-                      <a
-                        href={pluginLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {plugin.cover ? (
-                          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-border shadow-md bg-background">
-                            <img
-                              src={plugin.cover}
-                              alt={plugin.id}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-border shadow-md">
-                            <Package className="w-7 h-7 text-muted-foreground/50" />
-                          </div>
-                        )}
-                      </a>
+                      {/* Cover - 有外部链接时可点击跳转 */}
+                      {safeExternalLink ? (
+                        <a
+                          href={safeExternalLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {coverVisual}
+                        </a>
+                      ) : (
+                        <div className="block">{coverVisual}</div>
+                      )}
 
                       {/* Avatar 覆盖在 cover 右下角，与 cover 浅浅相交 */}
                       {plugin.avatar && (
@@ -1215,9 +1206,10 @@ export default function PluginStorePage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
                           <h3 className="font-semibold text-base truncate">{plugin.id}</h3>
-                          {/* GitHub star：放在名称右侧；非管理员只展示数量；管理员可点，未连接时点开连接弹窗 */}
+                          {/* GitHub star：放在名称右侧；非商店插件或无 link 不显示 */}
                           {(() => {
-                            const repo = parseGitHubRepo(pluginLink);
+                            if (!isStorePlugin || !externalLink) return null;
+                            const repo = parseGitHubRepo(externalLink);
                             if (!repo) return null;
                             const key = repo.toLowerCase();
                             const info = starsMap[key];
@@ -1274,12 +1266,60 @@ export default function PluginStorePage() {
                           })()}
                         </div>
                         <div className="flex flex-wrap items-center justify-end gap-1.5 sm:shrink-0">
-                          {/* 镜像来源 badge（仅已安装插件） */}
+                          {isLoadFailed && (
+                            <Badge
+                              variant="destructive"
+                              className="text-xs font-normal"
+                              title={plugin.last_error || undefined}
+                            >
+                              {t('pluginStore.loadStatusFailed')}
+                            </Badge>
+                          )}
+                          {isLoadDisabled && (
+                            <Badge
+                              variant="outline"
+                              className="theme-chip theme-chip-tint text-xs font-normal bg-muted/80 text-muted-foreground border-border"
+                            >
+                              {t('pluginStore.loadStatusDisabled')}
+                            </Badge>
+                          )}
+                          {localSourceBadge && (
+                            <Badge
+                              variant="outline"
+                              title={localSourceBadge.title}
+                              className={cn(
+                                'theme-chip theme-chip-tint text-xs font-normal',
+                                SOURCE_BADGE_CLASSES[localSourceBadge.tone],
+                              )}
+                            >
+                              {localSourceBadge.label}
+                            </Badge>
+                          )}
+                          {isStoreFork && (
+                            <Badge
+                              variant="outline"
+                              title={plugin.local_upstream_url || undefined}
+                              className={cn(
+                                'theme-chip theme-chip-tint text-xs font-normal',
+                                SOURCE_BADGE_CLASSES.amber,
+                              )}
+                            >
+                              {t('pluginStore.forkBadge')}
+                            </Badge>
+                          )}
+                          {/* 镜像来源 badge（仅已安装 Git 插件） */}
                           {plugin.installed &&
                             (() => {
-                              const gitInfo = gitPluginsMap[plugin.id.toLowerCase()];
+                              const gitKey = (plugin.local_plugin_name || plugin.id).toLowerCase();
+                              const gitInfo =
+                                gitPluginsMap[gitKey] ?? gitPluginsMap[plugin.id.toLowerCase()];
                               if (gitInfo?.is_git_repo && gitInfo.remote_url) {
-                                const badge = getMirrorBadge(gitInfo.mirror, gitInfo.remote_url, t);
+                                const badge = getMirrorBadge(
+                                  gitInfo.mirror,
+                                  gitInfo.remote_url,
+                                  t,
+                                  gitInfo.upstream_host,
+                                );
                                 return (
                                   <Badge
                                     variant="outline"
@@ -1334,7 +1374,7 @@ export default function PluginStorePage() {
                               {t('pluginStore.deprecated')}
                             </Badge>
                           )}
-                          {plugin.type === 'danger' && !deprecated && !isAi && (
+                          {plugin.type === 'danger' && !deprecated && !isAi && !isLoadFailed && (
                             <Badge variant="destructive" className="text-xs font-normal">
                               {plugin.content}
                             </Badge>
@@ -1387,7 +1427,7 @@ export default function PluginStorePage() {
                     </Button>
                   ) : plugin.installed ? (
                     <div className="flex gap-1.5 w-full">
-                      {plugin.hasUpdate && (
+                      {plugin.hasUpdate && plugin.is_git !== false && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -1423,17 +1463,24 @@ export default function PluginStorePage() {
                         )}
                         {t('pluginStore.uninstall')}
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" asChild>
-                        <a
-                          href={pluginLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
+                      {safeExternalLink && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1 text-xs"
+                          asChild
                         >
-                          <DownloadCloud className="w-3 h-3" />
-                          {t('pluginStore.details')}
-                        </a>
-                      </Button>
+                          <a
+                            href={safeExternalLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DownloadCloud className="w-3 h-3" />
+                            {t('pluginStore.details')}
+                          </a>
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="flex gap-1.5 w-full">
@@ -1454,17 +1501,24 @@ export default function PluginStorePage() {
                         )}
                         {t('pluginStore.install')}
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" asChild>
-                        <a
-                          href={pluginLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
+                      {safeExternalLink && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1 text-xs"
+                          asChild
                         >
-                          <DownloadCloud className="w-3 h-3" />
-                          {t('pluginStore.details')}
-                        </a>
-                      </Button>
+                          <a
+                            href={safeExternalLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DownloadCloud className="w-3 h-3" />
+                            {t('pluginStore.details')}
+                          </a>
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardFooter>
@@ -1502,7 +1556,14 @@ export default function PluginStorePage() {
         </div>
       )}
 
-      <GitMirrorDialog open={gitMirrorOpen} onOpenChange={setGitMirrorOpen} />
+      <GitMirrorDialog
+        open={gitMirrorOpen}
+        onOpenChange={setGitMirrorOpen}
+        onChanged={() => {
+          localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
+          void fetchGitMirrorInfo(true);
+        }}
+      />
 
       {/* README Dialog */}
       <Dialog open={readmeDialogOpen} onOpenChange={setReadmeDialogOpen}>
@@ -1518,16 +1579,20 @@ export default function PluginStorePage() {
                   {selectedPlugin?.id}
                 </DialogTitle>
               </div>
-              {selectedPlugin && (
+              {isHttpUrl(selectedPlugin?.link) && (
                 <a
-                  href={selectedPlugin.link || `https://github.com/${selectedPlugin.id}`}
+                  href={selectedPlugin?.link}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-4"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ExternalLink className="w-4 h-4" />
-                  <span>GitHub</span>
+                  <span>
+                    {parseGitHubRepo(selectedPlugin?.link || '')
+                      ? 'GitHub'
+                      : t('pluginStore.openRepo')}
+                  </span>
                 </a>
               )}
             </div>
@@ -1540,6 +1605,31 @@ export default function PluginStorePage() {
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-6">
+            {selectedPlugin?.in_store !== false &&
+              selectedPlugin?.installed &&
+              selectedPlugin?.local_source_kind === 'fork' &&
+              selectedPlugin?.local_upstream_url && (
+                <Alert variant="warning" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{t('pluginStore.forkBannerTitle')}</AlertTitle>
+                  <AlertDescription className="flex flex-wrap items-center gap-2">
+                    <span>
+                      {t('pluginStore.forkBannerDesc', { url: selectedPlugin.local_upstream_url })}
+                    </span>
+                    {isHttpUrl(selectedPlugin.local_upstream_url) && (
+                      <a
+                        href={selectedPlugin.local_upstream_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        {t('pluginStore.openForkRepo')}
+                      </a>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
             {readmeLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-4 w-full" />

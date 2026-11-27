@@ -10,6 +10,7 @@ import {
   type EncryptedPayload,
 } from './authCrypto';
 import { BackendUnreachableError, isUnreachableResponse } from './backendReachability';
+import { isEndpointNotFoundError, isMissingConfigItemError } from './pluginSource';
 // Demo 模式：<img src> 不走 fetch（mockServer 拦不到），故图片 URL 构造函数在 VITE_DEMO 下
 // 直接返回内置 SVG 占位图，避免一墙裂图。普通构建下分支为 dead code，import 会被 tree-shake。
 import { demoPluginIcon, demoMemeImageUrl } from './demoMock';
@@ -367,6 +368,16 @@ export interface Plugin {
   enabled: boolean;
   status: string;
   icon?: string;
+  commit?: string;
+  is_git?: boolean;
+  has_remote?: boolean;
+  source_kind?: PluginSourceKind;
+  upstream_url?: string;
+  upstream_host?: string;
+  upstream_provider?: UpstreamProvider;
+  active_mirror?: MirrorDisplay;
+  load_status?: 'loaded' | 'failed' | 'unloaded' | 'disabled';
+  last_error?: string | null;
   config: Record<string, PluginConfigItem>;
   config_groups?: PluginConfigGroup[];
   config_names?: string[]; // 配置名称列表，用于判断是否需要显�?toggle group
@@ -1118,6 +1129,38 @@ export interface PluginUsageRank {
   plugins: PluginUsageItem[];
 }
 
+export type PluginSourceKind = 'official' | 'fork' | 'third_party' | 'git_local_only' | 'local';
+export type UpstreamProvider = 'github' | 'cnb' | 'gitcode' | 'gitlab' | 'gitea' | 'other';
+export type MirrorChannel =
+  | 'github'
+  | 'cnb'
+  | 'gitcode'
+  | 'ghproxy'
+  | 'ssh'
+  | 'custom_proxy'
+  | 'custom_mirror';
+export type MirrorType = 'auto' | 'default' | 'mirror' | 'proxy' | 'ssh';
+export type MirrorDisplay =
+  | 'github'
+  | 'cnb'
+  | 'gitcode'
+  | 'ghproxy'
+  | 'ssh'
+  | 'custom_proxy'
+  | 'custom_mirror'
+  | 'native'
+  | 'unknown';
+export type ProbeState = 'available' | 'not_synced' | 'unreachable' | 'unknown';
+
+export interface MirrorProbeResult {
+  channel: string;
+  target_url: string;
+  state: ProbeState;
+  checked_at: number;
+  expires_at?: number;
+  detail?: string;
+}
+
 export interface PluginListItem {
   id: string;
   name: string;
@@ -1126,6 +1169,15 @@ export interface PluginListItem {
   status: string;
   icon?: string;
   commit?: string;
+  is_git?: boolean;
+  has_remote?: boolean;
+  source_kind?: PluginSourceKind;
+  upstream_url?: string;
+  upstream_host?: string;
+  upstream_provider?: UpstreamProvider;
+  active_mirror?: MirrorDisplay;
+  load_status?: 'loaded' | 'failed' | 'unloaded' | 'disabled';
+  last_error?: string | null;
   pages?: PluginPageMeta[];
 }
 
@@ -1158,6 +1210,15 @@ export interface StorePlugin {
   isFun?: boolean;
   isTool?: boolean;
   isAdapter?: boolean;
+  in_store?: boolean;
+  is_git?: boolean;
+  local_plugin_name?: string | null;
+  local_source_kind?: PluginSourceKind | null;
+  local_upstream_url?: string;
+  local_upstream_host?: string;
+  load_status?: 'loaded' | 'failed' | 'unloaded' | 'disabled' | null;
+  last_error?: string | null;
+  has_icon?: boolean;
 }
 
 /** 插件商店各页签计数（对全量统计，不随翻页/搜索变化） */
@@ -1198,6 +1259,8 @@ export interface PluginStoreListResponse {
   order_seed?: string | null;
   /** 后端实际采用的排序模式（default / stars_desc / stars_asc） */
   sort?: string;
+  /** 远程插件商店不可达且降级展示本地已安装插件时为 true */
+  store_offline?: boolean;
 }
 
 export interface PluginPrefsDto {
@@ -1208,6 +1271,16 @@ export interface PluginPrefsDto {
 export const pluginsApi = {
   // 获取插件列表（轻量级接口�?
   getPluginList: () => api.get<PluginListItem[]>(`/api/plugins/list?_t=${Date.now()}`),
+
+  /** 管理员手动重扫本地插件磁盘快照。 */
+  refreshPlugins: () =>
+    api.post<{
+      total: number;
+      git_count: number;
+      local_count: number;
+      disabled_count?: number;
+      failed_count: number;
+    }>('/api/plugins/refresh'),
 
   /** 近几天命令触发热度。后端有缓存；旧后端没有这个接口时调用方自行降级。 */
   getPluginUsage: () => api.get<PluginUsageRank>(`/api/plugins/usage`),
@@ -1864,24 +1937,56 @@ export interface AITaskKindInfo {
   plugin?: string | null;
 }
 
+export type AITaskGraphNodeRole = 'high' | 'low' | 'custom';
+
+export interface AITaskGraphPos {
+  x: number;
+  y: number;
+}
+
+export interface AITaskGraphHubNode {
+  id: string;
+  primary: string;
+  secondary: string;
+  role: AITaskGraphNodeRole;
+  valid?: boolean;
+  pos: AITaskGraphPos | null;
+}
+
+export interface AITaskGraphData {
+  nodes: AITaskGraphHubNode[];
+  edges: Record<string, string>;
+  split_subagents: string[];
+  task_positions: Record<string, AITaskGraphPos>;
+}
+
+export interface AITaskGraphSavePayload {
+  nodes: Array<{
+    id: string;
+    primary: string;
+    secondary: string;
+    role: AITaskGraphNodeRole;
+    pos: AITaskGraphPos | null;
+  }>;
+  edges: Record<string, string>;
+  split_subagents: string[];
+  task_positions: Record<string, AITaskGraphPos>;
+}
+
 export interface AITaskModelsData {
   groups: AITaskGroup[];
   levels: Record<AITaskLevel, { primary: string; secondary: string }>;
   kinds: AITaskKindInfo[];
   /** 已保存但当前未登记的任务 ID（如插件已卸载） */
   orphans: string[];
+  /** 星型节点模型路由图谱拓扑（旧后端可能缺省，前端可自动合成） */
+  graph?: AITaskGraphData;
 }
 
 export const aiTaskModelsApi = {
   list: () => api.get<AITaskModelsData>('/api/ai_task_models'),
-  set: (taskKind: string, primary: string, secondary = '') =>
-    api.put<AITaskModelsData>(`/api/ai_task_models/${encodeURIComponent(taskKind)}`, {
-      primary,
-      secondary,
-    }),
-  clear: (taskKind: string) =>
-    api.delete<AITaskModelsData>(`/api/ai_task_models/${encodeURIComponent(taskKind)}`),
-  clearAll: () => api.delete<AITaskModelsData>('/api/ai_task_models'),
+  saveGraph: (payload: AITaskGraphSavePayload) =>
+    api.put<AITaskModelsData>('/api/ai_task_models/graph', payload),
 };
 
 export const embeddingConfigApi = {
@@ -3380,6 +3485,144 @@ export const promptGroupApi = {
     api.delete<{ name?: string }>(`/api/prompt-groups/${encodeURIComponent(name)}`),
 };
 
+// 人格重置 / 备份 / 还原 API
+export type PersonaResetItemKey =
+  | 'journal'
+  | 'self_memory'
+  | 'relationship'
+  | 'persona_state'
+  | 'session_history'
+  | 'scheduled_tasks'
+  | 'global_group'
+  | 'global_user'
+  | 'user_preferences';
+
+export type PersonaResetItemGroup = 'persona' | 'global';
+export type PersonaResetUnit = 'rows' | 'files' | 'sessions' | 'tasks' | 'keys';
+
+export interface PersonaResetItemPreview {
+  key: PersonaResetItemKey;
+  group: PersonaResetItemGroup;
+  default_checked: boolean;
+  count: number;
+  unit: PersonaResetUnit;
+  backup_supported: boolean;
+  backup_seconds: number;
+  backup_bytes: number;
+}
+
+export interface PersonaResetPreview {
+  persona: string;
+  items: PersonaResetItemPreview[];
+  other_personas: string[];
+  legacy_self_key: boolean;
+  active_job: PersonaJobView | null;
+}
+
+export type PersonaJobKind = 'reset' | 'restore';
+export type PersonaJobStatus = 'running' | 'done' | 'failed' | 'resumable';
+export type PersonaJobStepStatus = 'pending' | 'running' | 'done' | 'skipped' | 'failed';
+export type PersonaJobStepKey =
+  | 'prepare'
+  | 'backup'
+  | 'memory'
+  | 'user_preferences'
+  | 'journal'
+  | 'relationship'
+  | 'persona_state'
+  | 'scheduled_tasks'
+  | 'clear'
+  | 'import'
+  | 'files'
+  | 'vectors'
+  | 'finish';
+
+export interface PersonaJobStep {
+  key: PersonaJobStepKey;
+  status: PersonaJobStepStatus;
+  done: number;
+  total: number;
+}
+
+export interface PersonaJobView {
+  job_id: string;
+  kind: PersonaJobKind;
+  persona: string;
+  status: PersonaJobStatus;
+  steps: PersonaJobStep[];
+  eta_seconds: number;
+  error: string;
+  backup_file: string;
+  counts: Record<string, number>;
+  started_at: number;
+  finished_at: number;
+}
+
+export interface PersonaBackupInfo {
+  file: string;
+  created_at: number;
+  items: PersonaResetItemKey[];
+  counts: Record<string, number>;
+  size_bytes: number;
+  embedding_model: string;
+}
+
+export interface PersonaRestorePreview {
+  file: string;
+  items: PersonaResetItemKey[];
+  overwrite_counts: Record<string, number>;
+  import_counts: Record<string, number>;
+  vector_texts: number;
+  vector_eta_seconds: number;
+  throughput_per_sec: number;
+  embedding_model: string;
+  active_job: PersonaJobView | null;
+}
+
+const personaResetBase = (name: string) => `/api/persona/${encodeURIComponent(name)}`;
+const personaBackupPath = (name: string, file: string) =>
+  `${personaResetBase(name)}/backups/${encodeURIComponent(file)}`;
+
+export const personaResetApi = {
+  getResetPreview: (name: string) =>
+    api.get<PersonaResetPreview>(`${personaResetBase(name)}/reset/preview`),
+
+  startReset: (
+    name: string,
+    body: {
+      items: PersonaResetItemKey[];
+      confirm_name: string;
+      backup: boolean;
+      confirm_global: boolean;
+    },
+  ) => api.post<{ job_id: string }>(`${personaResetBase(name)}/reset`, body),
+
+  getActiveJob: (name: string) =>
+    api.get<PersonaJobView | null>(`${personaResetBase(name)}/reset/active`),
+
+  getJob: (jobId: string) =>
+    api.get<PersonaJobView>(`/api/persona-reset/jobs/${encodeURIComponent(jobId)}`),
+
+  resumeJob: (jobId: string) =>
+    api.post<{ job_id: string }>(`/api/persona-reset/jobs/${encodeURIComponent(jobId)}/resume`),
+
+  listBackups: (name: string) => api.get<PersonaBackupInfo[]>(`${personaResetBase(name)}/backups`),
+
+  downloadBackup: (name: string, file: string): Promise<Blob> =>
+    api.downloadBlob(`${personaBackupPath(name, file)}/download`),
+
+  deleteBackup: (name: string, file: string) => api.delete<null>(personaBackupPath(name, file)),
+
+  getRestorePreview: (name: string, file: string) =>
+    api.get<PersonaRestorePreview>(`${personaBackupPath(name, file)}/restore/preview`),
+
+  startRestore: (
+    name: string,
+    file: string,
+    body: { items: PersonaResetItemKey[]; confirm_name: string },
+  ) => api.post<{ job_id: string }>(`${personaBackupPath(name, file)}/restore`, body),
+};
+
 export const personaApi = {
   /** Heartbeat 巡检运行态（每 persona job 是否注册） */
   getHeartbeatStatus: () =>
@@ -4725,7 +4968,8 @@ export const aiScheduledTasksApi = {
 export interface GitMirrorOption {
   label: string;
   value: string;
-  type: 'default' | 'mirror' | 'proxy';
+  type: 'default' | 'mirror' | 'proxy' | 'ssh';
+  channel?: string;
 }
 
 export interface GitPluginInfo {
@@ -4733,11 +4977,21 @@ export interface GitPluginInfo {
   path: string;
   remote_url: string;
   is_git_repo: boolean;
-  mirror: 'gitcode' | 'cnb' | 'ghproxy' | 'github' | 'unknown';
+  mirror: MirrorDisplay;
+  commit?: string;
+  source_kind?: PluginSourceKind;
+  upstream_url?: string;
+  upstream_host?: string;
+  upstream_provider?: UpstreamProvider;
+  active_mirror_prefix?: string;
+  store_upstream_url?: string | null;
+  supported_mirrors?: string[];
+  mirror_probes?: MirrorProbeResult[];
 }
 
 export interface GitMirrorInfo {
   current_mirror: string;
+  current_mirror_mode?: MirrorType;
   available_mirrors: GitMirrorOption[];
   plugins: GitPluginInfo[];
 }
@@ -4745,6 +4999,7 @@ export interface GitMirrorInfo {
 export interface GitMirrorSetAllResult {
   name: string;
   success: boolean;
+  status?: 'switched' | 'unchanged' | 'skipped' | 'failed';
   message: string;
 }
 
@@ -4753,37 +5008,95 @@ export interface GitMirrorSetAllResponse {
   summary: {
     total: number;
     success_count: number;
+    skipped_count?: number;
     fail_count: number;
+    config_updated?: boolean;
   };
 }
 
 export interface GitMirrorSetPluginResponse {
   name: string;
   success: boolean;
+  status?: 'switched' | 'unchanged' | 'skipped' | 'failed';
   message: string;
+}
+
+export interface GitMirrorProbeResponse {
+  probes: Record<string, MirrorProbeResult[]>;
+}
+
+export interface GitMirrorSaveConfigResponse {
+  current_mirror: string;
+  current_mirror_mode: 'auto' | 'proxy' | 'mirror';
 }
 
 export const gitMirrorApi = {
   // 获取 Git 镜像信息
-  getInfo: () => api.get<GitMirrorInfo>('/api/git-mirror/info'),
+  getInfo: (options?: { fresh?: boolean; probe?: boolean }) => {
+    const query = new URLSearchParams();
+    if (options?.fresh) query.set('fresh', 'true');
+    if (options?.probe) query.set('probe', 'true');
+    const qs = query.toString();
+    return api.get<GitMirrorInfo>(`/api/git-mirror/info${qs ? `?${qs}` : ''}`);
+  },
+
+  probe: (options?: { plugin_name?: string; force?: boolean }) =>
+    api.post<GitMirrorProbeResponse>('/api/git-mirror/probe', {
+      plugin_name: options?.plugin_name ?? null,
+      force: options?.force ?? true,
+    }),
 
   // 批量设置所有插件的镜像源（同时更新配置�?
-  setAll: (mirrorPrefix: string) =>
-    api.post<GitMirrorSetAllResponse>('/api/git-mirror/set-all', { mirror_prefix: mirrorPrefix }),
+  setAll: (mirrorPrefix: string, mirrorType: MirrorType = 'auto') =>
+    api.post<GitMirrorSetAllResponse>('/api/git-mirror/set-all', {
+      mirror_prefix: mirrorPrefix,
+      mirror_type: mirrorType,
+    }),
 
   // 设置单个插件的镜像源
-  setPlugin: (pluginName: string, mirrorPrefix: string) =>
+  setPlugin: (pluginName: string, mirrorPrefix: string, mirrorType: MirrorType = 'auto') =>
     api.post<GitMirrorSetPluginResponse>(
       `/api/git-mirror/set-plugin/${encodeURIComponent(pluginName)}`,
-      { mirror_prefix: mirrorPrefix },
+      { mirror_prefix: mirrorPrefix, mirror_type: mirrorType },
     ),
 
   // 获取可用镜像源列�?
   getAvailable: () => api.get<GitMirrorOption[]>('/api/git-mirror/available'),
 
-  // 仅保存镜像源配置（不影响已安装插件，仅影响后续新安装的插件）
-  saveConfig: (mirrorPrefix: string) =>
-    frameworkConfigApi.updateFrameworkConfigItem('GsCore', 'GitMirror', mirrorPrefix),
+  // 仅保存全局镜像配置（优先走原子 /api/git-mirror/config，旧版核心 404 时降级框架配置项）
+  saveConfig: async (
+    mirrorPrefix: string,
+    mirrorType: MirrorType = 'auto',
+    legacyMirrorMode?: 'auto' | 'proxy' | 'mirror',
+  ): Promise<GitMirrorSaveConfigResponse> => {
+    try {
+      return await api.post<GitMirrorSaveConfigResponse>('/api/git-mirror/config', {
+        mirror_prefix: mirrorPrefix,
+        mirror_type: mirrorType,
+      });
+    } catch (error) {
+      if (!isEndpointNotFoundError(error)) throw error;
+      console.warn(
+        '[gitMirrorApi] /api/git-mirror/config unavailable on legacy Core, falling back',
+      );
+      await frameworkConfigApi.updateFrameworkConfigItem('GsCore', 'GitMirror', mirrorPrefix);
+      if (legacyMirrorMode) {
+        try {
+          await frameworkConfigApi.updateFrameworkConfigItem(
+            'GsCore',
+            'GitMirrorMode',
+            legacyMirrorMode,
+          );
+        } catch (modeErr) {
+          if (!isMissingConfigItemError(modeErr, 'GitMirrorMode')) throw modeErr;
+        }
+      }
+      return {
+        current_mirror: mirrorPrefix,
+        current_mirror_mode: legacyMirrorMode ?? 'auto',
+      };
+    }
+  },
 };
 
 // ===================
@@ -5314,7 +5627,10 @@ export interface GitPluginStatus {
   is_git_repo: boolean;
   current_commit: GitCommitInfo | null;
   remote_url?: string;
-  mirror?: 'gitcode' | 'cnb' | 'ghproxy' | 'github' | 'unknown';
+  mirror?: MirrorDisplay;
+  source_kind?: PluginSourceKind;
+  upstream_host?: string;
+  upstream_url?: string;
 }
 
 export interface GitCommitListResponse {
@@ -5343,7 +5659,12 @@ export interface GitForceUpdateResponse {
 
 export const gitUpdateApi = {
   // 获取所有插件的 Git 状�?
-  getStatus: () => api.get<GitPluginStatus[]>('/api/git-update/status'),
+  getStatus: (fresh = false) => {
+    const query = new URLSearchParams();
+    if (fresh) query.set('fresh', 'true');
+    const qs = query.toString();
+    return api.get<GitPluginStatus[]>(`/api/git-update/status${qs ? `?${qs}` : ''}`);
+  },
 
   // 获取单个插件�?Git 状�?
   getPluginStatus: (pluginName: string) =>
@@ -5485,6 +5806,9 @@ export const memeApi = {
   getPersonas: () => api.get<MemePersona[]>('/api/meme/personas'),
 
   getPacks: () => api.get<MemePackSummary[]>('/api/meme/packs'),
+
+  createPack: (name: string) =>
+    api.post<{ pack_id: string; name: string }>('/api/meme/packs', { name }),
 
   listPackMembers: (packId: string, params: MemeListParams = {}) => {
     const searchParams = new URLSearchParams();
@@ -5805,14 +6129,15 @@ export interface SessionLogSummary {
   session_uuid: string;
   persona_name: string;
   create_by: string;
+  task_kind?: string | null;
   is_subagent: boolean;
   // 逻辑会话链身份：一条会话窗口内多物理分段共享 chain_id，列表按此归并成一张卡片
   chain_id: string;
   segment_index: number;
   created_at: number;
-  created_at_str: string;
+  created_at_str: string | null;
   updated_at: number;
-  updated_at_str: string;
+  updated_at_str: string | null;
   ended_at: number | null;
   ended_at_str: string | null;
   duration_seconds: number | null;
@@ -5842,6 +6167,7 @@ export interface SessionLogDetail {
   session_uuid: string;
   persona_name: string;
   create_by: string;
+  task_kind?: string | null;
   is_subagent: boolean;
   chain_id?: string;
   segment_index?: number;
@@ -5879,10 +6205,25 @@ export interface SessionLogCategory {
   subagent_count: number;
 }
 
+export interface SessionLogTaskKindCount {
+  count: number;
+  active_count: number;
+  subagent_count: number;
+}
+
+export interface SessionLogPersonaCount {
+  persona_name: string;
+  count: number;
+  active_count: number;
+}
+
 export interface SessionLogCategoriesResponse {
   categories: SessionLogCategory[];
   groups: Record<string, number>;
   total: number;
+  task_kinds?: Record<string, SessionLogTaskKindCount>;
+  unmapped?: SessionLogCategory[];
+  personas?: SessionLogPersonaCount[];
 }
 
 export interface LinkedAgentsResponse {
@@ -5900,6 +6241,8 @@ export const aiSessionLogsApi = {
       session_id?: string;
       search?: string;
       create_by?: string;
+      task_kind?: string;
+      unmapped_only?: boolean;
       persona_name?: string;
       is_active?: boolean;
       date_from?: string;
@@ -5912,6 +6255,8 @@ export const aiSessionLogsApi = {
     if (params.session_id) query.set('session_id', params.session_id);
     if (params.search) query.set('search', params.search);
     if (params.create_by) query.set('create_by', params.create_by);
+    if (params.task_kind) query.set('task_kind', params.task_kind);
+    if (params.unmapped_only) query.set('unmapped_only', 'true');
     if (params.persona_name) query.set('persona_name', params.persona_name);
     if (params.is_active !== undefined) query.set('is_active', String(params.is_active));
     if (params.date_from) query.set('date_from', params.date_from);
@@ -7139,6 +7484,7 @@ export interface TokenRangeByModelItem extends TokenRangeBucket {
 
 export interface TokenRangeByTypeItem extends TokenRangeBucket {
   type: string;
+  request_count?: number;
 }
 
 /** User Turn / Agent Run 效率（省 Token 主指标） */

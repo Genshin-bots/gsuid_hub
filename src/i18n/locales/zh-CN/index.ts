@@ -59,6 +59,7 @@ import module_aiOps from './aiOps.json';
 import module_liveChat from './liveChat.json';
 import module_aiRuntime from './aiRuntime.json';
 import module_personaStore from './personaStore.json';
+import module_personaReset from './personaReset.json';
 const locale = {
   common: module0,
   login: module1,
@@ -120,6 +121,7 @@ const locale = {
   liveChat: module_liveChat,
   aiRuntime: module_aiRuntime,
   personaStore: module_personaStore,
+  personaReset: module_personaReset,
 } as const;
 
 export default locale;

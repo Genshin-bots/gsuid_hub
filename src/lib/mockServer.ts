@@ -121,6 +121,17 @@ import {
   generateCoreFrameworkConfigDetail,
   applyCoreFrameworkConfigSave,
 } from './demoMock';
+import {
+  deletePersonaMockBackup,
+  generatePersonaResetPreview,
+  generatePersonaRestorePreview,
+  getPersonaMockActiveJob,
+  getPersonaMockJob,
+  listPersonaMockBackups,
+  resumePersonaMockJob,
+  startPersonaMockReset,
+  startPersonaMockRestore,
+} from './demoMockPersonaReset';
 
 type Ctx = { url: URL; method: string; body: unknown };
 type Handler = (ctx: Ctx) => unknown | Response;
@@ -130,7 +141,20 @@ interface Route {
   h: Handler;
 }
 
+const pathSeg = (url: URL, index: number) =>
+  decodeURIComponent(url.pathname.split('/')[index] ?? '');
+
 const mockUploadDeclared = new Map<string, number>();
+
+const mockMemePacks = [
+  {
+    pack_id: 'default-pack',
+    name: '通用表情包',
+    member_count: 1,
+    tagged_count: 1,
+    bound_personas: [] as string[],
+  },
+];
 
 let mockPluginPrefs: { recent_plugins: string[]; last_edited_plugin: string } = {
   recent_plugins: ['GenshinUID', 'ZZZeroUID', 'StarRailUID', 'SayuStock'],
@@ -879,6 +903,139 @@ const routes: Route[] = [
   // ── Tier 1 · 插件库 / 配置 ──
   { m: 'GET', re: /^\/api\/plugins\/list$/, h: () => generatePluginList() },
   {
+    m: 'POST',
+    re: /^\/api\/plugins\/refresh$/,
+    h: () => {
+      const total = generatePluginList().length;
+      return {
+        total,
+        git_count: Math.max(0, total - 1),
+        local_count: 1,
+        disabled_count: 0,
+        failed_count: 0,
+      };
+    },
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/git-mirror\/info$/,
+    h: () => ({
+      current_mirror: '',
+      current_mirror_mode: 'auto',
+      available_mirrors: [
+        { label: 'GitHub (默认)', value: '', type: 'default', channel: 'github' },
+        {
+          label: 'CNB 镜像',
+          value: 'https://cnb.cool/gscore-mirror/',
+          type: 'mirror',
+          channel: 'cnb',
+        },
+        {
+          label: 'GitCode 镜像',
+          value: 'https://gitcode.com/gscore-mirror/',
+          type: 'mirror',
+          channel: 'gitcode',
+        },
+        {
+          label: 'ghproxy 代理',
+          value: 'https://ghproxy.mihomo.me/',
+          type: 'proxy',
+          channel: 'ghproxy',
+        },
+        { label: 'SSH 协议', value: 'ssh://', type: 'ssh', channel: 'ssh' },
+      ],
+      plugins: generatePluginList()
+        .slice(0, 3)
+        .map((p, idx) => ({
+          name: p.id,
+          path: `/demo/plugins/${p.id}`,
+          remote_url:
+            idx === 1
+              ? `https://github.com/demo-fork/${p.id}.git`
+              : idx === 2
+                ? `https://cnb.cool/demo-org/${p.id}`
+                : `https://github.com/Genshin-bots/${p.id}`,
+          is_git_repo: true,
+          mirror: idx === 2 ? 'native' : 'github',
+          commit: p.commit || '',
+          source_kind: idx === 1 ? 'fork' : idx === 2 ? 'third_party' : 'official',
+          upstream_url:
+            idx === 1
+              ? `https://github.com/demo-fork/${p.id}`
+              : idx === 2
+                ? `https://cnb.cool/demo-org/${p.id}`
+                : `https://github.com/Genshin-bots/${p.id}`,
+          upstream_host: idx === 2 ? 'cnb.cool' : 'github.com',
+          upstream_provider: idx === 2 ? 'cnb' : 'github',
+          active_mirror_prefix: '',
+          store_upstream_url: idx <= 1 ? `https://github.com/Genshin-bots/${p.id}` : null,
+          supported_mirrors:
+            idx === 0
+              ? ['github', 'gitcode', 'cnb', 'ghproxy', 'ssh']
+              : idx === 1
+                ? ['github', 'ghproxy', 'ssh']
+                : [],
+          mirror_probes:
+            idx === 0
+              ? [
+                  {
+                    channel: 'cnb',
+                    target_url: `https://cnb.cool/gscore-mirror/${p.id}`,
+                    state: 'available',
+                    checked_at: Date.now() / 1000,
+                    expires_at: Date.now() / 1000 + 900,
+                  },
+                ]
+              : [],
+        })),
+    }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/git-mirror\/config$/,
+    h: ({ body }) => {
+      const payload = (body && typeof body === 'object' ? body : {}) as {
+        mirror_prefix?: string;
+        mirror_type?: string;
+      };
+      const prefix = String(payload.mirror_prefix ?? '').trim();
+      const mode =
+        payload.mirror_type === 'proxy' || payload.mirror_type === 'mirror'
+          ? payload.mirror_type
+          : 'auto';
+      return { current_mirror: prefix, current_mirror_mode: mode };
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/git-mirror\/probe$/,
+    h: () => ({ probes: {} }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/git-mirror\/set-all$/,
+    h: () => ({
+      results: [],
+      summary: {
+        total: 0,
+        success_count: 0,
+        skipped_count: 0,
+        fail_count: 0,
+        config_updated: true,
+      },
+    }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/git-mirror\/set-plugin\/([^/]+)$/,
+    h: ({ url }) => ({
+      name: decodeURIComponent(url.pathname.split('/').pop() || ''),
+      success: true,
+      status: 'switched',
+      message: 'demo: switched',
+    }),
+  },
+  {
     m: 'GET',
     re: /^\/api\/plugins\/recent$/,
     h: () => mockPluginPrefs,
@@ -1023,15 +1180,23 @@ const routes: Route[] = [
   {
     m: 'GET',
     re: /^\/api\/meme\/packs$/,
-    h: () => [
-      {
-        pack_id: 'default-pack',
-        name: '通用表情包',
-        member_count: 1,
-        tagged_count: 1,
+    h: () => mockMemePacks,
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/meme\/packs$/,
+    h: ({ body }) => {
+      const name = String((body as { name?: string } | null)?.name ?? '').trim();
+      const created = {
+        pack_id: `demo-pack-${Date.now()}`,
+        name: name || '新表情包',
+        member_count: 0,
+        tagged_count: 0,
         bound_personas: [],
-      },
-    ],
+      };
+      mockMemePacks.push(created);
+      return { pack_id: created.pack_id, name: created.name };
+    },
   },
   {
     m: 'GET',
@@ -1103,6 +1268,60 @@ const routes: Route[] = [
   },
   { m: 'POST', re: /^\/api\/prompt-groups$/, h: ({ body }) => applyPromptGroupCreate(body) },
   { m: 'GET', re: /^\/api\/persona\/list$/, h: () => generatePersonaList() },
+  // 人格重置 / 备份 / 还原（必须在 /api/persona/{name} 详情之前）
+  {
+    m: 'GET',
+    re: /^\/api\/persona-reset\/jobs\/[^/]+$/,
+    h: ({ url }) => getPersonaMockJob(pathSeg(url, 4)),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/persona-reset\/jobs\/[^/]+\/resume$/,
+    h: ({ url }) => resumePersonaMockJob(pathSeg(url, 4)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/reset\/preview$/,
+    h: ({ url }) => generatePersonaResetPreview(pathSeg(url, 3)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/reset\/active$/,
+    h: ({ url }) => getPersonaMockActiveJob(pathSeg(url, 3)),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/persona\/[^/]+\/reset$/,
+    h: ({ url, body }) => startPersonaMockReset(pathSeg(url, 3), body),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/backups$/,
+    h: ({ url }) => listPersonaMockBackups(pathSeg(url, 3)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/backups\/[^/]+\/download$/,
+    h: () =>
+      new Response(new Blob(['demo backup'], { type: 'application/zip' }), {
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/backups\/[^/]+\/restore\/preview$/,
+    h: ({ url }) => generatePersonaRestorePreview(pathSeg(url, 3), pathSeg(url, 5)),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/persona\/[^/]+\/backups\/[^/]+\/restore$/,
+    h: ({ url, body }) => startPersonaMockRestore(pathSeg(url, 3), body),
+  },
+  {
+    m: 'DELETE',
+    re: /^\/api\/persona\/[^/]+\/backups\/[^/]+$/,
+    h: ({ url }) => deletePersonaMockBackup(pathSeg(url, 3), pathSeg(url, 5)),
+  },
   { m: 'GET', re: /^\/api\/persona\/config\/all$/, h: () => generatePersonaConfigAll() },
   {
     m: 'GET',
@@ -1379,8 +1598,8 @@ const routes: Route[] = [
     m: 'GET',
     re: /^\/api\/ai_task_models$/,
     h: () => {
-      const high = 'high-main';
-      const low = 'low-main';
+      const high = 'anthropic++high-main';
+      const low = 'anthropic++low-main';
       const kind = (
         id: string,
         title: string,
@@ -1416,48 +1635,140 @@ const routes: Route[] = [
         node_source: extra.node_source ?? null,
         plugin: extra.plugin ?? null,
       });
+      const kinds = [
+        kind('chat', '主对话', 'conversation', 'high', {
+          stats: ['chat', 'http_chat', '命令补充'],
+        }),
+        kind('turn_router', '前置路由', 'conversation', 'low', {
+          fast: true,
+          stats: ['turnrouter'],
+        }),
+        kind('temp_assistant', '临时任务助手', 'conversation', 'high', {
+          stats: ['coreaicontrolbtw'],
+        }),
+        kind('eval_judge', '评测裁判', 'conversation', 'low', { stats: ['evaljudge'] }),
+        kind('subagent', '子 Agent', 'agent', 'high', { stats: ['autoplanner'] }),
+        kind('capability_agent', '能力代理', 'agent', 'high', { stats: ['capabilityagent'] }),
+        kind('capability_agent:render_agent', '视觉渲染', 'agent', 'high', {
+          desc: '把事实包设计并渲染为竖屏信息图。',
+          parent_id: 'capability_agent',
+          node_source: 'builtin',
+          plugin: 'core',
+        }),
+        kind('capability_agent:research_agent', '调研助手', 'agent', 'high', {
+          desc: '外部信息收集、综合分析与资料汇总。',
+          parent_id: 'capability_agent',
+          node_source: 'builtin',
+          plugin: 'core',
+        }),
+        kind('capability_agent:code_agent', '代码助手', 'agent', 'high', {
+          desc: '沙盒内编写代码、运行脚本与生成报告文件。',
+          parent_id: 'capability_agent',
+          node_source: 'builtin',
+          plugin: 'core',
+        }),
+        kind('capability_eval', '能力代理评估', 'agent', 'low', {
+          stats: ['capabilityevaluator'],
+        }),
+        kind('scheduled_task', '定时任务', 'agent', 'high', { stats: ['scheduledtask_exec'] }),
+        kind('autonomy', '自主行动', 'agent', 'high', { stats: ['autonomy'] }),
+        kind('build_persona', '人格生成', 'agent', 'high', { stats: ['buildpersona'] }),
+        kind('mcp_profile', 'MCP 画像生成', 'agent', 'high', { stats: ['mcpprofilegenerator'] }),
+        kind('heartbeat_decision', '巡检决策', 'proactive', 'high', {
+          stats: ['heartbeat_decision'],
+        }),
+        kind('heartbeat_output', '巡检发言', 'proactive', 'high', {
+          stats: ['heartbeat_output', 'autonomy_output'],
+        }),
+        kind('memory_algebra', '记忆抽取', 'memory', 'low', {
+          fast: true,
+          stats: ['memalgebra'],
+        }),
+        kind('memory_window_router', '记忆话题归类', 'memory', 'low', {
+          fast: true,
+          stats: ['memwindowrouter'],
+        }),
+        kind('journal_compact', '日志压缩', 'memory', 'high'),
+        kind('relationship_distill', '关系提炼', 'memory', 'high', { stats: ['dyadic_distill'] }),
+        kind('image_understand', '图片理解', 'multimodal', 'high', {
+          follows_caller: true,
+          stats: ['imageunderstand'],
+        }),
+        kind('image_desc_summary', '图片描述精简', 'multimodal', 'low', {
+          stats: ['imagedescsummary'],
+        }),
+        kind('meme_tagger', '表情包打标', 'multimodal', 'low', { stats: ['memetagger'] }),
+      ];
+      const edges: Record<string, string> = {};
+      for (const k of kinds) {
+        if (!k.parent_id && !k.follows_caller) {
+          edges[k.id] = k.default_level === 'high' ? 'slot_high' : 'slot_low';
+        }
+      }
       return {
         groups: ['conversation', 'agent', 'proactive', 'memory', 'multimodal', 'plugin'],
-        levels: { high: { primary: high, secondary: '' }, low: { primary: low, secondary: '' } },
-        kinds: [
-          kind('chat', '主对话', 'conversation', 'high', {
-            stats: ['chat', 'http_chat', '命令补充'],
-          }),
-          kind('turn_router', '前置路由', 'conversation', 'low', {
-            fast: true,
-            stats: ['turnrouter'],
-          }),
-          kind('subagent', '子 Agent', 'agent', 'high', { stats: ['autoplanner'] }),
-          kind('capability_agent', '能力代理', 'agent', 'high', { stats: ['capabilityagent'] }),
-          kind('capability_agent:render_agent', '视觉渲染', 'agent', 'high', {
-            desc: '把事实包设计并渲染为竖屏信息图。',
-            parent_id: 'capability_agent',
-            node_source: 'builtin',
-            plugin: 'core',
-          }),
-          kind('capability_agent:research_agent', '调研助手', 'agent', 'high', {
-            desc: '外部信息收集、综合分析与资料汇总。',
-            parent_id: 'capability_agent',
-            node_source: 'builtin',
-            plugin: 'core',
-          }),
-          kind('capability_agent:code_agent', '代码助手', 'agent', 'high', {
-            desc: '沙盒内编写代码、运行脚本与生成报告文件。',
-            parent_id: 'capability_agent',
-            node_source: 'builtin',
-            plugin: 'core',
-          }),
-          kind('heartbeat_decision', '巡检决策', 'proactive', 'high'),
-          kind('memory_algebra', '记忆抽取', 'memory', 'low', {
-            fast: true,
-            stats: ['memalgebra'],
-          }),
-          kind('image_understand', '图片理解', 'multimodal', 'high', {
-            follows_caller: true,
-            stats: ['imageunderstand'],
-          }),
-        ],
+        levels: {
+          high: { primary: high, secondary: 'openai++high-backup' },
+          low: { primary: low, secondary: 'gemini++low-backup' },
+        },
+        kinds,
         orphans: [],
+        graph: {
+          nodes: [
+            {
+              id: 'slot_high',
+              primary: high,
+              secondary: 'openai++high-backup',
+              role: 'high',
+              valid: true,
+              pos: null,
+            },
+            {
+              id: 'slot_low',
+              primary: low,
+              secondary: 'gemini++low-backup',
+              role: 'low',
+              valid: true,
+              pos: null,
+            },
+          ],
+          edges,
+          split_subagents: [],
+          task_positions: {},
+        },
+      };
+    },
+  },
+  {
+    m: 'PUT',
+    re: /^\/api\/ai_task_models\/graph$/,
+    h: ({ body }) => {
+      const payload = (body ?? {}) as {
+        nodes?: Array<{
+          id: string;
+          primary: string;
+          secondary: string;
+          role: string;
+          pos: { x: number; y: number } | null;
+        }>;
+        edges?: Record<string, string>;
+        split_subagents?: string[];
+        task_positions?: Record<string, { x: number; y: number }>;
+      };
+      return {
+        groups: ['conversation', 'agent', 'proactive', 'memory', 'multimodal', 'plugin'],
+        levels: {
+          high: { primary: payload.nodes?.[0]?.primary ?? '', secondary: '' },
+          low: { primary: payload.nodes?.[1]?.primary ?? '', secondary: '' },
+        },
+        kinds: [],
+        orphans: [],
+        graph: {
+          nodes: (payload.nodes ?? []).map((n) => ({ ...n, valid: true })),
+          edges: payload.edges ?? {},
+          split_subagents: payload.split_subagents ?? [],
+          task_positions: payload.task_positions ?? {},
+        },
       };
     },
   },

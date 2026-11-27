@@ -14,8 +14,16 @@
     "when": "When",
     "drive": "What",
     "delivery": "Delivery",
+    "target": "Target",
     "summary": "Summary",
     "steps": "Steps"
+  },
+  "channel": {
+    "private": "DM · {id}",
+    "group": "Group · {id}",
+    "privateLabel": "DM",
+    "groupLabel": "Group",
+    "none": "—"
   },
   "drive": {
     "care_user": "Check on someone",
@@ -31,6 +39,7 @@
   "detail": {
     "title": "This run",
     "target": "Target",
+    "mentionUser": "User",
     "duration": "{seconds} s",
     "summary": "Summary",
     "observations": "Facts found",

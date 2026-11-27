@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarIconButtonClass,
+} from '@/components/ui/TabButtonGroup';
 import {
   Dialog,
   DialogContent,
@@ -52,6 +57,7 @@ import {
   Key,
   Command,
   Package,
+  RefreshCw,
   RotateCw,
   Sliders,
   Cog,
@@ -102,6 +108,7 @@ import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
+import { getSourceBadgeInfo, SOURCE_BADGE_CLASSES } from '@/lib/pluginSource';
 import {
   fetchSharedPluginPrefs,
   pickPluginPageText,
@@ -424,6 +431,8 @@ export default function PluginsPage() {
   const { style } = useTheme();
   const _isGlass = style !== 'solid';
   const { t, language } = useLanguage();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [pluginList, setPluginList] = useState<PluginListItem[]>([]);
@@ -450,6 +459,7 @@ export default function PluginsPage() {
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [isSavingService, setIsSavingService] = useState(false);
   const [isReloadingPlugin, setIsReloadingPlugin] = useState(false);
+  const [isRefreshingLocal, setIsRefreshingLocal] = useState(false);
   const [pageDialogOpen, setPageDialogOpen] = useState(false);
   const [pendingPage, setPendingPage] = useState<PluginPageMeta | null>(null);
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -493,6 +503,14 @@ export default function PluginsPage() {
   }, []);
 
   const selectedPlugin = plugins.find((p) => p.id === selectedPluginId);
+  const selectedListedPlugin = pluginList.find((p) => p.id === selectedPluginId);
+  const selectedSourceBadge = getSourceBadgeInfo(
+    selectedPlugin?.source_kind ?? selectedListedPlugin?.source_kind,
+    selectedPlugin?.upstream_host ?? selectedListedPlugin?.upstream_host,
+    t,
+    selectedPlugin?.upstream_url ?? selectedListedPlugin?.upstream_url,
+  );
+  const selectedCommit = selectedPlugin?.commit || selectedListedPlugin?.commit;
   const paramsConfigName = selectedConfigName || selectedPlugin?.config_names?.[0] || '';
   const paramsConfigIndex = Math.max(
     0,
@@ -1035,6 +1053,36 @@ export default function PluginsPage() {
     }
   };
 
+  // 管理员手动重扫本地插件元信息（就地合并磁盘元信息，不清空当前未保存的表单编辑态）
+  const handleRefreshLocal = async () => {
+    setIsRefreshingLocal(true);
+    try {
+      const res = await pluginsApi.refreshPlugins();
+      toast.success(t('plugins.refreshLocalSuccess', { count: res.total }));
+      const nextList = await pluginsApi.getPluginList();
+      setPluginList(nextList);
+      const metaById = new Map(nextList.map((item) => [item.id, item]));
+      setPlugins((prev) =>
+        prev.map((item) => {
+          const fresh = metaById.get(item.id);
+          if (!fresh) return item;
+          return {
+            ...item,
+            commit: fresh.commit ?? item.commit,
+            is_git: fresh.is_git ?? item.is_git,
+            source_kind: fresh.source_kind ?? item.source_kind,
+            upstream_url: fresh.upstream_url ?? item.upstream_url,
+            upstream_host: fresh.upstream_host ?? item.upstream_host,
+          };
+        }),
+      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('plugins.refreshLocalFailed')));
+    } finally {
+      setIsRefreshingLocal(false);
+    }
+  };
+
   const configHitClass = (...parts: Array<string | undefined>) => {
     const query = svQuery.trim().toLowerCase();
     if (!query || pluginSection === 'sv') return '';
@@ -1086,6 +1134,27 @@ export default function PluginsPage() {
               value={selectedPluginId}
               onValueChange={setSelectedPluginId}
             />
+            {isAdmin && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleRefreshLocal}
+                      disabled={isRefreshingLocal}
+                      className={cn(tabToolbarIconButtonClass, 'shrink-0')}
+                      aria-label={t('plugins.refreshLocal')}
+                    >
+                      <RefreshCw className={cn('h-4 w-4', isRefreshingLocal && 'animate-spin')} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t('plugins.refreshLocal')}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             {selectedPlugin && (
               <TooltipProvider>
                 <Tooltip>
@@ -1128,10 +1197,32 @@ export default function PluginsPage() {
                 <div className="flex shrink-0 items-center justify-center overflow-hidden">
                   <PluginIcon pluginName={selectedPlugin.name} className="h-8 w-8" />
                 </div>
-                <div className="min-w-0">
-                  <h3 className="truncate text-xl font-bold" title={selectedPlugin.name}>
-                    {selectedPlugin.name}
-                  </h3>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h3 className="truncate text-xl font-bold" title={selectedPlugin.name}>
+                      {selectedPlugin.name}
+                    </h3>
+                    {selectedSourceBadge && (
+                      <Badge
+                        variant="outline"
+                        title={selectedSourceBadge.title}
+                        className={cn(
+                          'shrink-0 text-xs font-normal',
+                          SOURCE_BADGE_CLASSES[selectedSourceBadge.tone],
+                        )}
+                      >
+                        {selectedSourceBadge.label}
+                      </Badge>
+                    )}
+                    {selectedCommit && (
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 font-mono text-xs font-normal text-muted-foreground"
+                      >
+                        {selectedCommit}
+                      </Badge>
+                    )}
+                  </div>
                   <p
                     className="truncate text-sm text-muted-foreground"
                     title={selectedPlugin.description}

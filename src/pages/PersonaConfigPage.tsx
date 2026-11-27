@@ -93,10 +93,14 @@ import {
   Smile,
   Store,
   Lock,
+  DatabaseBackup,
 } from 'lucide-react';
 import { PersonaAudioPlayer } from '@/components/persona/PersonaAudioPlayer';
 import { PersonaMemePackTab } from '@/components/persona/PersonaMemePackTab';
 import { PersonaJournalTab } from '@/components/persona/PersonaJournalTab';
+import { PersonaActiveJobBanner } from '@/components/persona/PersonaActiveJobBanner';
+import { PersonaDangerZone } from '@/components/persona/PersonaDangerZone';
+import { usePersonaJobController } from '@/components/persona/usePersonaJobController';
 // 支持的音频格式
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'ogg', 'wav', 'm4a', 'flac'];
 const SUPPORTED_AUDIO_MIME_TYPES = [
@@ -965,6 +969,7 @@ export default function PersonaConfigPage() {
   }, [loadData]);
   // 进入内联编辑视图时自动滚回顶部（桌面滚 .page-pinned-body，移动端滚 window）
   const editingPersonaName = editingPersona?.name ?? null;
+  const personaJobs = usePersonaJobController(editingPersonaName);
   useEffect(() => {
     if (!editingPersonaName) return;
     const body = inlineEditorRef.current?.closest('.page-pinned-body');
@@ -2444,6 +2449,7 @@ export default function PersonaConfigPage() {
           /* 内联人格编辑面板：顶栏/底栏与各 Tab 自带玻璃面，外层只排版；
              不加 overflow-hidden，避免切到子玻璃卡的光感/液态高光边 */
           <div ref={inlineEditorRef} className={cn('shadow-safe min-w-0', pageStackClass)}>
+            <PersonaActiveJobBanner controller={personaJobs} />
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
@@ -2548,6 +2554,11 @@ export default function PersonaConfigPage() {
                           label: t('personaConfig.journal'),
                           icon: <BookOpen className="h-4 w-4" />,
                         },
+                        {
+                          value: 'memory_reset',
+                          label: t('personaReset.tabTitle'),
+                          icon: <DatabaseBackup className="h-4 w-4" />,
+                        },
                       ]}
                     />
                   </div>
@@ -2569,6 +2580,9 @@ export default function PersonaConfigPage() {
                 <TabsContent value="journal" className="mt-0 hidden data-[state=active]:block">
                   <PersonaJournalTab personaName={editingPersona.name} />
                 </TabsContent>
+                <TabsContent value="memory_reset" className="mt-0 hidden data-[state=active]:block">
+                  <PersonaDangerZone personaName={editingPersona.name} controller={personaJobs} />
+                </TabsContent>
                 {/* 自述文档 Tab */}
                 <TabsContent
                   value="markdown"
@@ -2586,16 +2600,22 @@ export default function PersonaConfigPage() {
                       </GlassAlert>
                     )}
                     <div className="relative">
+                      {/* 零高 sticky 锚点：文本域内滚动或页面外滚动时都稳在右上角 */}
+                      <div className="pointer-events-none sticky top-3 z-10 flex h-0 items-start justify-end pr-3.5">
+                        <Badge
+                          variant="secondary"
+                          className="mt-2.5 h-6 select-none px-2 font-sans text-xs font-medium tabular-nums shadow-sm backdrop-blur-md"
+                        >
+                          {t('personaConfig.charCount', { count: [...editContent].length })}
+                        </Badge>
+                      </div>
                       <Textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         readOnly={builtinPersona || managedPersona}
-                        className="min-h-[360px] h-[54vh] sm:min-h-[460px] md:h-[calc(100vh-330px)] max-h-[800px] resize-y pb-7 font-mono text-sm leading-relaxed"
+                        className="min-h-[360px] h-[54vh] sm:min-h-[460px] md:h-[calc(100vh-330px)] max-h-[800px] resize-y font-mono text-sm leading-relaxed"
                         placeholder={t('personaConfig.personaQueryPlaceholder')}
                       />
-                      <span className="pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums text-muted-foreground">
-                        {t('personaConfig.charCount', { count: [...editContent].length })}
-                      </span>
                     </div>
                   </div>
                 </TabsContent>

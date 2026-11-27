@@ -14,8 +14,16 @@
     "when": "時刻",
     "drive": "内容",
     "delivery": "届け方",
+    "target": "相手",
     "summary": "要約",
     "steps": "手数"
+  },
+  "channel": {
+    "private": "DM · {id}",
+    "group": "グループ · {id}",
+    "privateLabel": "DM",
+    "groupLabel": "グループ",
+    "none": "—"
   },
   "drive": {
     "care_user": "誰かを気にかける",
@@ -31,6 +39,7 @@
   "detail": {
     "title": "この行動",
     "target": "相手",
+    "mentionUser": "対象ユーザー",
     "duration": "{seconds} 秒",
     "summary": "要約",
     "observations": "確かめた事実",

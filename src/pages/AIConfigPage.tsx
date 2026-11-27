@@ -58,8 +58,7 @@ import { coerceConfigValueForSave, embeddingConfigPayload } from '@/lib/configSa
 import { EmptyState } from './AIConfig/shared/EmptyState';
 import { filterOutPrimaryProvider } from './AIConfig/shared/providerId';
 import {
-  TaskConfigSection,
-  TaskModelOverridesPanel,
+  TaskRoutingGraphSection,
   WebSearchSection,
   WebFetchSection,
   ImageUnderstandSection,
@@ -87,14 +86,17 @@ import {
   useMcpToolsConfig,
   useAIWizard,
   useAIServiceSwitch,
+  useTaskGraphConfig,
 } from './AIConfig/hooks';
 
-// 主任务配置由 setHigh/LowLevelConfig 即时落库；按任务覆盖由高级面板经
-// /api/ai_task_models 即时落库。三者都不参与保存按钮和整包回写，否则旧值会覆盖新值。
+// 任务路由图谱相关字段由 /api/ai_task_models/graph 原子落库，排除在框架配置整包回写之外，避免旧值覆盖新值。
 const IMMEDIATE_TASK_CONFIG_KEYS: readonly string[] = [
   'high_level_provider_config_name',
   'low_level_provider_config_name',
+  'high_level_2nd_provider_config_name',
+  'low_level_2nd_provider_config_name',
   'task_model_overrides',
+  'task_model_graph',
 ];
 
 export default function AIConfigPage() {
@@ -114,11 +116,15 @@ export default function AIConfigPage() {
     updateConfigValue,
     markSaved: markConfigsSaved,
     applyConfigsAndMarkSaved,
-    syncPersistedField,
   } = useFrameworkConfig();
 
   // ====================== Provider / OpenAI Config ======================
   const provider = useProviderConfig();
+
+  // ====================== 星型节点模型路由图谱 ======================
+  const taskGraph = useTaskGraphConfig(provider.allConfigsList, {
+    createDialogOpen: provider.isCreateDialogOpen,
+  });
 
   // ====================== Embedding Config ======================
   const embedding = useEmbeddingConfig();
@@ -228,29 +234,6 @@ export default function AIConfigPage() {
   const asrProvider = (aiConfig?.config.asr_provider?.value as string) ?? '';
   const documentExtractProvider =
     (aiConfig?.config.document_extract_provider?.value as string) ?? '';
-
-  // 主备双配置：备用配置由后端在主配置失败/限流时切换使用。
-  // 这两个字段持久化在 aiConfig（framework-config: `GsCore AI AI配置`）
-  // 下，类型为字符串（保存的也是 provider++name 形式），与主配置同源。
-  const highLevel2ndConfigValue =
-    (aiConfig?.config.high_level_2nd_provider_config_name?.value as string) ?? '';
-  const lowLevel2ndConfigValue =
-    (aiConfig?.config.low_level_2nd_provider_config_name?.value as string) ?? '';
-  const isHighLevel2ndConfigValid =
-    !!highLevel2ndConfigValue &&
-    provider.allConfigsList.some((c) => c.name === highLevel2ndConfigValue);
-  const isLowLevel2ndConfigValid =
-    !!lowLevel2ndConfigValue &&
-    provider.allConfigsList.some((c) => c.name === lowLevel2ndConfigValue);
-
-  // 高级面板「实际生效」依赖已落库的档位主/备配置，只在落库值变化时重新拉取
-  const persistedAiConfig = aiConfig?.id ? originalConfig[aiConfig.id]?.config : undefined;
-  const taskModelsRefreshKey = [
-    provider.highLevelConfig,
-    provider.lowLevelConfig,
-    String(persistedAiConfig?.high_level_2nd_provider_config_name?.value ?? ''),
-    String(persistedAiConfig?.low_level_2nd_provider_config_name?.value ?? ''),
-  ].join('|');
 
   // ====================== MCP tools ======================
   const mcp = useMcpToolsConfig({ mcpToolsConfig, updateConfigValue });
@@ -399,7 +382,10 @@ export default function AIConfigPage() {
     const mcpToolsChanged =
       JSON.stringify(mcp.mcpToolsConfigs) !== JSON.stringify(mcp.originalMcpToolsConfigs) ||
       JSON.stringify(mcp.mcpDetailsEditing) !== JSON.stringify(mcp.originalMcpDetails);
+    // 旧版 Core 不支持图谱保存：草稿仍可编辑但不算入页面脏状态，避免保存按钮永久误亮（P-17 降级）
+    const graphDirtyEffective = taskGraph.isGraphDirty && !taskGraph.isGraphUnsupported;
     return (
+      graphDirtyEffective ||
       configChanged ||
       embeddingProviderChanged ||
       embeddingLocalChanged ||
@@ -407,6 +393,8 @@ export default function AIConfigPage() {
       mcpToolsChanged
     );
   }, [
+    taskGraph.isGraphDirty,
+    taskGraph.isGraphUnsupported,
     configs,
     originalConfig,
     embedding.embeddingSummary,
@@ -429,6 +417,20 @@ export default function AIConfigPage() {
   const executeSave = useCallback(async () => {
     try {
       setIsSaving(true);
+
+      // 0. 原子保存星型节点任务模型路由图谱（旧版 Core 无 PUT /graph 时降级跳过，草稿保留）
+      if (taskGraph.isGraphDirty && !taskGraph.isGraphUnsupported) {
+        if (taskGraph.unconfiguredHubIds.length > 0) {
+          toast.error(t('aiConfig.starGraph.unconfiguredHubBlocked'));
+          return;
+        }
+        const graphRes = await taskGraph.saveGraph();
+        if (!graphRes.ok) {
+          toast.error(graphRes.errorMsg || t('aiConfig.saveFailed'));
+          return;
+        }
+        await provider.refreshAllConfigs();
+      }
 
       // 1. 保存框架配置（仅变化的部分）
       const changedConfigs = Object.values(configs).filter((config) => {
@@ -613,9 +615,19 @@ export default function AIConfigPage() {
     mcp,
     t,
     aiConfig?.id,
+    taskGraph,
+    provider,
   ]);
 
   const handleSaveConfig = useCallback(() => {
+    if (
+      taskGraph.isGraphDirty &&
+      !taskGraph.isGraphUnsupported &&
+      taskGraph.unconfiguredHubIds.length > 0
+    ) {
+      toast.error(t('aiConfig.starGraph.unconfiguredHubBlocked'));
+      return;
+    }
     const currentProviderValue = embedding.embeddingSummary?.provider || '';
     const hasEmbeddingChanges =
       currentProviderValue !== embedding.originalEmbeddingProvider ||
@@ -637,7 +649,7 @@ export default function AIConfigPage() {
     } else {
       executeSave();
     }
-  }, [embedding, aiConfig, originalConfig, executeSave]);
+  }, [embedding, aiConfig, originalConfig, executeSave, taskGraph, t]);
 
   const handleConfirmEmbeddingSave = useCallback(() => {
     setIsEmbeddingWarningOpen(false);
@@ -732,36 +744,16 @@ export default function AIConfigPage() {
       case 'documentExtract':
         return (
           <div className={pageStackClass}>
-            <TaskConfigSection
+            <TaskRoutingGraphSection
               t={t}
+              graphCtrl={taskGraph}
               allConfigsList={provider.allConfigsList}
-              highLevelConfig={provider.highLevelConfig}
-              lowLevelConfig={provider.lowLevelConfig}
-              highLevel2ndConfig={highLevel2ndConfigValue}
-              lowLevel2ndConfig={lowLevel2ndConfigValue}
-              isHighLevelConfigValid={provider.isHighLevelConfigValid}
-              isLowLevelConfigValid={provider.isLowLevelConfigValid}
-              isHighLevel2ndConfigValid={isHighLevel2ndConfigValid}
-              isLowLevel2ndConfigValid={isLowLevel2ndConfigValid}
-              onSetHighLevelConfig={async (name) => {
-                const ok = await provider.handleSetHighLevelConfig(name);
-                if (ok && aiConfig?.id) {
-                  syncPersistedField(aiConfig.id, 'high_level_provider_config_name', name);
-                }
+              onOpenCreateConfig={() => {
+                provider.resetNewConfigForm();
+                provider.setIsCreateDialogOpen(true);
+                void provider.fetchProviderConfigOptions(provider.newConfigProvider);
               }}
-              onSetLowLevelConfig={async (name) => {
-                const ok = await provider.handleSetLowLevelConfig(name);
-                if (ok && aiConfig?.id) {
-                  syncPersistedField(aiConfig.id, 'low_level_provider_config_name', name);
-                }
-              }}
-              onSetHighLevel2ndConfig={(v) =>
-                updateConfigValue(aiConfig.id, 'high_level_2nd_provider_config_name', v)
-              }
-              onSetLowLevel2ndConfig={(v) =>
-                updateConfigValue(aiConfig.id, 'low_level_2nd_provider_config_name', v)
-              }
-              onOpenManageDialog={() => provider.setIsManageConfigDialogOpen(true)}
+              onOpenEditConfig={provider.openEditDialog}
             />
             <div
               className={cn(
@@ -841,13 +833,6 @@ export default function AIConfigPage() {
                 }
               />
             </div>
-            {provider.allConfigsList.length > 0 && (
-              <TaskModelOverridesPanel
-                t={t}
-                allConfigsList={provider.allConfigsList}
-                refreshKey={taskModelsRefreshKey}
-              />
-            )}
           </div>
         );
       case 'webSearch':

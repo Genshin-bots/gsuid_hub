@@ -3,7 +3,7 @@
  * 筛选行挂在合并页 toolbar；列表和详情留在这里。
  */
 import { useEffect, useRef, useState } from 'react';
-import { Compass, RefreshCw } from 'lucide-react';
+import { Compass, RefreshCw, User, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -79,6 +79,52 @@ function formatSeconds(ms: number): string {
   const seconds = ms / 1000;
   if (seconds < 10) return seconds.toFixed(1);
   return String(Math.round(seconds));
+}
+
+export interface ParsedAutonomyTarget {
+  kind: 'private' | 'group' | 'none';
+  targetId: string;
+  userId: string;
+}
+
+export function parseAutonomyTarget(
+  row: Pick<AutonomyActivity, 'target_session_key' | 'target_user_id'>,
+): ParsedAutonomyTarget {
+  const sessionKey = (row.target_session_key || '').trim();
+  const uid = (row.target_user_id || '').trim();
+  if (sessionKey) {
+    const privateMatch = sessionKey.match(/(?:^|:)(?:private|direct):(.+)$/);
+    if (privateMatch?.[1]) {
+      const targetId = privateMatch[1].trim();
+      return { kind: 'private', targetId, userId: uid || targetId };
+    }
+    const groupMatch = sessionKey.match(/(?:^|:)group:(.+)$/);
+    if (groupMatch?.[1]) {
+      return { kind: 'group', targetId: groupMatch[1].trim(), userId: uid };
+    }
+  }
+  if (uid) {
+    return { kind: 'private', targetId: uid, userId: uid };
+  }
+  return { kind: 'none', targetId: '', userId: '' };
+}
+
+function TargetBadge({
+  row,
+  label,
+}: {
+  row: Pick<AutonomyActivity, 'target_session_key' | 'target_user_id'>;
+  label: string;
+}) {
+  const parsed = parseAutonomyTarget(row);
+  if (parsed.kind === 'none') return null;
+  const Icon = parsed.kind === 'private' ? User : Users;
+  return (
+    <Badge variant="outline" className="gap-1 font-mono text-[11px] font-normal">
+      <Icon className="h-3 w-3 shrink-0" />
+      <span className="truncate max-w-[160px]">{label}</span>
+    </Badge>
+  );
 }
 
 export function AutonomyFilters(props: AutonomyPanelProps) {
@@ -159,6 +205,12 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
   const driveLabel = (kind: string) => (isDrive(kind) ? t(`aiAutonomy.drive.${kind}`) : kind);
   const deliveryLabel = (mode: string) =>
     isDelivery(mode) ? t(`aiAutonomy.delivery.${mode}`) : mode;
+  const targetLabel = (row: Pick<AutonomyActivity, 'target_session_key' | 'target_user_id'>) => {
+    const parsed = parseAutonomyTarget(row);
+    if (parsed.kind === 'private') return t('aiAutonomy.channel.private', { id: parsed.targetId });
+    if (parsed.kind === 'group') return t('aiAutonomy.channel.group', { id: parsed.targetId });
+    return t('aiAutonomy.channel.none');
+  };
   const from = total === 0 ? 0 : offset + 1;
   const to = Math.min(offset + items.length, total);
 
@@ -198,6 +250,7 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <Badge variant="secondary">{driveLabel(row.drive_kind)}</Badge>
                   <Badge variant="outline">{deliveryLabel(row.delivery_mode)}</Badge>
+                  <TargetBadge row={row} label={targetLabel(row)} />
                 </div>
                 <p className="mt-2 line-clamp-2 break-all text-sm text-muted-foreground">
                   {row.summary || t('aiAutonomy.noSummary')}
@@ -215,7 +268,7 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
         <Card className="glass-card min-h-0 flex-1 flex flex-col">
           <CardContent className="p-0 min-h-0 flex-1 flex flex-col">
             <div className="min-h-0 flex-1 overflow-auto">
-              {/* ≥lg：6 列表格；窄屏表格被挤成单字竖排，改走下方卡片列表 */}
+              {/* ≥lg：7 列表格；窄屏表格被挤成单字竖排，改走下方卡片列表 */}
               <div className="hidden lg:block">
                 <Table>
                   <TableHeader>
@@ -224,6 +277,7 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                       <TableHead>{t('aiAutonomy.table.persona')}</TableHead>
                       <TableHead>{t('aiAutonomy.table.drive')}</TableHead>
                       <TableHead>{t('aiAutonomy.table.delivery')}</TableHead>
+                      <TableHead>{t('aiAutonomy.table.target')}</TableHead>
                       <TableHead>{t('aiAutonomy.table.summary')}</TableHead>
                       <TableHead className="text-right">{t('aiAutonomy.table.steps')}</TableHead>
                     </TableRow>
@@ -231,13 +285,13 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                   <TableBody>
                     {loading && items.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6}>
+                        <TableCell colSpan={7}>
                           <Skeleton className="h-8" />
                         </TableCell>
                       </TableRow>
                     ) : items.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                           {t('aiAutonomy.empty')}
                         </TableCell>
                       </TableRow>
@@ -256,6 +310,15 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                           </TableCell>
                           <TableCell>{driveLabel(row.drive_kind)}</TableCell>
                           <TableCell>{deliveryLabel(row.delivery_mode)}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {parseAutonomyTarget(row).kind === 'none' ? (
+                              <span className="text-xs text-muted-foreground">
+                                {t('aiAutonomy.channel.none')}
+                              </span>
+                            ) : (
+                              <TargetBadge row={row} label={targetLabel(row)} />
+                            )}
+                          </TableCell>
                           <TableCell className="max-w-[360px]">
                             <TruncatedText text={row.summary || t('aiAutonomy.noSummary')} />
                           </TableCell>
@@ -293,6 +356,7 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <Badge variant="secondary">{driveLabel(row.drive_kind)}</Badge>
                         <Badge variant="outline">{deliveryLabel(row.delivery_mode)}</Badge>
+                        <TargetBadge row={row} label={targetLabel(row)} />
                         <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
                           {t('aiAutonomy.table.steps')} {row.step_count}
                         </span>
@@ -341,6 +405,7 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
         }}
         driveLabel={driveLabel}
         deliveryLabel={deliveryLabel}
+        targetLabel={targetLabel}
       />
     </div>
   );
@@ -351,16 +416,19 @@ function ActivityDialog({
   onOpenChange,
   driveLabel,
   deliveryLabel,
+  targetLabel,
 }: {
   row: AutonomyActivity | null;
   onOpenChange: (open: boolean) => void;
   driveLabel: (kind: string) => string;
   deliveryLabel: (mode: string) => string;
+  targetLabel: (row: Pick<AutonomyActivity, 'target_session_key' | 'target_user_id'>) => string;
 }) {
   const { t } = useLanguage();
   const observations = row?.fact_pack.factual_observations ?? [];
   const trails = row?.open_trails ?? [];
   const steps = row?.steps ?? [];
+  const parsedTarget = row ? parseAutonomyTarget(row) : null;
 
   return (
     <Dialog open={row !== null} onOpenChange={onOpenChange}>
@@ -378,17 +446,28 @@ function ActivityDialog({
             <div className="flex min-w-0 flex-wrap gap-1.5">
               <Badge variant="secondary">{driveLabel(row.drive_kind)}</Badge>
               <Badge variant="outline">{deliveryLabel(row.delivery_mode)}</Badge>
+              <TargetBadge row={row} label={targetLabel(row)} />
               {row.duration_ms > 0 ? (
                 <Badge variant="outline">
                   {t('aiAutonomy.detail.duration', { seconds: formatSeconds(row.duration_ms) })}
                 </Badge>
               ) : null}
             </div>
-            {row.target_user_id ? (
-              <p className="min-w-0 break-all text-sm">
-                <span className="text-muted-foreground">{t('aiAutonomy.detail.target')}</span>{' '}
-                {row.target_user_id}
-              </p>
+            {parsedTarget && parsedTarget.kind !== 'none' ? (
+              <div className="min-w-0 space-y-1 text-sm">
+                <p className="min-w-0 break-all">
+                  <span className="text-muted-foreground">{t('aiAutonomy.detail.target')}</span>{' '}
+                  {targetLabel(row)}
+                </p>
+                {parsedTarget.kind === 'group' && parsedTarget.userId ? (
+                  <p className="min-w-0 break-all">
+                    <span className="text-muted-foreground">
+                      {t('aiAutonomy.detail.mentionUser')}
+                    </span>{' '}
+                    {parsedTarget.userId}
+                  </p>
+                ) : null}
+              </div>
             ) : null}
             <div className="min-w-0">
               <h3 className="mb-1 text-sm font-medium">{t('aiAutonomy.detail.summary')}</h3>
@@ -451,7 +530,7 @@ function ActivityDialog({
             </div>
             {row.session_id ? (
               <Button asChild variant="outline" className="w-fit">
-                <Link to={`/ai-history?create_by=Autonomy&q=${encodeURIComponent(row.session_id)}`}>
+                <Link to={`/ai-history?task_kind=autonomy&q=${encodeURIComponent(row.session_id)}`}>
                   {t('aiAutonomy.detail.sessionLog')}
                 </Link>
               </Button>
