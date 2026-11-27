@@ -70,7 +70,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
+// 镜像来源 badge 暂时只对本地插件展示
+// import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
+import GitMirrorDialog from '@/components/GitMirrorDialog';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import {
   buildPluginReadmeUrls,
@@ -1307,7 +1309,8 @@ export default function PluginStorePage() {
                               {t('pluginStore.forkBadge')}
                             </Badge>
                           )}
-                          {/* 镜像来源 badge（仅已安装 Git 插件） */}
+                          {/* 镜像来源 badge（仅本地插件展示） */}
+                          {/*
                           {plugin.installed &&
                             (() => {
                               const gitKey = (plugin.local_plugin_name || plugin.id).toLowerCase();
@@ -1334,6 +1337,7 @@ export default function PluginStorePage() {
                               }
                               return null;
                             })()}
+                          */}
                           {plugin.isFun && (
                             <Badge
                               variant="outline"
