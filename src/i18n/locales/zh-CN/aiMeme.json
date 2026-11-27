@@ -1,6 +1,7 @@
 {
   "title": "表情管理",
   "description": "管理 AI 表情包，支持上传、编辑语义信息、搜索和统计",
+  "memeStore": "表情包市场",
   "stats": {
     "total": "表情总数",
     "totalUsage": "AI 发送总次数",

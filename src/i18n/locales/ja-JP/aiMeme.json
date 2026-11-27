@@ -1,6 +1,7 @@
 {
   "title": "表情管理",
   "description": "AI ミームの管理、素材インポート、意味情報の編集・検索・統計",
+  "memeStore": "スタンプストア",
   "stats": {
     "total": "ミーム総数",
     "totalUsage": "AI送信回数",

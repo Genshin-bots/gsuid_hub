@@ -18,8 +18,8 @@ function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return keys.sort();
 }
 
-function loadLocale(locale: string): Record<string, unknown> {
-  const raw = readFileSync(join(dir, 'locales', locale, 'aiMeme.json'), 'utf8');
+function loadLocale(locale: string, fileName = 'aiMeme.json'): Record<string, unknown> {
+  const raw = readFileSync(join(dir, 'locales', locale, fileName), 'utf8');
   return JSON.parse(raw) as Record<string, unknown>;
 }
 
@@ -36,6 +36,7 @@ describe('aiMeme locales alignment', () => {
 
   it('includes semantic sheet and batch keys with non-empty copy', () => {
     const required = [
+      'memeStore',
       'detail.name',
       'detail.ocrText',
       'detail.usageHint',
@@ -63,5 +64,12 @@ describe('aiMeme locales alignment', () => {
         expect((value as string).length, path).toBeGreaterThan(0);
       }
     }
+  });
+
+  it('keeps memeStore locale keys aligned across zh-CN, en-US, and ja-JP', () => {
+    const storeZhKeys = flattenKeys(loadLocale('zh-CN', 'memeStore.json'));
+    expect(storeZhKeys.length).toBeGreaterThan(20);
+    expect(flattenKeys(loadLocale('en-US', 'memeStore.json'))).toEqual(storeZhKeys);
+    expect(flattenKeys(loadLocale('ja-JP', 'memeStore.json'))).toEqual(storeZhKeys);
   });
 });

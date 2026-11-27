@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -77,6 +78,7 @@ import {
   FileDown,
   Eraser,
   RotateCw,
+  Store,
 } from 'lucide-react';
 import {
   memeApi,
@@ -1527,6 +1529,7 @@ function UploadDialog({
 
 export default function AIMemePage() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   // State
   const [memes, setMemes] = useState<MemeRecord[]>([]);
@@ -2185,6 +2188,14 @@ export default function AIMemePage() {
             >
               <RefreshCw className="w-4 h-4" />
               {t('aiMeme.refresh')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/meme-store')}
+              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
+            >
+              <Store className="w-4 h-4" />
+              <span>{t('aiMeme.memeStore')}</span>
             </Button>
             <Button
               onClick={() => setUploadOpen(true)}

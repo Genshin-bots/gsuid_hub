@@ -1,6 +1,7 @@
 {
   "title": "Meme Management",
   "description": "Manage AI memes - import, edit semantic metadata, search and statistics",
+  "memeStore": "Meme Store",
   "stats": {
     "total": "Total Memes",
     "totalUsage": "AI Send Count",

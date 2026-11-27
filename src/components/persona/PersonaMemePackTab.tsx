@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Clock, Flame, ImageOff, Loader2, Smile } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Clock, Flame, ImageOff, Loader2, Smile, Store } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -91,6 +92,7 @@ export function PersonaMemePackTab({
   readOnly?: boolean;
 }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const cached = tabCache.get(personaName);
   const [packs, setPacks] = useState<MemePackSummary[]>(cached?.packs ?? []);
   const [selected, setSelected] = useState<string[]>(cached?.selected ?? []);
@@ -498,6 +500,15 @@ export function PersonaMemePackTab({
         <Button type="button" onClick={() => void save()} disabled={saving || loading || readOnly}>
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           保存挂载
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => navigate('/meme-store')}
+        >
+          <Store className="h-4 w-4" />
+          {t('memeStore.title')}
         </Button>
         <Button
           type="button"

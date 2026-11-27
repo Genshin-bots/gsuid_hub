@@ -2247,6 +2247,193 @@ export const personaStoreApi = {
 };
 
 // ===================
+// Meme Store APIs (CNB)
+// ===================
+
+export interface StoreMemePack {
+  id: string;
+  name: string;
+  series: string;
+  tags: string[];
+  alias: string[];
+  count: number;
+  size_kb: number;
+  repo: string;
+  branch: string;
+  commit: string;
+  has_tags: boolean;
+  cover_url: string;
+  sheet_url: string;
+  installed: boolean;
+  local_pack_id: string | null;
+  local_pack_name: string | null;
+  bound_personas: string[];
+  hasUpdate: boolean;
+  status: 'installed' | 'not_installed';
+}
+
+export interface MemeStoreCounts {
+  all: number;
+  installed: number;
+  updates: number;
+}
+
+export interface MemeStoreSeriesCount {
+  name: string;
+  count: number;
+}
+
+export interface MemeStoreListResponse {
+  packs: StoreMemePack[];
+  series_list: MemeStoreSeriesCount[];
+  count: number;
+  total_count: number;
+  counts: MemeStoreCounts;
+  limit: number | null;
+  offset: number;
+  has_more: boolean;
+  repo: string;
+}
+
+export interface MemeStoreTagItem {
+  file: string;
+  title: string;
+  description: string;
+  ocr_text: string;
+  emotion_tags: string[];
+  custom_tags: string[];
+  usage_hint: string;
+  image_url: string;
+}
+
+export interface MemeStorePackDetail {
+  id: string;
+  name: string;
+  series: string;
+  count: number;
+  size_kb: number;
+  repo: string;
+  branch: string;
+  commit: string;
+  attribution: string;
+  sheet_url: string;
+  cover_url: string;
+  items: MemeStoreTagItem[];
+}
+
+export interface MemeStoreInstallResult {
+  store_id: string;
+  pack_id: string;
+  pack_name: string;
+  imported: number;
+  linked: number;
+  reused: number;
+  untagged: number;
+  rejected: number;
+  bound_personas: string[];
+}
+
+export interface MemeStoreUpdateResult {
+  store_id: string;
+  pack_id: string;
+  pack_name: string;
+  commit: string;
+  added: number;
+  removed: number;
+  total: number;
+}
+
+export interface MemeStoreUninstallResult {
+  store_id: string;
+  pack_id: string;
+  pack_name: string;
+  deleted_memes: number;
+  lost_personas: string[];
+}
+
+export interface MemePackPersonasResult {
+  pack_id: string;
+  pack_name: string;
+  bound_personas: string[];
+}
+
+export const memeStoreApi = {
+  /** 获取 CNB 表情包市场列表（支持页签 / 系列 / 搜索 / 分页 / 强刷） */
+  getList: (params?: {
+    tab?: string;
+    series?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+    refresh?: boolean;
+    check_updates?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.tab) query.set('tab', params.tab);
+    if (params?.series) query.set('series', params.series);
+    if (params?.search) query.set('search', params.search);
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    if (params?.refresh) query.set('refresh', '1');
+    if (params?.check_updates) query.set('check_updates', '1');
+    const queryStr = query.toString();
+    return api.get<MemeStoreListResponse>(`/api/meme-store/list${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  /** 免克隆获取单个市场包的全部表情与预打标语义清单 */
+  getDetail: (storeId: string) =>
+    api.get<MemeStorePackDetail>(`/api/meme-store/detail/${encodeURIComponent(storeId)}`),
+
+  /** 单分支安装市场表情包到本地（可同时指定初始挂载的人格列表） */
+  install: (storeId: string, personaNames?: string[]) =>
+    api.post<MemeStoreInstallResult>(
+      `/api/meme-store/install/${encodeURIComponent(storeId)}`,
+      personaNames && personaNames.length > 0 ? { persona_names: personaNames } : {},
+    ),
+
+  /** 通过自定义 Git URL 导入表情包 */
+  installByUrl: (params: {
+    url: string;
+    branch?: string;
+    pack_name?: string;
+    persona_names?: string[];
+  }) =>
+    api.post<MemeStoreInstallResult>('/api/meme-store/install-url', {
+      url: params.url,
+      branch: params.branch || undefined,
+      pack_name: params.pack_name || undefined,
+      persona_names: params.persona_names ?? [],
+    }),
+
+  /** 增量同步市场表情包（保留人格挂载） */
+  update: (storeId: string) =>
+    api.post<MemeStoreUpdateResult>(`/api/meme-store/update/${encodeURIComponent(storeId)}`),
+
+  /** 卸载市场表情包并清理仅属于该包的孤儿图 */
+  uninstall: (storeId: string) =>
+    api.delete<MemeStoreUninstallResult>(
+      `/api/meme-store/uninstall/${encodeURIComponent(storeId)}`,
+    ),
+
+  /** 批量设置某个本地表情包要挂载的人格列表 */
+  setPackPersonas: (packId: string, personaNames: string[]) =>
+    api.put<MemePackPersonasResult>(
+      `/api/meme-store/packs/${encodeURIComponent(packId)}/personas`,
+      { persona_names: personaNames },
+    ),
+
+  // version 用包 commit 作缓存穿透参数：上游更新后 URL 变化，避免浏览器/blob 缓存吃到旧图
+  getCoverUrl: (storeId: string, version?: string) =>
+    `${getCustomApiHost()}/api/meme-store/asset/cover/${encodeURIComponent(storeId)}${version ? `?v=${encodeURIComponent(version)}` : ''}`,
+
+  getSheetUrl: (storeId: string, version?: string) =>
+    `${getCustomApiHost()}/api/meme-store/asset/sheet/${encodeURIComponent(storeId)}${version ? `?v=${encodeURIComponent(version)}` : ''}`,
+
+  getItemUrl: (storeId: string, filename: string, version?: string) =>
+    `${getCustomApiHost()}/api/meme-store/asset/item/${encodeURIComponent(storeId)}/${encodeURIComponent(filename)}${version ? `?v=${encodeURIComponent(version)}` : ''}`,
+};
+
+// ===================
 // Logs APIs
 // ===================
 

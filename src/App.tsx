@@ -39,6 +39,7 @@ const AIStatisticsPage = lazy(() => import('@/pages/AIStatisticsPage'));
 const AIMemoryPage = lazy(() => import('@/pages/AIMemoryPage'));
 const AIKnowledgePage = lazy(() => import('@/pages/AIKnowledgePage'));
 const AIMemePage = lazy(() => import('@/pages/AIMemePage'));
+const MemeStorePage = lazy(() => import('@/pages/MemeStorePage'));
 const SessionManagementPage = lazy(() => import('@/pages/SessionManagementPage'));
 const AIHistoryPage = lazy(() => import('@/pages/AIHistoryPage'));
 const MCPMarketPage = lazy(() => import('@/pages/MCPMarketPage'));
@@ -174,6 +175,7 @@ function AppRoutes() {
           />
           <Route path="ai-knowledge" element={<AIKnowledgePage />} />
           <Route path="ai-meme" element={<AIMemePage />} />
+          <Route path="meme-store" element={<MemeStorePage />} />
           <Route path="ai-memory" element={<AIMemoryPage />} />
           <Route path="session-management" element={<SessionManagementPage />} />
           {/* 实时聊天已并入 /session-management 的「自主创建」虚拟会话，旧深链重定向过去 */}
