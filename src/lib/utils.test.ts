@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { copyTextToClipboard } from './utils';
+import { copyTextToClipboard, formatBytes } from './utils';
 
 class FakeElement {
   value = '';
@@ -181,5 +181,22 @@ describe('copyTextToClipboard', () => {
 
     await expect(copyTextToClipboard('fail')).rejects.toThrow('execCommand copy failed');
     expect(body.children).toHaveLength(0);
+  });
+});
+
+describe('formatBytes', () => {
+  it('handles non-positive, fractional, and multi-unit byte sizes cleanly', () => {
+    expect(formatBytes(0)).toBe('0 B');
+    expect(formatBytes(-12)).toBe('0 B');
+    expect(formatBytes(Number.NaN)).toBe('0 B');
+    expect(formatBytes(Number.POSITIVE_INFINITY)).toBe('0 B');
+    expect(formatBytes(0.4)).toBe('0 B');
+    expect(formatBytes(0.6)).toBe('1 B');
+    expect(formatBytes(512)).toBe('512 B');
+    expect(formatBytes(1024)).toBe('1 KB');
+    expect(formatBytes(1536)).toBe('1.5 KB');
+    expect(formatBytes(300 * 1024 * 1024)).toBe('300 MB');
+    expect(formatBytes(1536 * 1024 * 1024)).toBe('1.5 GB');
+    expect(formatBytes(2 * 1024 ** 4)).toBe('2 TB');
   });
 });

@@ -86,7 +86,7 @@ import {
   tabToolbarControlClass,
   tabToolbarGroupWrapShrinkClass,
 } from '@/components/ui/TabButtonGroup';
-import { cn, copyTextToClipboard } from '@/lib/utils';
+import { cn, copyTextToClipboard, formatBytes } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -123,6 +123,10 @@ const PLUGIN_PAGE_SIZE = 32;
 const MULTILINE_TOAST_CLASS = 'whitespace-pre-wrap break-words';
 const toastError = (msg: string) => toast.error(msg, { className: MULTILINE_TOAST_CLASS });
 const toastSuccess = (msg: string) => toast.success(msg, { className: MULTILINE_TOAST_CLASS });
+
+/** 本地 zip 上传体积阈值：300MB 提醒、1.5GB 硬上限（与后端 MAX_UPLOAD_BYTES 对齐） */
+const ZIP_WARN_BYTES = 300 * 1024 * 1024;
+const ZIP_MAX_BYTES = 1536 * 1024 * 1024;
 
 interface CacheEntry<T> {
   data: T;
@@ -763,8 +767,8 @@ export default function PluginStorePage() {
         // 清除缓存并刷新列表，使新插件立即出现在已安装列表
         clearPluginCache();
         localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
-        fetchPlugins(true);
-        fetchGitMirrorInfo(true);
+        void fetchPlugins(true);
+        void fetchGitMirrorInfo(true);
       } else {
         // 非 0 状态：postRaw 不会抛错，需手动 toast 后端错误
         toast.error(getApiErrorMessage(res, t('pluginStore.installError')));
@@ -788,6 +792,10 @@ export default function PluginStorePage() {
       toastError(t('pluginStore.fileMustBeZip'));
       return;
     }
+    if (installByFile.size > ZIP_MAX_BYTES) {
+      toastError(t('pluginStore.fileTooLarge'));
+      return;
+    }
     try {
       setInstallByFileLoading(true);
       const formData = new FormData();
@@ -796,12 +804,15 @@ export default function PluginStorePage() {
       toastSuccess(data?.msg || t('pluginStore.installSuccess'));
       setInstallByFileOpen(false);
       setInstallByFile(null);
-      localStorage.removeItem(PLUGIN_CACHE_KEY);
+      clearPluginCache();
       localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
-      fetchPlugins(true);
-      fetchGitMirrorInfo(true);
+      void fetchPlugins(true);
+      void fetchGitMirrorInfo(true);
     } catch (error) {
       toastError(getApiErrorMessage(error, t('pluginStore.installError')));
+      // 插件可能已落盘但热加载失败，刷新列表以便在「已安装」页查看报错或卸载
+      clearPluginCache();
+      void fetchPlugins(true);
     } finally {
       setInstallByFileLoading(false);
     }
@@ -1034,14 +1045,18 @@ export default function PluginStorePage() {
                 <GitBranch className="mr-2 h-4 w-4 shrink-0" />
                 <span>{t('gitMirror.title')}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setInstallByUrlOpen(true)}>
-                <Link2 className="mr-2 h-4 w-4 shrink-0" />
-                <span>{t('pluginStore.installFromUrl')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setInstallByFileOpen(true)}>
-                <FileUp className="mr-2 h-4 w-4 shrink-0" />
-                <span>{t('pluginStore.installFromFile')}</span>
-              </DropdownMenuItem>
+              {isAdmin && (
+                <DropdownMenuItem onClick={() => setInstallByUrlOpen(true)}>
+                  <Link2 className="mr-2 h-4 w-4 shrink-0" />
+                  <span>{t('pluginStore.installFromUrl')}</span>
+                </DropdownMenuItem>
+              )}
+              {isAdmin && (
+                <DropdownMenuItem onClick={() => setInstallByFileOpen(true)}>
+                  <FileUp className="mr-2 h-4 w-4 shrink-0" />
+                  <span>{t('pluginStore.installFromFile')}</span>
+                </DropdownMenuItem>
+              )}
               {isAdmin && githubStatus && (
                 <>
                   <DropdownMenuSeparator />
@@ -1431,7 +1446,7 @@ export default function PluginStorePage() {
                     </Button>
                   ) : plugin.installed ? (
                     <div className="flex gap-1.5 w-full">
-                      {plugin.hasUpdate && plugin.is_git !== false && (
+                      {isAdmin && plugin.hasUpdate && plugin.is_git !== false && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -1450,23 +1465,25 @@ export default function PluginStorePage() {
                           {t('pluginStore.update')}
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-1 text-xs text-destructive hover:text-destructive [&_svg]:!text-current"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUninstall(plugin.id);
-                        }}
-                        disabled={isPluginBusy(plugin.id)}
-                      >
-                        {isPluginAction(plugin.id, 'uninstall') ? (
-                          <RefreshCw className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-3 h-3" />
-                        )}
-                        {t('pluginStore.uninstall')}
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1 text-xs text-destructive hover:text-destructive [&_svg]:!text-current"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUninstall(plugin.id);
+                          }}
+                          disabled={isPluginBusy(plugin.id)}
+                        >
+                          {isPluginAction(plugin.id, 'uninstall') ? (
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3 h-3" />
+                          )}
+                          {t('pluginStore.uninstall')}
+                        </Button>
+                      )}
                       {safeExternalLink && (
                         <Button
                           size="sm"
@@ -1488,23 +1505,25 @@ export default function PluginStorePage() {
                     </div>
                   ) : (
                     <div className="flex gap-1.5 w-full">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-1 text-xs text-primary hover:text-primary [&_svg]:!text-current"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleInstall(plugin.id);
-                        }}
-                        disabled={isPluginBusy(plugin.id)}
-                      >
-                        {isPluginAction(plugin.id, 'install') ? (
-                          <RefreshCw className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Download className="w-3 h-3" />
-                        )}
-                        {t('pluginStore.install')}
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1 text-xs text-primary hover:text-primary [&_svg]:!text-current"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleInstall(plugin.id);
+                          }}
+                          disabled={isPluginBusy(plugin.id)}
+                        >
+                          {isPluginAction(plugin.id, 'install') ? (
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Download className="w-3 h-3" />
+                          )}
+                          {t('pluginStore.install')}
+                        </Button>
+                      )}
                       {safeExternalLink && (
                         <Button
                           size="sm"
@@ -1775,9 +1794,6 @@ export default function PluginStorePage() {
           setInstallByFileOpen(open);
           if (!open) {
             setInstallByFile(null);
-            if (installByFileInputRef.current) {
-              installByFileInputRef.current.value = '';
-            }
           }
         }}
       >
@@ -1794,9 +1810,15 @@ export default function PluginStorePage() {
             <input
               ref={installByFileInputRef}
               type="file"
-              accept=".zip"
+              accept=".zip,application/zip,application/x-zip-compressed"
               className="hidden"
-              onChange={(e) => setInstallByFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const picked = e.target.files?.[0];
+                e.target.value = '';
+                if (picked) {
+                  setInstallByFile(picked);
+                }
+              }}
             />
 
             <div className="flex w-full justify-center">
@@ -1817,10 +1839,26 @@ export default function PluginStorePage() {
                 <FileText className="w-4 h-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1 truncate font-mono">{installByFile.name}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {(installByFile.size / 1024).toFixed(1)}KB
+                  {formatBytes(installByFile.size)}
                 </span>
               </div>
             )}
+
+            {installByFile && installByFile.size > ZIP_MAX_BYTES && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{t('pluginStore.fileTooLarge')}</AlertDescription>
+              </Alert>
+            )}
+
+            {installByFile &&
+              installByFile.size > ZIP_WARN_BYTES &&
+              installByFile.size <= ZIP_MAX_BYTES && (
+                <Alert variant="warning">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{t('pluginStore.fileLargeWarning')}</AlertDescription>
+                </Alert>
+              )}
 
             <p className="text-xs text-muted-foreground">{t('pluginStore.installFromFileHint')}</p>
           </div>
@@ -1837,7 +1875,9 @@ export default function PluginStorePage() {
             <Button
               variant="outline"
               onClick={handleInstallByFile}
-              disabled={installByFileLoading || !installByFile}
+              disabled={
+                installByFileLoading || !installByFile || installByFile.size > ZIP_MAX_BYTES
+              }
               className="h-9 text-primary hover:text-primary [&_svg]:!text-current"
             >
               {installByFileLoading ? (

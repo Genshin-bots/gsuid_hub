@@ -40,8 +40,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { aiArtifactsApi, getApiErrorMessage, type AIArtifactItem } from '@/lib/api';
-import { cn, copyTextToClipboard } from '@/lib/utils';
-import { formatBytes } from './constants';
+import { cn, copyTextToClipboard, formatBytes } from '@/lib/utils';
 import { MetaRow } from './shared';
 
 const PAGE_SIZE = 50;

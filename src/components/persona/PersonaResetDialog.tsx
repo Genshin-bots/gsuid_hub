@@ -38,14 +38,13 @@ import {
   cancelPendingGlobal,
   confirmPendingGlobal,
   estimateBackup,
-  formatBytes,
   formatDuration,
   initialResetSelection,
   resetItemLabel,
   toggleResetItem,
   type ResetSelectionState,
 } from '@/lib/personaReset';
-import { cn } from '@/lib/utils';
+import { cn, formatBytes } from '@/lib/utils';
 import { PersonaJobProgress } from './PersonaJobProgress';
 import type { PersonaJobController } from './usePersonaJobController';
 

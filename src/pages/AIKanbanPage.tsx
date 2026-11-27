@@ -37,7 +37,7 @@ import {
   pageGapClass,
   pageStackClass,
 } from '@/components/layout/PinnedPage';
-import { cn } from '@/lib/utils';
+import { cn, formatBytes } from '@/lib/utils';
 import {
   aiKanbanApi,
   getApiErrorMessage,
@@ -202,18 +202,6 @@ function formatDate(value?: string | null): string {
   } catch {
     return value;
   }
-}
-
-function formatBytes(size?: number): string {
-  if (!size) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let value = size;
-  let index = 0;
-  while (value >= 1024 && index < units.length - 1) {
-    value /= 1024;
-    index += 1;
-  }
-  return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
 function shortId(id?: string | null): string {
