@@ -129,14 +129,6 @@ export function countKeyLabel(t: Translate, key: string): string {
   );
 }
 
-export function formatBytes(bytes: number): string {
-  const size = Number.isFinite(bytes) && bytes > 0 ? bytes : 0;
-  if (size < 1024) return `${Math.round(size)} B`;
-  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
-  if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
-  return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`;
-}
-
 /** 单步完成比例；`null` 表示进行中但总量未知（显示不定进度）。 */
 export function jobStepFraction(step: PersonaJobStep): number | null {
   switch (step.status) {

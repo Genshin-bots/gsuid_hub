@@ -24,7 +24,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getApiErrorMessage, personaResetApi, type PersonaBackupInfo } from '@/lib/api';
-import { formatBytes, resetItemLabel } from '@/lib/personaReset';
+import { resetItemLabel } from '@/lib/personaReset';
+import { formatBytes } from '@/lib/utils';
 import { PersonaRestoreDialog } from './PersonaRestoreDialog';
 import type { PersonaJobController } from './usePersonaJobController';
 

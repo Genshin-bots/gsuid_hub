@@ -36,7 +36,7 @@ import {
   type ErrorReportDetail,
   type ErrorReportListItem,
 } from '@/lib/api';
-import { cn, copyTextToClipboard } from '@/lib/utils';
+import { cn, copyTextToClipboard, formatBytes } from '@/lib/utils';
 
 type DateMode = 'all' | 'single' | 'range';
 
@@ -69,12 +69,6 @@ function formatReportTime(ts: string): string {
   const match = /^(\d{4}-\d{2}-\d{2})[ _](\d{2})[:-](\d{2})[:-](\d{2})/.exec(ts);
   if (match) return `${match[1]} ${match[2]}:${match[3]}:${match[4]}`;
   return ts;
-}
-
-function formatBytes(n: number): string {
-  if (!Number.isFinite(n) || n < 0) return '';
-  if (n < 1024) return `${n} B`;
-  return `${(n / 1024).toFixed(1)} KB`;
 }
 
 function dateParamsOf(q: SubmittedQuery): {

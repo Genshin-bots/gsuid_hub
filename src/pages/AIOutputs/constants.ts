@@ -9,10 +9,3 @@ export const TOOL_ALL = '__all__';
 
 /** 自主行动页签的「全部人格」。真正请求里换成空串。 */
 export const AUTONOMY_PERSONA_ALL = '__all__';
-
-/** 字节数按 KB / MB 两级收敛，避免表格里出现 6 位数 */
-export function formatBytes(n: number) {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(2)} MB`;
-}

@@ -13,6 +13,16 @@ export function formatTokens(n: number): string {
   return `${(n / 1_000_000).toFixed(2)}M`;
 }
 
+// 字节体积的人性化展示（1024 进制，B~TB，去除多余的 .0），各页面共用的唯一实现
+export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  if (bytes < 1024) return `${Math.round(bytes)} B`;
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  const value = bytes / 1024 ** i;
+  return `${parseFloat(value.toFixed(i >= 3 ? 2 : 1))} ${units[i]}`;
+}
+
 /**
  * 复制文本到剪贴板：优先使用 Clipboard API，
  * 在非安全上下文（如内网 HTTP IP 访问）或权限受限时降级为 execCommand('copy')。

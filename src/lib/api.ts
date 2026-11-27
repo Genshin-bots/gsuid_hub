@@ -2069,6 +2069,13 @@ export const pluginStoreApi = {
       branch: branch || '',
     }),
 
+  installByFile: (formData: FormData) =>
+    api.postFormData<{
+      plugin_name?: string;
+      msg: string;
+      installed_on_disk?: boolean;
+    }>('/api/plugin-store/install-upload', formData),
+
   updatePlugin: (pluginId: string) =>
     api.post<{ status: number; msg: string }>(`/api/plugin-store/update/${pluginId}`),
 
