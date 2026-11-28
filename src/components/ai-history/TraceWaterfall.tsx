@@ -252,19 +252,34 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
       case 'tool_call': {
         const tcid = asStr(d.tool_call_id);
         let dispToolName = asStr(d.tool_name);
-        if (dispToolName === 'call_tool') {
-          let inner = asStr(d.inner_tool_name);
-          if (!inner && d.args) {
+        const innerHint = asStr(d.inner_tool_name);
+        if (dispToolName === 'call_tool' || innerHint) {
+          let inner = innerHint;
+          let suffix = '';
+          if (d.args) {
             try {
               const parsed = typeof d.args === 'string' ? JSON.parse(d.args) : d.args;
-              if (parsed && typeof parsed === 'object' && typeof parsed.tool_name === 'string') {
-                inner = parsed.tool_name.trim();
+              if (parsed && typeof parsed === 'object') {
+                if (!inner && typeof parsed.tool_name === 'string') {
+                  inner = parsed.tool_name.trim();
+                }
+                const parts: string[] = [];
+                if (typeof parsed.source_seq === 'number' && parsed.source_seq > 0) {
+                  parts.push(`#${parsed.source_seq}`);
+                }
+                if (typeof parsed.at_user_id === 'string' && parsed.at_user_id.trim()) {
+                  parts.push(`@${parsed.at_user_id.trim()}`);
+                }
+                if (typeof parsed.act_as_user_id === 'string' && parsed.act_as_user_id.trim()) {
+                  parts.push(`as:${parsed.act_as_user_id.trim()}`);
+                }
+                if (parts.length > 0) suffix = ` · ${parts.join(' ')}`;
               }
             } catch {
               // ignore malformed JSON args
             }
           }
-          if (inner) dispToolName = `call_tool(${inner})`;
+          if (inner) dispToolName = `call_tool(${inner}${suffix})`;
         }
         const sp: TraceSpan = {
           id: nid(),

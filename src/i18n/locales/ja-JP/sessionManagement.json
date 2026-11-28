@@ -180,5 +180,7 @@
   "evidenceFailed": "証拠の読み込みに失敗しました",
   "evidenceFor": "{name}のために検索",
   "evidenceCredShared": "共有資格情報",
-  "evidenceCredPersonal": "{name}の資格情報"
+  "evidenceCredPersonal": "{name}の資格情報",
+  "broadcastTag": "グループ配信",
+  "broadcastTagWithSource": "グループ配信·{label}"
 }

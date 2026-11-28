@@ -13,6 +13,7 @@ import {
   ClipboardPaste,
   Code2,
   Copy,
+  Image,
   Loader2,
   Quote,
   Repeat,
@@ -343,6 +344,13 @@ export function MessageRow({
               {identity}
             </span>
           )}
+          {msg.speech_channel === 'plugin_broadcast' && (
+            <span className="rounded border border-sky-500/25 bg-sky-500/10 px-1.5 text-[10px] font-medium text-sky-600 dark:text-sky-400">
+              {msg.source_label
+                ? t('sessionManagement.broadcastTagWithSource', { label: msg.source_label })
+                : t('sessionManagement.broadcastTag')}
+            </span>
+          )}
           {msg.link?.seq != null && (
             <span className="rounded bg-muted px-1 font-mono text-[10px] text-muted-foreground">
               #{msg.link.seq}
@@ -445,6 +453,26 @@ export function MessageRow({
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
+
+        {msg.visual_digests && Object.keys(msg.visual_digests).length > 0 && (
+          <div
+            className={cn(
+              'mt-0.5 flex flex-wrap gap-1 text-[10px] text-muted-foreground',
+              isSelf && 'justify-end',
+            )}
+          >
+            {Object.entries(msg.visual_digests).map(([imgId, digest]) => (
+              <span
+                key={imgId}
+                className="inline-flex max-w-full items-center gap-0.5 rounded border border-border/50 bg-muted/40 px-1.5 py-0.5"
+                title={`${imgId}: ${digest}`}
+              >
+                <Image className="h-3 w-3 shrink-0" />
+                <span className="min-w-0 truncate">{digest}</span>
+              </span>
+            ))}
+          </div>
+        )}
 
         {msg.link?.evidence && msg.link.evidence.length > 0 && sessionId && (
           <div className={cn(isSelf && 'flex justify-end')}>

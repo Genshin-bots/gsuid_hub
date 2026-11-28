@@ -180,5 +180,7 @@
   "evidenceFailed": "加载证据失败",
   "evidenceFor": "替{name}查",
   "evidenceCredShared": "共享凭据",
-  "evidenceCredPersonal": "{name}的凭据"
+  "evidenceCredPersonal": "{name}的凭据",
+  "broadcastTag": "群播报",
+  "broadcastTagWithSource": "群播报·{label}"
 }

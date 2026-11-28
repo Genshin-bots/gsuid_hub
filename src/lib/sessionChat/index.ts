@@ -144,6 +144,12 @@ export interface ChatMsg {
   msg_id?: string;
   /** A 轨链接：seq / 引用边 / 证据观测 ID；老记录或未分配时为 null */
   link?: ChatMsgLink | null;
+  /** 出站通道标识（如 persona / command / tool_delivery / plugin_broadcast） */
+  speech_channel?: string;
+  /** 订阅/群播报来源标签（如 订阅鸣潮公告） */
+  source_label?: string;
+  /** 图片 ID → 单行视觉摘要（单队列回写） */
+  visual_digests?: Record<string, string>;
   /** WS 实时帧才有：后端算好的列表摘要，前端不再自己压一遍 */
   preview?: string;
   /** 虚拟会话消息发送状态 */

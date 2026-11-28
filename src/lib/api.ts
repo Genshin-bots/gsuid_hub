@@ -8942,6 +8942,7 @@ export const opsApi = {
       tracked_scopes: number;
       recent_url_scopes: number;
       min_desc_len: number;
+      pinned_groups?: number;
       ts?: number;
     }>('/api/ops/multimodal'),
 

@@ -180,5 +180,7 @@
   "evidenceFailed": "Failed to load evidence",
   "evidenceFor": "For {name}",
   "evidenceCredShared": "shared credential",
-  "evidenceCredPersonal": "{name}'s credential"
+  "evidenceCredPersonal": "{name}'s credential",
+  "broadcastTag": "Broadcast",
+  "broadcastTagWithSource": "Broadcast · {label}"
 }

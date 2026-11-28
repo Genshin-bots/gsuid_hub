@@ -642,6 +642,7 @@ const routes: Route[] = [
       tracked_scopes: 0,
       recent_url_scopes: 0,
       min_desc_len: 15,
+      pinned_groups: 0,
     }),
   },
   { m: 'GET', re: /^\/api\/ops\/lifecycle$/, h: () => ({ report: null, ts: Date.now() / 1000 }) },
