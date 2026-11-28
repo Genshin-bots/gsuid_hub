@@ -49,8 +49,8 @@
     "ambiguous": "曖昧",
     "failed": "索引の読込に失敗",
     "yes": "はい",
-    "conflictOnly": "归属の競合のみ",
-    "conflictEmpty": "归属の競合はありません。「归属の競合のみ」をオフにすると全件を表示します",
+    "conflictOnly": "帰属の競合のみ",
+    "conflictEmpty": "帰属の競合はありません。「帰属の競合のみ」をオフにすると全件を表示します",
     "pagination": {
       "label": "{from}–{to} 件 / 全 {total} 件",
       "allTotal": "索引は全 {total} 件",

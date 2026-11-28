@@ -1,12 +1,12 @@
 {
-  "title": "で钮とMD設定",
-  "description": "設定で钮とMarkdownの送信プラットフォームとスタイル",
-  "notFound": "未找へで钮とMarkdown設定",
-  "loadFailed": "できません読込で钮とMarkdown設定",
-  "saveFailed": "できません保存で钮とMarkdown設定",
-  "configSaved": "で钮とMarkdown設定保存",
+  "title": "ボタンと MD 設定",
+  "description": "ボタンと Markdown の送信プラットフォームとスタイルを設定",
+  "notFound": "ボタンと Markdown 設定が見つかりません",
+  "loadFailed": "ボタンと Markdown 設定を読み込めません",
+  "saveFailed": "ボタンと Markdown 設定を保存できません",
+  "configSaved": "ボタンと Markdown 設定を保存しました",
   "platformSelection": "プラットフォーム選択",
-  "platformSelectionDesc": "選択有効で钮とMarkdownのプラットフォーム",
-  "buttonSettings": "で钮設定",
-  "buttonSettingsDesc": "設定で钮スタイルと行に"
+  "platformSelectionDesc": "ボタンと Markdown を有効にするプラットフォームを選択",
+  "buttonSettings": "ボタン設定",
+  "buttonSettingsDesc": "ボタンのスタイルと動作を設定"
 }

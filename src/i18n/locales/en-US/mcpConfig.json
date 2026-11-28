@@ -184,7 +184,7 @@
   "revokeFailed": "Revoke failed",
   "bindToMasters": "Install bindings for masters",
   "bindToMastersDesc": "Creates bindings for the checked identities using the shared install credential (admin_install). Masters can still re-bind their own credential via DM.",
-  "candidatesEmpty": "No 「主人用户」 rows in the subscribe table — a master appears after DMing the bot once; users can also self-bind via DM.",
+  "candidatesEmpty": "No \"master user\" rows in the subscribe table — a master appears after DMing the bot once; users can also self-bind via DM.",
   "installBind": "Install bindings ({count})",
   "installBindSuccess": "Installed bindings for {count} identities",
   "installBindFailed": "Failed to install bindings",

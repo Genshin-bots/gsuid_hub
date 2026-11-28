@@ -1,16 +1,16 @@
 {
   "more": "より多くの",
   "searchAdded": "検索または者直接入力新增タグ...",
-  "enterToAdd": "回车追加",
+  "enterToAdd": "Enter で追加",
   "alreadyAdded": "このタグ追加",
   "addedTags": "追加のタグ",
-  "noMatch": "没有匹配のタグ",
-  "noTags": "なしタグ",
+  "noMatch": "一致するタグがありません",
+  "noTags": "タグなし",
   "alreadyAddedTop": "追加で上方",
   "copy": "复制",
   "delete": "削除",
   "optionalTags": "可选タグ",
-  "noOptionMatch": "没有匹配の可选值",
+  "noOptionMatch": "一致する選択肢がありません",
   "allOptionsAdded": "すべて选件都追加",
-  "enterTags": "入力し回车追加..."
+  "enterTags": "入力して Enter で追加..."
 }

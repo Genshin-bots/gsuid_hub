@@ -91,7 +91,7 @@
   },
   "restoreTooltip": "Clear local overrides and restore auto-generated",
   "restoreConfirmTitle": "Restore auto-generated node?",
-  "restoreConfirmDesc": "「{name}」 is an auto-generated MCP capability node. This clears your overrides (name / description / keywords) and restores the generated version.",
+  "restoreConfirmDesc": "\"{name}\" is an auto-generated MCP capability node. This clears your overrides (name / description / keywords) and restores the generated version.",
   "restoreAction": "Restore",
   "restoreSuccess": "Restored to auto-generated version"
 }

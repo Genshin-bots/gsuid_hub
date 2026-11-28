@@ -1,12 +1,12 @@
 {
-  "title": "杂件設定",
-  "description": "設定帮助モード、ブラックリスト等杂件設定",
-  "notFound": "未找へ杂件設定",
-  "loadFailed": "できません読込杂件設定",
-  "saveFailed": "できません保存杂件設定",
-  "configSaved": "杂件設定保存",
+  "title": "その他設定",
+  "description": "ヘルプモード、ブラックリストなどその他の設定を構成",
+  "notFound": "その他設定が見つかりません",
+  "loadFailed": "その他設定を読み込めません",
+  "saveFailed": "その他設定を保存できません",
+  "configSaved": "その他設定を保存しました",
   "display": "表示設定",
-  "displayDesc": "設定界面表示関連設定",
+  "displayDesc": "画面表示関連の設定を構成",
   "lightMode": "浅色モード",
   "darkMode": "深色モード",
   "message": "メッセージ設定",
@@ -16,5 +16,5 @@
   "disabled": "無効",
   "blackListPlaceholder": "入力ユーザーIDまたは群ID",
   "add": "追加",
-  "emptyBlackList": "なしブラックリストユーザー"
+  "emptyBlackList": "ブラックリストユーザーなし"
 }
