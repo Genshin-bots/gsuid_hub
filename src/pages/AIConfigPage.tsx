@@ -10,7 +10,7 @@
  *
  * 详见 ./AIConfig/README.md 中的"状态 / 事件流向"图。
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAIStatus } from '@/contexts/AIStatusContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,7 @@ import { toast } from 'sonner';
 import {
   embeddingConfigApi,
   frameworkConfigApi,
+  getApiErrorMessage,
   mcpConfigApi,
   type PluginConfigItem,
 } from '@/lib/api';
@@ -119,12 +120,26 @@ export default function AIConfigPage() {
   } = useFrameworkConfig();
 
   // ====================== Provider / OpenAI Config ======================
-  const provider = useProviderConfig();
+  const syncGraphAfterDeleteRef = useRef<(() => void) | null>(null);
+  const provider = useProviderConfig({
+    onConfigDeleted: () => syncGraphAfterDeleteRef.current?.(),
+  });
 
   // ====================== 星型节点模型路由图谱 ======================
+  const hasLoadedProviderConfigs = provider.allConfigs !== null;
   const taskGraph = useTaskGraphConfig(provider.allConfigsList, {
     createDialogOpen: provider.isCreateDialogOpen,
+    hasLoadedConfigs: hasLoadedProviderConfigs,
   });
+  syncGraphAfterDeleteRef.current = taskGraph.syncAfterConfigDelete;
+
+  const [focusHubRequest, setFocusHubRequest] = useState<{ hubId: string; seq: number } | null>(
+    null,
+  );
+  const requestFocusHub = useCallback((hubId: string) => {
+    setActiveSection('taskConfig');
+    setFocusHubRequest((prev) => ({ hubId, seq: (prev?.seq ?? 0) + 1 }));
+  }, []);
 
   // ====================== Embedding Config ======================
   const embedding = useEmbeddingConfig();
@@ -367,10 +382,14 @@ export default function AIConfigPage() {
 
   // ====================== Dirty check + 保存流 ======================
   const isConfigDirty = useMemo(() => {
-    const configChanged =
-      Object.keys(originalConfig).length === 0
-        ? Object.keys(configs).length > 0
-        : frameworkConfigsSignature(configs) !== frameworkConfigsSignature(originalConfig);
+    const configChanged = Object.values(configs).some((config) => {
+      const original = originalConfig[config.id];
+      if (!original) return false;
+      return (
+        frameworkConfigsSignature({ [config.id]: config }) !==
+        frameworkConfigsSignature({ [config.id]: original })
+      );
+    });
     const embeddingProviderChanged =
       embedding.embeddingSummary?.provider !== embedding.originalEmbeddingProvider;
     const embeddingLocalChanged =
@@ -413,6 +432,29 @@ export default function AIConfigPage() {
   const [isEmbeddingWarningOpen, setIsEmbeddingWarningOpen] = useState(false);
   const [pendingSaveAction, setPendingSaveAction] = useState<(() => void) | null>(null);
 
+  const validateGraphBeforeSave = useCallback((): boolean => {
+    if (!taskGraph.isGraphDirty || taskGraph.isGraphUnsupported) return true;
+    if (taskGraph.unconfiguredHubIds.length > 0) {
+      toast.error(t('aiConfig.starGraph.unconfiguredHubBlocked'));
+      requestFocusHub(taskGraph.unconfiguredHubIds[0]);
+      return false;
+    }
+    if (taskGraph.invalidConfigHubs.missingPrimary.length > 0) {
+      const first = taskGraph.invalidConfigHubs.missingPrimary[0];
+      toast.error(t('aiConfig.starGraph.missingPrimaryBlocked', { name: first.primary }));
+      requestFocusHub(first.nodeId);
+      return false;
+    }
+    return true;
+  }, [
+    requestFocusHub,
+    t,
+    taskGraph.invalidConfigHubs.missingPrimary,
+    taskGraph.isGraphDirty,
+    taskGraph.isGraphUnsupported,
+    taskGraph.unconfiguredHubIds,
+  ]);
+
   // 实际执行保存逻辑
   const executeSave = useCallback(async () => {
     try {
@@ -420,8 +462,7 @@ export default function AIConfigPage() {
 
       // 0. 原子保存星型节点任务模型路由图谱（旧版 Core 无 PUT /graph 时降级跳过，草稿保留）
       if (taskGraph.isGraphDirty && !taskGraph.isGraphUnsupported) {
-        if (taskGraph.unconfiguredHubIds.length > 0) {
-          toast.error(t('aiConfig.starGraph.unconfiguredHubBlocked'));
+        if (!validateGraphBeforeSave()) {
           return;
         }
         const graphRes = await taskGraph.saveGraph();
@@ -429,13 +470,20 @@ export default function AIConfigPage() {
           toast.error(graphRes.errorMsg || t('aiConfig.saveFailed'));
           return;
         }
+        if (graphRes.strippedSecondaries && graphRes.strippedSecondaries.length > 0) {
+          toast.warning(
+            t('aiConfig.starGraph.missingSecondaryStrippedOnSave', {
+              names: graphRes.strippedSecondaries.join('、'),
+            }),
+          );
+        }
         await provider.refreshAllConfigs();
       }
 
       // 1. 保存框架配置（仅变化的部分）
       const changedConfigs = Object.values(configs).filter((config) => {
         const original = originalConfig[config.id];
-        if (!original) return true;
+        if (!original) return false;
         return (
           frameworkConfigsSignature({ [config.id]: config }) !==
           frameworkConfigsSignature({ [config.id]: original })
@@ -600,7 +648,7 @@ export default function AIConfigPage() {
       toast.success(t('aiConfig.configSaved'));
     } catch (error) {
       console.error('Save error:', error);
-      toast.error(t('aiConfig.saveFailed'));
+      toast.error(getApiErrorMessage(error, t('aiConfig.saveFailed')));
     } finally {
       setIsSaving(false);
       setPendingSaveAction(null);
@@ -617,15 +665,11 @@ export default function AIConfigPage() {
     aiConfig?.id,
     taskGraph,
     provider,
+    validateGraphBeforeSave,
   ]);
 
   const handleSaveConfig = useCallback(() => {
-    if (
-      taskGraph.isGraphDirty &&
-      !taskGraph.isGraphUnsupported &&
-      taskGraph.unconfiguredHubIds.length > 0
-    ) {
-      toast.error(t('aiConfig.starGraph.unconfiguredHubBlocked'));
+    if (!validateGraphBeforeSave()) {
       return;
     }
     const currentProviderValue = embedding.embeddingSummary?.provider || '';
@@ -649,7 +693,7 @@ export default function AIConfigPage() {
     } else {
       executeSave();
     }
-  }, [embedding, aiConfig, originalConfig, executeSave, taskGraph, t]);
+  }, [embedding, aiConfig, originalConfig, executeSave, validateGraphBeforeSave]);
 
   const handleConfirmEmbeddingSave = useCallback(() => {
     setIsEmbeddingWarningOpen(false);
@@ -748,6 +792,8 @@ export default function AIConfigPage() {
               t={t}
               graphCtrl={taskGraph}
               allConfigsList={provider.allConfigsList}
+              hasLoadedConfigs={hasLoadedProviderConfigs}
+              focusHubRequest={focusHubRequest}
               onOpenCreateConfig={() => {
                 provider.resetNewConfigForm();
                 provider.setIsCreateDialogOpen(true);
@@ -990,6 +1036,7 @@ export default function AIConfigPage() {
       value={activeSection}
       onValueChange={setActiveSection}
       disabled={isSectionsLocked}
+      buttonClassName="md:px-2.5 gap-1.5"
       options={sectionTabDefs.map((item) => ({
         value: item.id,
         label: item.title,

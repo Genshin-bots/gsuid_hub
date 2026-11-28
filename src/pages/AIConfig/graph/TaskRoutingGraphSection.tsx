@@ -76,6 +76,10 @@ export interface TaskRoutingGraphSectionProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   graphCtrl: UseTaskGraphConfigReturn;
   allConfigsList: readonly AllConfigItem[];
+  /** 配置文件列表是否已加载完成（避免加载期间误标“配置文件不存在”） */
+  hasLoadedConfigs: boolean;
+  /** 保存校验拦截时用于外部触发镜头定位并打开对应配置节点弹窗 */
+  focusHubRequest?: { hubId: string; seq: number } | null;
   onOpenCreateConfig: () => void;
   onOpenEditConfig: (configName: string, provider: string) => void;
 }
@@ -191,6 +195,8 @@ export function TaskRoutingGraphSection({
   t,
   graphCtrl,
   allConfigsList,
+  hasLoadedConfigs,
+  focusHubRequest,
   onOpenCreateConfig,
   onOpenEditConfig,
 }: TaskRoutingGraphSectionProps) {
@@ -205,6 +211,7 @@ export function TaskRoutingGraphSection({
     isGraphDirty,
     canUndo,
     unconfiguredHubIds,
+    invalidConfigHubs,
     isGraphUnsupported,
     setUsageMetric,
     toggleExpandParent,
@@ -215,6 +222,7 @@ export function TaskRoutingGraphSection({
     addHubNode,
     assignHubPrimary,
     assignHubSecondary,
+    clearMissingSecondaries,
     removeHubNode,
     connectTaskToHub,
     connectTasksBatchToHub,
@@ -233,12 +241,21 @@ export function TaskRoutingGraphSection({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState(() => ({
     width: typeof window !== 'undefined' ? Math.max(320, window.innerWidth - 64) : 980,
-    height: 560,
+    height: 480,
   }));
-  const [camera, setCamera] = useState({ x: 490, y: 280, zoom: 1 });
+  const [hasMeasuredViewport, setHasMeasuredViewport] = useState(false);
+  const [fitRequestSeq, setFitRequestSeq] = useState(0);
+  const [camera, setCamera] = useState({ x: 490, y: 240, zoom: 1 });
   const cameraInitializedRef = useRef(false);
+  const pendingFitAfterResizeRef = useRef(false);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const isFullscreenRef = useRef(isFullscreen);
+  isFullscreenRef.current = isFullscreen;
+  const hasDraftGraph = Boolean(draftGraph);
+  const requestFitCamera = useCallback(() => {
+    setFitRequestSeq((seq) => seq + 1);
+  }, []);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [showAllChildren, setShowAllChildren] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(() => new Set());
@@ -297,17 +314,30 @@ export function TaskRoutingGraphSection({
     return map;
   }, [allConfigsList]);
 
+  // 必须在 draftGraph 就绪（画布真正挂载）后再绑定 ResizeObserver，
+  // 否则首次渲染 loading 态时 viewportRef.current 为 null 会导致观察器永久缺失、镜头偏心。
   useEffect(() => {
     const el = viewportRef.current;
-    if (!el) return;
+    if (!el || !hasDraftGraph) return;
+    const applySize = (width: number, height: number) => {
+      if (width <= 0 || height <= 0) return;
+      setViewportSize((prev) =>
+        Math.abs(prev.width - width) < 0.5 && Math.abs(prev.height - height) < 0.5
+          ? prev
+          : { width, height },
+      );
+      setHasMeasuredViewport(true);
+    };
+    const rect = el.getBoundingClientRect();
+    applySize(rect.width, rect.height);
     const ro = new ResizeObserver((entries) => {
-      const rect = entries[0]?.contentRect;
-      if (!rect || rect.width <= 0 || rect.height <= 0) return;
-      setViewportSize({ width: rect.width, height: rect.height });
+      const nextRect = entries[0]?.contentRect;
+      if (!nextRect) return;
+      applySize(nextRect.width, nextRect.height);
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [hasDraftGraph, isLoading]);
 
   // 窄屏判定（<720px 画布宽度对应移动端纵向星系布局，桌面端为横向星系布局）
   const isNarrow = viewportSize.width < 720;
@@ -373,22 +403,46 @@ export function TaskRoutingGraphSection({
     });
   }, [isNarrow, layout.bounds, viewportSize.height, viewportSize.width]);
 
+  const fitCameraToBoundsRef = useRef(fitCameraToBounds);
+  fitCameraToBoundsRef.current = fitCameraToBounds;
+
   useEffect(() => {
-    if (!cameraInitializedRef.current && layout.hubs.length > 0 && viewportSize.width > 100) {
+    if (!hasMeasuredViewport || layout.hubs.length === 0) return;
+    if (!cameraInitializedRef.current) {
       cameraInitializedRef.current = true;
+      prevNarrowRef.current = isNarrow;
       fitCameraToBounds();
       return;
     }
-    if (prevNarrowRef.current !== isNarrow && layout.hubs.length > 0) {
+    if (prevNarrowRef.current !== isNarrow) {
       prevNarrowRef.current = isNarrow;
       fitCameraToBounds();
     }
-  }, [fitCameraToBounds, isNarrow, layout.hubs.length, viewportSize.width]);
+  }, [fitCameraToBounds, hasMeasuredViewport, isNarrow, layout.hubs.length]);
 
-  // Escape 键退出框选、关闭弹窗并收回已展开的子节点；Ctrl+Z / Cmd+Z 撤回最近一步图谱操作（焦点在输入框时不劫持）
+  // 布局重排 / 增删节点 / 展开收起后的适配：等新 bounds 提交后再以最新闭包居中
+  useEffect(() => {
+    if (fitRequestSeq === 0 || !hasMeasuredViewport || layout.hubs.length === 0) return;
+    fitCameraToBoundsRef.current();
+  }, [fitRequestSeq, hasMeasuredViewport, layout.hubs.length]);
+
+  // 全屏切换引起画布尺寸变化后自动重新居中适配
+  useEffect(() => {
+    if (!pendingFitAfterResizeRef.current || !hasMeasuredViewport || layout.hubs.length === 0) {
+      return;
+    }
+    pendingFitAfterResizeRef.current = false;
+    fitCameraToBoundsRef.current();
+  }, [hasMeasuredViewport, layout.hubs.length, viewportSize.height, viewportSize.width]);
+
+  // Escape 键退出全屏、框选、关闭弹窗并收回已展开的子节点；Ctrl+Z / Cmd+Z 撤回最近一步图谱操作（焦点在输入框时不劫持）
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isFullscreenRef.current) {
+          pendingFitAfterResizeRef.current = true;
+          setIsFullscreen(false);
+        }
         setSelectedTaskIds(new Set());
         setIsSelectMode(false);
         setOpenSatPopoverId(null);
@@ -886,14 +940,34 @@ export function TaskRoutingGraphSection({
     wireDrag,
   ]);
 
-  // 原生非被动 wheel 监听：在画布内滚轮缩放时彻底阻断外层页面跟随上下滚动
-  const hasDraftGraph = Boolean(draftGraph);
+  // 画布内直接支持滚轮缩放；同时监听外层滚动容器，若页面刚刚处于连续滚动惯性期（280ms 内）
+  // 则放行普通滚轮避免画布滑过鼠标下方时意外劫持页面滚动。全屏或按住 Ctrl/Cmd 始终直接缩放。
+  const lastPageScrollAtRef = useRef(0);
   useEffect(() => {
     const el = viewportRef.current;
     if (!el || !hasDraftGraph) return;
+    const scrollHost =
+      (el.closest('.page-pinned-body') as HTMLElement | null) ??
+      (el.closest('main') as HTMLElement | null);
+    const markPageScrolled = () => {
+      lastPageScrollAtRef.current = performance.now();
+    };
+    if (scrollHost) {
+      scrollHost.addEventListener('scroll', markPageScrolled, { passive: true });
+    }
+    window.addEventListener('scroll', markPageScrolled, { passive: true });
+
     const onWheel = (e: WheelEvent) => {
       const target = e.target as Element | null;
       if (target?.closest?.('[data-radix-popper-content-wrapper]')) {
+        return;
+      }
+      const inPageScrollMomentum =
+        !isFullscreenRef.current &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        performance.now() - lastPageScrollAtRef.current < 280;
+      if (inPageScrollMomentum) {
         return;
       }
       e.preventDefault();
@@ -916,7 +990,13 @@ export function TaskRoutingGraphSection({
       });
     };
     el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      if (scrollHost) {
+        scrollHost.removeEventListener('scroll', markPageScrolled);
+      }
+      window.removeEventListener('scroll', markPageScrolled);
+    };
   }, [hasDraftGraph, isLoading]);
 
   const handlePointerDownCanvas = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -1153,6 +1233,35 @@ export function TaskRoutingGraphSection({
     ],
   );
 
+  const focusHubById = useCallback(
+    (hubId: string, openPopover = true) => {
+      const hub = hubById.get(hubId);
+      if (!hub) return;
+      setOpenSatPopoverId(null);
+      if (!showAllChildren) collapseExpandedParents();
+      setCamera((prev) => {
+        const targetZoom = Math.max(prev.zoom, 0.85);
+        return {
+          x: viewportSize.width / 2 - hub.x * targetZoom,
+          y: viewportSize.height / 2 - hub.y * targetZoom,
+          zoom: Number(targetZoom.toFixed(3)),
+        };
+      });
+      if (openPopover) {
+        setOpenHubPopoverId(hubId);
+      }
+    },
+    [collapseExpandedParents, hubById, showAllChildren, viewportSize.height, viewportSize.width],
+  );
+
+  const focusHubByIdRef = useRef(focusHubById);
+  focusHubByIdRef.current = focusHubById;
+
+  useEffect(() => {
+    if (!focusHubRequest) return;
+    focusHubByIdRef.current(focusHubRequest.hubId, true);
+  }, [focusHubRequest]);
+
   const usedPrimarySet = useMemo(
     () => new Set((draftGraph?.nodes ?? []).map((n) => n.primary).filter(Boolean)),
     [draftGraph?.nodes],
@@ -1262,7 +1371,12 @@ export function TaskRoutingGraphSection({
         isFullscreen && 'fixed inset-2 sm:inset-4 z-50 flex flex-col shadow-2xl',
       )}
     >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[inherit]">
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col overflow-hidden rounded-[inherit]',
+          isFullscreen && 'bg-background/95 backdrop-blur-md',
+        )}
+      >
         {/* 顶栏操作区（兼容桌面横向与移动端两列折行） */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 px-3 sm:px-4 py-2.5 sm:py-3">
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
@@ -1295,7 +1409,7 @@ export function TaskRoutingGraphSection({
                           onClick={() => {
                             addHubNode(cfg.name);
                             setAddHubPopoverOpen(false);
-                            window.setTimeout(fitCameraToBounds, 30);
+                            requestFitCamera();
                           }}
                           className={cn(
                             'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
@@ -1376,7 +1490,7 @@ export function TaskRoutingGraphSection({
               size="sm"
               disabled={!canUndo}
               title={t('aiConfig.starGraph.undoShortcutHint')}
-              className="h-8 gap-1 text-xs"
+              className="h-9 gap-1 text-xs"
               onClick={() => undo()}
             >
               <Undo2 className="h-3.5 w-3.5 shrink-0" />
@@ -1388,7 +1502,7 @@ export function TaskRoutingGraphSection({
               variant="outline"
               size="sm"
               disabled={!isGraphDirty}
-              className="h-8 gap-1 text-xs"
+              className="h-9 gap-1 text-xs"
               title={t('aiConfig.starGraph.discardDraft')}
               onClick={() => discardDraftChanges()}
             >
@@ -1401,7 +1515,7 @@ export function TaskRoutingGraphSection({
                 type="button"
                 variant={showAllChildren ? 'default' : 'outline'}
                 size="sm"
-                className="h-8 gap-1.5 text-xs"
+                className="h-9 gap-1.5 text-xs"
                 title={
                   showAllChildren
                     ? t('aiConfig.starGraph.collapseLowFreq')
@@ -1415,7 +1529,7 @@ export function TaskRoutingGraphSection({
                     }
                     return next;
                   });
-                  window.setTimeout(fitCameraToBounds, 40);
+                  requestFitCamera();
                 }}
               >
                 {showAllChildren ? (
@@ -1435,11 +1549,11 @@ export function TaskRoutingGraphSection({
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 text-xs"
+              className="h-9 gap-1.5 text-xs"
               title={t('aiConfig.starGraph.autoLayout')}
               onClick={() => {
                 rearrangeLayout(isNarrow);
-                window.setTimeout(fitCameraToBounds, 40);
+                requestFitCamera();
               }}
             >
               <Sparkles className="h-3.5 w-3.5 shrink-0" />
@@ -1450,7 +1564,7 @@ export function TaskRoutingGraphSection({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="h-9 w-9 shrink-0"
               title={t('aiConfig.starGraph.resetDefaultTopology')}
               onClick={() => setConfirmResetOpen(true)}
             >
@@ -1461,15 +1575,15 @@ export function TaskRoutingGraphSection({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="h-9 w-9 shrink-0"
               title={
                 isFullscreen
                   ? t('aiConfig.starGraph.exitFullscreen')
                   : t('aiConfig.starGraph.fullscreen')
               }
               onClick={() => {
+                pendingFitAfterResizeRef.current = true;
                 setIsFullscreen((v) => !v);
-                window.setTimeout(fitCameraToBounds, 60);
               }}
             >
               {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -1485,14 +1599,109 @@ export function TaskRoutingGraphSection({
           </div>
         )}
 
+        {/* 主配置缺失告警（存在已删除的配置文件引用，须重新选择或移除节点） */}
+        {invalidConfigHubs.missingPrimary.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/30 bg-destructive/10 px-3 sm:px-4 py-1.5 text-xs text-destructive">
+            <span className="inline-flex items-center gap-1.5 min-w-0">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span
+                className="truncate"
+                title={invalidConfigHubs.missingPrimary.map((item) => item.primary).join(', ')}
+              >
+                {t('aiConfig.starGraph.missingPrimaryBanner', {
+                  names: invalidConfigHubs.missingPrimary.map((item) => item.primary).join('、'),
+                })}
+              </span>
+            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-6 border-destructive/40 px-2 text-[11px] text-destructive hover:bg-destructive/10"
+                onClick={() => focusHubById(invalidConfigHubs.missingPrimary[0].nodeId)}
+              >
+                {t('aiConfig.starGraph.locateHubBtn')}
+              </Button>
+              {invalidConfigHubs.missingPrimary[0].connectedTaskCount === 0 &&
+                draftGraph.nodes.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 border-destructive/40 px-2 text-[11px] text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      removeHubNode(invalidConfigHubs.missingPrimary[0].nodeId);
+                      requestFitCamera();
+                    }}
+                  >
+                    {t('aiConfig.starGraph.removeInvalidHubBtn')}
+                  </Button>
+                )}
+            </div>
+          </div>
+        )}
+
+        {/* 备用配置缺失告警（运行时已忽略，保存时也会自动剥离；同时提供定位与一键清理） */}
+        {invalidConfigHubs.missingSecondary.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/30 bg-amber-500/10 px-3 sm:px-4 py-1.5 text-xs text-amber-700 dark:text-amber-300">
+            <span className="inline-flex items-center gap-1.5 min-w-0">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span
+                className="truncate"
+                title={invalidConfigHubs.missingSecondary.map((item) => item.secondary).join(', ')}
+              >
+                {t('aiConfig.starGraph.missingSecondaryBanner', {
+                  names: invalidConfigHubs.missingSecondary
+                    .map((item) => item.secondary)
+                    .join('、'),
+                })}
+              </span>
+            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-6 border-amber-500/40 px-2 text-[11px] text-amber-700 hover:bg-amber-500/15 dark:text-amber-300"
+                onClick={() => focusHubById(invalidConfigHubs.missingSecondary[0].nodeId)}
+              >
+                {t('aiConfig.starGraph.locateHubBtn')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-6 border-amber-500/40 px-2 text-[11px] text-amber-700 hover:bg-amber-500/15 dark:text-amber-300"
+                onClick={() => {
+                  clearMissingSecondaries();
+                }}
+              >
+                {t('aiConfig.starGraph.cleanInvalidSecondaryBtn')}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* 未配置 '+' 星核提示条 / 未保存提示条 */}
         {(unconfiguredHubIds.length > 0 || isGraphDirty) && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/30 bg-muted/25 px-3 sm:px-4 py-1.5 text-xs">
             {unconfiguredHubIds.length > 0 ? (
-              <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 min-w-0">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{t('aiConfig.starGraph.unconfiguredHubBlocked')}</span>
-              </span>
+              <>
+                <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 min-w-0">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{t('aiConfig.starGraph.unconfiguredHubBlocked')}</span>
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[11px] shrink-0"
+                  onClick={() => focusHubById(unconfiguredHubIds[0])}
+                >
+                  {t('aiConfig.starGraph.locateHubBtn')}
+                </Button>
+              </>
             ) : (
               <span className="text-primary font-medium truncate">
                 {t('aiConfig.starGraph.unsavedDraftHint')}
@@ -1628,9 +1837,11 @@ export function TaskRoutingGraphSection({
             backgroundPosition: `${Math.round(camera.x)}px ${Math.round(camera.y)}px`,
           }}
           className={cn(
-            'relative w-full select-none overflow-hidden overscroll-contain touch-none',
+            'relative w-full select-none overflow-hidden',
             isSelectMode ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing',
-            isFullscreen ? 'flex-1 min-h-0' : 'h-[580px] sm:h-[600px]',
+            isFullscreen
+              ? 'flex-1 min-h-0 overscroll-contain touch-none'
+              : 'h-[380px] sm:h-[clamp(360px,calc(100dvh-400px),520px)] touch-pan-y',
           )}
         >
           {/* 批量选中快捷连接悬浮条 */}
@@ -1873,6 +2084,7 @@ export function TaskRoutingGraphSection({
                   item={hub}
                   allConfigsList={allConfigsList}
                   configByName={configByName}
+                  hasLoadedConfigs={hasLoadedConfigs}
                   metric={usageMetric}
                   hasAnyGraphUsage={hasAnyGraphUsage}
                   halfHeight={hubHalfH}
@@ -1986,11 +2198,22 @@ export function TaskRoutingGraphSection({
             <span className="hidden md:inline truncate opacity-80">
               · {t('aiConfig.starGraph.legendSizeHint')}
             </span>
+            <span className="hidden lg:inline truncate opacity-75">
+              ·{' '}
+              {isFullscreen
+                ? t('aiConfig.starGraph.legendWheelFullscreenHint')
+                : t('aiConfig.starGraph.legendWheelInlineHint')}
+            </span>
           </div>
 
           {/* 右下角缩放胶囊 */}
           <div
             className="absolute bottom-3 right-3 flex items-center gap-0.5 rounded-xl border border-border/50 bg-background/80 p-1 backdrop-blur-md"
+            title={
+              isFullscreen
+                ? t('aiConfig.starGraph.legendWheelFullscreenHint')
+                : t('aiConfig.starGraph.legendWheelInlineHint')
+            }
             onPointerDown={(e) => e.stopPropagation()}
           >
             <Button
@@ -2101,7 +2324,7 @@ export function TaskRoutingGraphSection({
                 if (removingHubState) {
                   removeHubNode(removingHubState.node.id, removingHubState.migrateTargetId);
                   setRemovingHubState(null);
-                  window.setTimeout(fitCameraToBounds, 30);
+                  requestFitCamera();
                 }
               }}
             >
@@ -2126,7 +2349,7 @@ export function TaskRoutingGraphSection({
               onClick={() => {
                 setConfirmResetOpen(false);
                 resetToDefaultTwoHubs();
-                window.setTimeout(fitCameraToBounds, 30);
+                requestFitCamera();
               }}
             >
               {t('aiConfig.starGraph.resetDefaultTopology')}

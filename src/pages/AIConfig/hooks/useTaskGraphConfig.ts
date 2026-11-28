@@ -17,11 +17,14 @@ import {
 } from '@/lib/aiTaskKinds';
 import {
   buildDefaultTwoHubDraft,
+  findInvalidConfigHubs,
   findUnconfiguredConnectedHubIds,
   materializeGraphPositions,
   rearrangeGraphPositions,
   serializeGraphSignature,
+  stripMissingSecondaryConfigs,
   synthesizeGraphFromTaskModels,
+  type InvalidConfigHubsResult,
   type StarUsageMetric,
   type TaskUsageBucket,
 } from '../graph/starGraphModel';
@@ -59,6 +62,8 @@ export interface UseTaskGraphConfigReturn {
   isGraphDirty: boolean;
   canUndo: boolean;
   unconfiguredHubIds: string[];
+  /** 引用了已删除 / 不存在配置文件的星核节点（仅在 allConfigs 加载完成后统计） */
+  invalidConfigHubs: InvalidConfigHubsResult;
   /** 旧版 Core 不下发 graph 字段，意味着 PUT /graph 也不存在：编辑可草稿化但无法保存 */
   isGraphUnsupported: boolean;
   setUsageMetric: (metric: StarUsageMetric) => void;
@@ -66,11 +71,14 @@ export interface UseTaskGraphConfigReturn {
   /** 收起当前所有已单独展开的一级父节点（可选保留某一个父节点 ID） */
   collapseExpandedParents: (keepParentId?: string | null) => void;
   reload: () => Promise<void>;
+  /** 删除配置文件后若无未保存图谱草稿，自动重拉后端同步后的图谱 */
+  syncAfterConfigDelete: () => void;
   recordUndoCheckpoint: () => void;
   undo: () => boolean;
   addHubNode: (primaryFullName?: string) => string;
   assignHubPrimary: (nodeId: string, primaryFullName: string) => void;
   assignHubSecondary: (nodeId: string, secondaryFullName: string) => void;
+  clearMissingSecondaries: () => number;
   removeHubNode: (nodeId: string, migrateTargetNodeId?: string) => void;
   connectTaskToHub: (
     taskId: string,
@@ -100,15 +108,20 @@ export interface UseTaskGraphConfigReturn {
   rearrangeLayout: (isNarrow?: boolean) => void;
   resetToDefaultTwoHubs: () => void;
   discardDraftChanges: () => void;
-  saveGraph: () => Promise<{ ok: boolean; errorMsg?: string }>;
+  saveGraph: () => Promise<{
+    ok: boolean;
+    errorMsg?: string;
+    strippedSecondaries?: string[];
+  }>;
   /** 点击 '+' 占位节点触发「新建配置」时记录该星核 ID，新配置落盘后自动填入该星核 */
   markPendingBindHub: (nodeId: string | null) => void;
 }
 
 export function useTaskGraphConfig(
   allConfigsList: readonly AllConfigItem[],
-  options?: { createDialogOpen?: boolean },
+  options?: { createDialogOpen?: boolean; hasLoadedConfigs?: boolean },
 ): UseTaskGraphConfigReturn {
+  const hasLoadedConfigs = options?.hasLoadedConfigs ?? false;
   const [data, setData] = useState<AITaskModelsData | null>(null);
   const [savedGraph, setSavedGraph] = useState<AITaskGraphSavePayload | null>(null);
   const [draftGraph, setDraftGraph] = useState<AITaskGraphSavePayload | null>(null);
@@ -122,6 +135,8 @@ export function useTaskGraphConfig(
 
   const draftRef = useRef<AITaskGraphSavePayload | null>(null);
   draftRef.current = draftGraph;
+  const undoStackRef = useRef<AITaskGraphSavePayload[]>([]);
+  undoStackRef.current = undoStack;
 
   const pendingBindHubRef = useRef<string | null>(null);
   const prevConfigNamesRef = useRef<Set<string>>(new Set());
@@ -130,32 +145,31 @@ export function useTaskGraphConfig(
   const pushSnapshot = useCallback((snapshot: AITaskGraphSavePayload | null) => {
     if (!snapshot) return;
     const copy = cloneGraph(snapshot);
-    setUndoStack((prev) => {
-      const top = prev[prev.length - 1];
-      if (top && serializeGraphSignature(top) === serializeGraphSignature(copy)) {
-        return prev;
-      }
-      const next = [...prev, copy];
-      return next.length > MAX_UNDO_STEPS ? next.slice(next.length - MAX_UNDO_STEPS) : next;
-    });
+    const prev = undoStackRef.current;
+    const top = prev[prev.length - 1];
+    if (top && serializeGraphSignature(top) === serializeGraphSignature(copy)) {
+      return;
+    }
+    const next = [...prev, copy];
+    const trimmed = next.length > MAX_UNDO_STEPS ? next.slice(next.length - MAX_UNDO_STEPS) : next;
+    undoStackRef.current = trimmed;
+    setUndoStack(trimmed);
   }, []);
 
   const recordUndoCheckpoint = useCallback(() => {
     pushSnapshot(draftRef.current);
   }, [pushSnapshot]);
 
+  // 必须通过 undoStackRef 同步取出栈顶：React 18 自动批处理下 setState updater 不会同步执行
   const undo = useCallback((): boolean => {
-    let restored: AITaskGraphSavePayload | null = null;
-    setUndoStack((prev) => {
-      if (prev.length === 0) return prev;
-      restored = prev[prev.length - 1];
-      return prev.slice(0, -1);
-    });
-    if (restored) {
-      setDraftGraph(cloneGraph(restored));
-      return true;
-    }
-    return false;
+    const prev = undoStackRef.current;
+    if (prev.length === 0) return false;
+    const restored = prev[prev.length - 1];
+    const next = prev.slice(0, -1);
+    undoStackRef.current = next;
+    setUndoStack(next);
+    setDraftGraph(cloneGraph(restored));
+    return true;
   }, []);
 
   const reload = useCallback(async () => {
@@ -172,6 +186,7 @@ export function useTaskGraphConfig(
       });
       setSavedGraph(cloneGraph(synthesized));
       setDraftGraph(cloneGraph(synthesized));
+      undoStackRef.current = [];
       setUndoStack([]);
       setLoadError('');
     } catch (err) {
@@ -290,10 +305,41 @@ export function useTaskGraphConfig(
     return serializeGraphSignature(draftGraph) !== serializeGraphSignature(savedGraph);
   }, [draftGraph, savedGraph]);
 
+  const isGraphDirtyRef = useRef(false);
+  isGraphDirtyRef.current = isGraphDirty;
+
+  const syncAfterConfigDelete = useCallback(() => {
+    if (!isGraphDirtyRef.current) {
+      void reload();
+    }
+  }, [reload]);
+
+  const validConfigNames = useMemo(
+    () => new Set(allConfigsList.map((c) => c.name)),
+    [allConfigsList],
+  );
+
   const unconfiguredHubIds = useMemo(() => {
     if (!draftGraph) return [];
     return findUnconfiguredConnectedHubIds(draftGraph, kinds);
   }, [draftGraph, kinds]);
+
+  const invalidConfigHubs = useMemo<InvalidConfigHubsResult>(() => {
+    if (!draftGraph || !hasLoadedConfigs) {
+      return { missingPrimary: [], missingSecondary: [] };
+    }
+    return findInvalidConfigHubs(draftGraph, kinds, validConfigNames);
+  }, [draftGraph, hasLoadedConfigs, kinds, validConfigNames]);
+
+  const clearMissingSecondaries = useCallback((): number => {
+    const current = draftRef.current;
+    if (!current || !hasLoadedConfigs) return 0;
+    const { nextGraph, stripped } = stripMissingSecondaryConfigs(current, validConfigNames);
+    if (stripped.length === 0) return 0;
+    pushSnapshot(current);
+    setDraftGraph(nextGraph);
+    return stripped.length;
+  }, [hasLoadedConfigs, pushSnapshot, validConfigNames]);
 
   const addHubNode = useCallback(
     (primaryFullName = ''): string => {
@@ -687,10 +733,24 @@ export function useTaskGraphConfig(
     setDraftGraph(cloneGraph(savedGraph));
   }, [pushSnapshot, savedGraph]);
 
-  const saveGraph = useCallback(async (): Promise<{ ok: boolean; errorMsg?: string }> => {
+  const saveGraph = useCallback(async (): Promise<{
+    ok: boolean;
+    errorMsg?: string;
+    strippedSecondaries?: string[];
+  }> => {
     if (!draftGraph) return { ok: true };
+    let payload = draftGraph;
+    let strippedSecondaries: string[] = [];
+    // 运行时后端本就忽略已删除的备用配置；保存前自动剥离失效 secondary，避免历史残留死锁整个保存流
+    if (hasLoadedConfigs) {
+      const cleaned = stripMissingSecondaryConfigs(draftGraph, validConfigNames);
+      if (cleaned.stripped.length > 0) {
+        payload = cleaned.nextGraph;
+        strippedSecondaries = Array.from(new Set(cleaned.stripped.map((item) => item.secondary)));
+      }
+    }
     try {
-      const updated = await aiTaskModelsApi.saveGraph(draftGraph);
+      const updated = await aiTaskModelsApi.saveGraph(payload);
       if (updated.kinds && updated.kinds.length > 0) {
         setData(updated);
         const isNarrowNow = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -704,17 +764,22 @@ export function useTaskGraphConfig(
         setSavedGraph(cloneGraph(nextGraph));
         setDraftGraph(cloneGraph(nextGraph));
       } else {
-        setSavedGraph(cloneGraph(draftGraph));
+        setSavedGraph(cloneGraph(payload));
+        setDraftGraph(cloneGraph(payload));
       }
+      undoStackRef.current = [];
       setUndoStack([]);
-      return { ok: true };
+      return {
+        ok: true,
+        strippedSecondaries: strippedSecondaries.length > 0 ? strippedSecondaries : undefined,
+      };
     } catch (err) {
       return {
         ok: false,
         errorMsg: getApiErrorMessage(err, 'Failed to save task routing graph'),
       };
     }
-  }, [draftGraph, usageByStatKey, usageMetric]);
+  }, [draftGraph, hasLoadedConfigs, usageByStatKey, usageMetric, validConfigNames]);
 
   return {
     data,
@@ -729,16 +794,19 @@ export function useTaskGraphConfig(
     isGraphDirty,
     canUndo: undoStack.length > 0,
     unconfiguredHubIds,
+    invalidConfigHubs,
     isGraphUnsupported,
     setUsageMetric,
     toggleExpandParent,
     collapseExpandedParents,
     reload,
+    syncAfterConfigDelete,
     recordUndoCheckpoint,
     undo,
     addHubNode,
     assignHubPrimary,
     assignHubSecondary,
+    clearMissingSecondaries,
     removeHubNode,
     connectTaskToHub,
     connectTasksBatchToHub,

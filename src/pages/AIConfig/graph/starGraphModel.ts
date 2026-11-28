@@ -346,6 +346,93 @@ export function findUnconfiguredConnectedHubIds(
   return graph.nodes.filter((n) => usedNodeIds.has(n.id) && !n.primary.trim()).map((n) => n.id);
 }
 
+export interface InvalidConfigHubEntry {
+  nodeId: string;
+  primary: string;
+  secondary: string;
+  connectedTaskCount: number;
+}
+
+export interface InvalidConfigHubsResult {
+  missingPrimary: InvalidConfigHubEntry[];
+  missingSecondary: InvalidConfigHubEntry[];
+}
+
+/**
+ * 找出引用了磁盘上已不存在配置文件的配置节点（分别统计主配置缺失与备用配置缺失）。
+ * 调用方须确保 `validConfigNames` 来自已加载完成的 `allConfigsList`，加载中不可调用以免误判。
+ */
+export function findInvalidConfigHubs(
+  graph: AITaskGraphSavePayload,
+  kinds: readonly AITaskKindInfo[],
+  validConfigNames: ReadonlySet<string>,
+): InvalidConfigHubsResult {
+  const connectedCountByNodeId = new Map<string, number>();
+  const highDefault = graph.nodes.find((n) => n.role === 'high')?.id ?? graph.nodes[0]?.id ?? '';
+  const lowDefault = graph.nodes.find((n) => n.role === 'low')?.id ?? graph.nodes[0]?.id ?? '';
+  const splitSet = new Set(graph.split_subagents);
+
+  for (const k of kinds) {
+    if (k.follows_caller) continue;
+    if (k.parent_id && !splitSet.has(k.id)) continue;
+    const target = graph.edges[k.id] || (k.default_level === 'high' ? highDefault : lowDefault);
+    if (target) {
+      connectedCountByNodeId.set(target, (connectedCountByNodeId.get(target) ?? 0) + 1);
+    }
+  }
+
+  const missingPrimary: InvalidConfigHubEntry[] = [];
+  const missingSecondary: InvalidConfigHubEntry[] = [];
+
+  for (const node of graph.nodes) {
+    const primary = node.primary.trim();
+    const secondary = node.secondary.trim();
+    const connectedTaskCount = connectedCountByNodeId.get(node.id) ?? 0;
+    if (primary && !validConfigNames.has(primary)) {
+      missingPrimary.push({ nodeId: node.id, primary, secondary, connectedTaskCount });
+    }
+    if (secondary && !validConfigNames.has(secondary)) {
+      missingSecondary.push({ nodeId: node.id, primary, secondary, connectedTaskCount });
+    }
+  }
+
+  return { missingPrimary, missingSecondary };
+}
+
+/**
+ * 剥离图谱中指向已不存在配置文件的备用配置（secondary）。
+ * 运行时后端本就会忽略失效备用，保存前自动清理可避免因历史残留死锁整个保存流。
+ */
+export function stripMissingSecondaryConfigs(
+  graph: AITaskGraphSavePayload,
+  validConfigNames: ReadonlySet<string>,
+): {
+  nextGraph: AITaskGraphSavePayload;
+  stripped: Array<{ nodeId: string; primary: string; secondary: string }>;
+} {
+  const stripped: Array<{ nodeId: string; primary: string; secondary: string }> = [];
+  const nextNodes = graph.nodes.map((node) => {
+    const secondary = node.secondary.trim();
+    if (secondary && !validConfigNames.has(secondary)) {
+      stripped.push({ nodeId: node.id, primary: node.primary, secondary });
+      return { ...node, secondary: '' };
+    }
+    return node;
+  });
+
+  if (stripped.length === 0) {
+    return { nextGraph: graph, stripped };
+  }
+
+  return {
+    nextGraph: {
+      ...graph,
+      nodes: nextNodes,
+    },
+    stripped,
+  };
+}
+
 export interface StarSatelliteItem {
   id: string;
   hubId: string;

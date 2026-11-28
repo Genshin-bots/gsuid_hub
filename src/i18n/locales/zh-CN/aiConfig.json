@@ -700,6 +700,16 @@
     "requestsShort": "{count} 次",
     "configMissing": "配置文件不存在",
     "backupLabel": "备用",
+    "backupConfigMissingTooltip": "备用配置文件「{name}」不存在，请重新选择或清除",
+    "missingPrimaryInPopover": "当前主配置文件「{name}」不存在（可能已被删除），请重新选择配置或移除此节点。",
+    "missingSecondaryInPopover": "备用配置「{name}」已不存在",
+    "missingPrimaryBanner": "节点引用的主配置文件不存在：{names}，请重新选择配置或移除该节点",
+    "missingSecondaryBanner": "检测到已删除的备用配置引用：{names}（保存时将自动清除，也可立即清理）",
+    "missingPrimaryBlocked": "主配置文件「{name}」不存在，请先为该节点重新选择有效配置或移除节点后再保存",
+    "missingSecondaryStrippedOnSave": "已自动清除不存在的备用配置引用：{names}",
+    "locateHubBtn": "定位节点",
+    "removeInvalidHubBtn": "移除无效节点",
+    "cleanInvalidSecondaryBtn": "清理无效备用",
     "hubInspectorTitle": "配置节点设置",
     "removeHub": "从图谱移除此节点",
     "removeHubTitle": "移除配置节点并迁移任务",
@@ -719,6 +729,8 @@
     "exitFullscreen": "退出全屏",
     "legendMainChat": "主对话",
     "legendAutonomy": "自主行动",
-    "legendSizeHint": "按住 Alt/Shift/Ctrl 框选可批量连接 · 点击带数字节点展开子任务"
+    "legendSizeHint": "按住 Alt/Shift/Ctrl 框选可批量连接 · 点击带数字节点展开子任务",
+    "legendWheelInlineHint": "滚轮缩放画布",
+    "legendWheelFullscreenHint": "滚轮缩放画布 · Esc 退出全屏"
   }
 }

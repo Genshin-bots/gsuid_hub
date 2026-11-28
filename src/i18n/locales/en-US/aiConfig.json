@@ -700,6 +700,16 @@
     "requestsShort": "{count} calls",
     "configMissing": "Config file missing",
     "backupLabel": "Backup",
+    "backupConfigMissingTooltip": "Backup config \"{name}\" no longer exists — please re-select or clear it",
+    "missingPrimaryInPopover": "Primary config \"{name}\" no longer exists (may have been deleted). Re-select a valid config or remove this node.",
+    "missingSecondaryInPopover": "Backup \"{name}\" is missing",
+    "missingPrimaryBanner": "Missing primary config referenced by hub: {names} — please re-select or remove the node",
+    "missingSecondaryBanner": "Deleted backup config referenced: {names} (will be auto-cleared on save, or clean now)",
+    "missingPrimaryBlocked": "Primary config \"{name}\" no longer exists. Please re-select a valid config or remove the node before saving.",
+    "missingSecondaryStrippedOnSave": "Automatically cleared missing backup config reference(s): {names}",
+    "locateHubBtn": "Locate Node",
+    "removeInvalidHubBtn": "Remove Invalid Node",
+    "cleanInvalidSecondaryBtn": "Clean Invalid Backup",
     "hubInspectorTitle": "Config Node Settings",
     "removeHub": "Remove node from graph",
     "removeHubTitle": "Migrate Tasks & Remove Node",
@@ -719,6 +729,8 @@
     "exitFullscreen": "Exit fullscreen",
     "legendMainChat": "Main Chat",
     "legendAutonomy": "Autonomy",
-    "legendSizeHint": "Hold Alt/Shift/Ctrl to box-select · Click +N nodes to expand"
+    "legendSizeHint": "Hold Alt/Shift/Ctrl to box-select · Click +N nodes to expand",
+    "legendWheelInlineHint": "Scroll to zoom",
+    "legendWheelFullscreenHint": "Scroll to zoom · Esc to exit fullscreen"
   }
 }

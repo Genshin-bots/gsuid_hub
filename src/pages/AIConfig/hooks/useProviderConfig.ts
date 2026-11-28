@@ -159,8 +159,14 @@ export interface UseProviderConfigReturn {
   baseUrlHasTrailingSlash: (baseUrl: string) => boolean;
 }
 
-export function useProviderConfig(): UseProviderConfigReturn {
+export interface UseProviderConfigOptions {
+  /** 删除配置文件成功后的通知（便于任务图谱在无未保存草稿时同步刷新） */
+  onConfigDeleted?: (deletedFullName: string) => void;
+}
+
+export function useProviderConfig(options?: UseProviderConfigOptions): UseProviderConfigReturn {
   const { t } = useLanguage();
+  const onConfigDeleted = options?.onConfigDeleted;
 
   // ---------- Provider list ----------
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
@@ -493,7 +499,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
       fetchAllConfigs();
     } catch (error) {
       console.error('Failed to save config:', error);
-      toast.error(t('aiConfig.openaiConfig.saveFailed'));
+      toast.error(getApiErrorMessage(error, t('aiConfig.openaiConfig.saveFailed')));
     } finally {
       setIsSavingOpenaiConfig(false);
     }
@@ -577,7 +583,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
       resetNewConfigForm();
     } catch (error) {
       console.error(`Failed to create ${newConfigProvider} config:`, error);
-      toast.error(t('aiConfig.openaiConfig.createFailed'));
+      toast.error(getApiErrorMessage(error, t('aiConfig.openaiConfig.createFailed')));
     }
   }, [
     newConfigName,
@@ -639,20 +645,17 @@ export function useProviderConfig(): UseProviderConfigReturn {
       setHighLevelConfig((prev) => (prev === fullConfigName ? '' : prev));
       setLowLevelConfig((prev) => (prev === fullConfigName ? '' : prev));
       await fetchAllConfigs();
+      onConfigDeleted?.(fullConfigName);
     } catch (error) {
       console.error('Failed to delete config:', error);
-      const errorMsg = error instanceof Error ? error.message : '';
-      toast.error(
-        errorMsg
-          ? `${t('aiConfig.openaiConfig.deleteFailed')}: ${errorMsg}`
-          : t('aiConfig.openaiConfig.deleteFailed'),
-      );
+      toast.error(getApiErrorMessage(error, t('aiConfig.openaiConfig.deleteFailed')));
     }
   }, [
     editingConfigName,
     editingConfigProvider,
     t,
     fetchAllConfigs,
+    onConfigDeleted,
     highLevelConfig,
     lowLevelConfig,
     allConfigs,

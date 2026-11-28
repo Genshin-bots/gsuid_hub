@@ -5,6 +5,7 @@ import {
   computeRingFillPercent,
   computeSatelliteRadius,
   computeStarGraphLayout,
+  findInvalidConfigHubs,
   findUnconfiguredConnectedHubIds,
   formatUsageShare,
   materializeGraphPositions,
@@ -12,6 +13,7 @@ import {
   MIN_SATELLITE_RADIUS,
   rearrangeGraphPositions,
   resolveSatelliteAccentColor,
+  stripMissingSecondaryConfigs,
   synthesizeGraphFromTaskModels,
 } from './starGraphModel';
 
@@ -423,5 +425,84 @@ describe('starGraphModel', () => {
     );
     expect(resolveSatelliteAccentColor({ id: 'autonomy', group: 'agent' })).toBe('#f59e0b');
     expect(resolveSatelliteAccentColor({ id: 'memory_algebra', group: 'memory' })).toBe('#a855f7');
+  });
+
+  it('detects missing primary/secondary hub configs and strips stale secondary references without touching valid hubs', () => {
+    const kinds: AITaskKindInfo[] = [
+      makeKind('chat', 'high'),
+      makeKind('turn_router', 'low'),
+      makeKind('temp_assistant', 'high'),
+    ];
+    const graph = {
+      nodes: [
+        {
+          id: 'slot_high',
+          primary: 'openai++ktxyAria',
+          secondary: '',
+          role: 'high' as const,
+          pos: null,
+        },
+        {
+          id: 'slot_low',
+          primary: 'openai++ktxyAria',
+          secondary: 'openai++DeletedLowBackup',
+          role: 'low' as const,
+          pos: null,
+        },
+        {
+          id: 'hub_1',
+          primary: 'openai++Ali',
+          secondary: 'openai++Deepseek',
+          role: 'custom' as const,
+          pos: null,
+        },
+        {
+          id: 'hub_broken',
+          primary: 'openai++GoneModel',
+          secondary: '',
+          role: 'custom' as const,
+          pos: null,
+        },
+      ],
+      edges: {
+        chat: 'slot_high',
+        turn_router: 'slot_low',
+        temp_assistant: 'slot_low',
+      },
+      split_subagents: [],
+      task_positions: {},
+    };
+
+    const validNames = new Set(['openai++ktxyAria', 'openai++Ali']);
+    const invalid = findInvalidConfigHubs(graph, kinds, validNames);
+
+    expect(invalid.missingPrimary).toEqual([
+      {
+        nodeId: 'hub_broken',
+        primary: 'openai++GoneModel',
+        secondary: '',
+        connectedTaskCount: 0,
+      },
+    ]);
+    expect(invalid.missingSecondary.map((item) => [item.nodeId, item.secondary])).toEqual([
+      ['slot_low', 'openai++DeletedLowBackup'],
+      ['hub_1', 'openai++Deepseek'],
+    ]);
+
+    const { nextGraph, stripped } = stripMissingSecondaryConfigs(graph, validNames);
+    expect(stripped.map((s) => s.secondary)).toEqual([
+      'openai++DeletedLowBackup',
+      'openai++Deepseek',
+    ]);
+    expect(nextGraph.nodes.find((n) => n.id === 'slot_low')?.secondary).toBe('');
+    expect(nextGraph.nodes.find((n) => n.id === 'hub_1')?.secondary).toBe('');
+    expect(nextGraph.nodes.find((n) => n.id === 'hub_1')?.primary).toBe('openai++Ali');
+    // Original graph is not mutated
+    expect(graph.nodes.find((n) => n.id === 'hub_1')?.secondary).toBe('openai++Deepseek');
+
+    // No-op when all secondaries exist
+    const cleanRes = stripMissingSecondaryConfigs(nextGraph, validNames);
+    expect(cleanRes.stripped).toEqual([]);
+    expect(cleanRes.nextGraph).toBe(nextGraph);
   });
 });

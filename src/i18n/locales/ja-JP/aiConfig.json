@@ -700,6 +700,16 @@
     "requestsShort": "{count} 回",
     "configMissing": "設定ファイルが見つかりません",
     "backupLabel": "予備",
+    "backupConfigMissingTooltip": "予備設定「{name}」が存在しません。再選択または解除してください",
+    "missingPrimaryInPopover": "主設定「{name}」が見つかりません（削除済みの可能性があります）。有効な設定を選び直すか、このノードを削除してください。",
+    "missingSecondaryInPopover": "予備設定「{name}」が存在しません",
+    "missingPrimaryBanner": "存在しない主設定を参照しているノードがあります：{names}。設定を選び直すかノードを削除してください",
+    "missingSecondaryBanner": "削除済みの予備設定参照を検出しました：{names}（保存時に自動クリアされます）",
+    "missingPrimaryBlocked": "主設定「{name}」が見つかりません。保存前に有効な設定を選び直すか、ノードを削除してください",
+    "missingSecondaryStrippedOnSave": "存在しない予備設定参照を自動クリアしました：{names}",
+    "locateHubBtn": "ノードへ移動",
+    "removeInvalidHubBtn": "無効ノードを削除",
+    "cleanInvalidSecondaryBtn": "無効な予備をクリア",
     "hubInspectorTitle": "設定ノードの編集",
     "removeHub": "グラフからこのノードを削除",
     "removeHubTitle": "タスクを移行してノードを削除",
@@ -719,6 +729,8 @@
     "exitFullscreen": "全画面を終了",
     "legendMainChat": "メイン会話",
     "legendAutonomy": "自律行動",
-    "legendSizeHint": "Alt/Shift/Ctrl ドラッグで一括接続・+N クリックで子ノード展開"
+    "legendSizeHint": "Alt/Shift/Ctrl ドラッグで一括接続・+N クリックで子ノード展開",
+    "legendWheelInlineHint": "ホイールで拡大縮小",
+    "legendWheelFullscreenHint": "ホイールで拡大縮小・Esc で全画面終了"
   }
 }

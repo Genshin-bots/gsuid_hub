@@ -195,7 +195,7 @@ export function StarSatelliteBubble({
               }
             }}
             className={cn(
-              'relative flex items-center justify-center rounded-full border transition-transform duration-200 cursor-grab active:cursor-grabbing glass-card',
+              'relative flex items-center justify-center rounded-full border transition-transform duration-200 cursor-grab active:cursor-grabbing glass-card touch-none',
               isMainChat
                 ? 'border-primary/80 bg-primary/15 text-primary shadow-md'
                 : isAutonomy
@@ -326,7 +326,7 @@ export function StarSatelliteBubble({
             transform: `translate(${handleOffsetX - 7}px, ${handleOffsetY - 7}px)`,
           }}
           className={cn(
-            'absolute left-0 top-0 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-background transition-transform cursor-crosshair',
+            'absolute left-0 top-0 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-background transition-transform cursor-crosshair touch-none',
             isMainChat
               ? 'bg-primary'
               : isAutonomy

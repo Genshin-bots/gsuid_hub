@@ -63,6 +63,7 @@ export function useFrameworkConfig(): UseFrameworkConfigReturn {
   const [hasInitialized, setHasInitialized] = useState(false);
 
   const fetchedConfigNamesRef = useRef<Set<string>>(new Set());
+  const inFlightDetailCountRef = useRef(0);
 
   const fetchConfigList = useCallback(async () => {
     try {
@@ -79,22 +80,37 @@ export function useFrameworkConfig(): UseFrameworkConfigReturn {
   }, [t]);
 
   const fetchConfigDetail = useCallback(async (configName: string) => {
+    inFlightDetailCountRef.current += 1;
+    setIsLoadingDetail(true);
     try {
-      setIsLoadingDetail(true);
       const data = await frameworkConfigApi.getFrameworkConfig(configName);
+      const item: LocalFrameworkConfig = {
+        id: data.id,
+        name: data.name,
+        full_name: data.full_name,
+        config: data.config as Record<string, PluginConfigItem>,
+      };
+      // 按项原子建立原始快照：避免部分请求失败导致 originalConfig 永久为空、
+      // 以及并发加载期间用户先编辑某项后被尾随快照覆盖的竞态。
       setConfigs((prev) => ({
         ...prev,
-        [data.id]: {
-          id: data.id,
-          name: data.name,
-          full_name: data.full_name,
-          config: data.config as Record<string, PluginConfigItem>,
-        },
+        [data.id]: item,
       }));
+      setOriginalConfig((prev) =>
+        prev[data.id]
+          ? prev
+          : {
+              ...prev,
+              [data.id]: JSON.parse(JSON.stringify(item)) as LocalFrameworkConfig,
+            },
+      );
     } catch (error) {
       console.error('Failed to fetch AI config detail:', error);
     } finally {
-      setIsLoadingDetail(false);
+      inFlightDetailCountRef.current = Math.max(0, inFlightDetailCountRef.current - 1);
+      if (inFlightDetailCountRef.current === 0) {
+        setIsLoadingDetail(false);
+      }
     }
   }, []);
 
@@ -114,14 +130,13 @@ export function useFrameworkConfig(): UseFrameworkConfigReturn {
     });
   }, [configList, configs, fetchConfigDetail]);
 
-  // 所有详情加载完毕 → 初始化原始快照
+  // 所有详情加载完毕 → 标记初始化完成
   useEffect(() => {
     if (
       configList.length > 0 &&
       Object.keys(configs).length >= configList.length &&
       !hasInitialized
     ) {
-      setOriginalConfig(JSON.parse(JSON.stringify(configs)));
       setHasInitialized(true);
     }
   }, [configs, configList, hasInitialized]);
@@ -165,6 +180,7 @@ export function useFrameworkConfig(): UseFrameworkConfigReturn {
     await fetchConfigList();
     fetchedConfigNamesRef.current.clear();
     setConfigs({});
+    setOriginalConfig({});
     setHasInitialized(false);
   }, [fetchConfigList]);
 

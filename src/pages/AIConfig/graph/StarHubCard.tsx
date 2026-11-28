@@ -12,6 +12,8 @@ export interface StarHubCardProps {
   item: StarHubLayoutItem;
   allConfigsList: readonly AllConfigItem[];
   configByName: ReadonlyMap<string, AllConfigItem>;
+  /** 配置文件摘要列表是否已加载完成（避免加载期间误报“配置文件不存在”） */
+  hasLoadedConfigs?: boolean;
   metric: StarUsageMetric;
   /** 图谱内是否存在非零用量，用于决定是否渲染星核底部占比进度条 */
   hasAnyGraphUsage?: boolean;
@@ -52,6 +54,7 @@ export function StarHubCard({
   item,
   allConfigsList,
   configByName,
+  hasLoadedConfigs = true,
   metric,
   hasAnyGraphUsage = false,
   halfHeight = HUB_CARD_HALF_H,
@@ -75,7 +78,8 @@ export function StarHubCard({
   const primaryItem = node.primary ? configByName.get(node.primary) : undefined;
   const secondaryItem = node.secondary ? configByName.get(node.secondary) : undefined;
   const isPlaceholder = !node.primary;
-  const isMissingFile = Boolean(node.primary && !primaryItem);
+  const isMissingPrimary = Boolean(hasLoadedConfigs && node.primary && !primaryItem);
+  const isMissingSecondary = Boolean(hasLoadedConfigs && node.secondary && !secondaryItem);
 
   const rolePlaceholderTitle =
     node.role === 'high'
@@ -119,6 +123,8 @@ export function StarHubCard({
             tabIndex={0}
             onClick={(e) => {
               e.stopPropagation();
+              // 阻止 Radix PopoverTrigger 二次翻转状态（尤其无配置文件点占位星核跳新建时避免叠开空弹窗）
+              e.preventDefault();
               handleCardClick();
             }}
             onKeyDown={(e) => {
@@ -128,12 +134,14 @@ export function StarHubCard({
               }
             }}
             className={cn(
-              'glass-card rounded-2xl p-3 transition-all duration-200 cursor-pointer border',
+              'glass-card rounded-2xl p-3 transition-all duration-200 cursor-pointer border touch-none',
               isPlaceholder
                 ? 'border-dashed border-primary/60 bg-primary/5 hover:bg-primary/10'
-                : isMissingFile
-                  ? 'border-destructive/70 ring-2 ring-destructive/20'
-                  : 'border-border/70 hover:border-primary/60',
+                : isMissingPrimary
+                  ? 'border-destructive/75 ring-2 ring-destructive/25'
+                  : isMissingSecondary
+                    ? 'border-amber-500/75 ring-2 ring-amber-500/25'
+                    : 'border-border/70 hover:border-primary/60',
               isHighlighted && 'ring-2 ring-primary/40 border-primary/70 shadow-lg',
               isDropTarget && 'scale-105 ring-4 ring-primary/50 border-primary',
               isUnconfiguredBlocked && 'ring-2 ring-amber-500/70 border-amber-500',
@@ -209,10 +217,14 @@ export function StarHubCard({
                             {primaryItem.model_name}
                           </span>
                         </>
-                      ) : (
+                      ) : isMissingPrimary ? (
                         <span className="inline-flex items-center gap-1 text-destructive truncate">
                           <AlertTriangle className="h-3 w-3 shrink-0" />
                           {t('aiConfig.starGraph.configMissing')}
+                        </span>
+                      ) : (
+                        <span className="truncate" title={node.primary}>
+                          {node.primary}
                         </span>
                       )}
                     </div>
@@ -227,10 +239,25 @@ export function StarHubCard({
                     </span>
                     {node.secondary && (
                       <span
-                        className="inline-flex min-w-0 items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300"
-                        title={`${t('aiConfig.starGraph.backupLabel')}: ${secondaryItem?.config_name ?? node.secondary}`}
+                        className={cn(
+                          'inline-flex min-w-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px]',
+                          isMissingSecondary
+                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                            : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+                        )}
+                        title={
+                          isMissingSecondary
+                            ? t('aiConfig.starGraph.backupConfigMissingTooltip', {
+                                name: node.secondary,
+                              })
+                            : `${t('aiConfig.starGraph.backupLabel')}: ${secondaryItem?.config_name ?? node.secondary}`
+                        }
                       >
-                        <ShieldCheck className="h-3 w-3 shrink-0" />
+                        {isMissingSecondary ? (
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                        ) : (
+                          <ShieldCheck className="h-3 w-3 shrink-0" />
+                        )}
                         <span className="truncate">
                           {secondaryItem?.config_name ?? node.secondary}
                         </span>
@@ -334,6 +361,14 @@ export function StarHubCard({
                 {t('aiConfig.openaiConfig.createNew')}
               </button>
             </div>
+            {isMissingPrimary && (
+              <div className="flex items-start gap-1.5 rounded-lg border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[11px] text-destructive">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 break-all">
+                  {t('aiConfig.starGraph.missingPrimaryInPopover', { name: node.primary })}
+                </span>
+              </div>
+            )}
             <div className="max-h-40 overflow-y-auto space-y-1 rounded-lg border border-border/50 p-1">
               {allConfigsList.length === 0 ? (
                 <p className="py-3 text-center text-xs text-muted-foreground">
@@ -393,6 +428,23 @@ export function StarHubCard({
                   </button>
                 )}
               </div>
+              {isMissingSecondary && (
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-500/45 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+                  <span className="inline-flex min-w-0 items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate" title={node.secondary}>
+                      {t('aiConfig.starGraph.missingSecondaryInPopover', { name: node.secondary })}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onSelectSecondary(node.id, '')}
+                    className="shrink-0 font-medium underline underline-offset-2 hover:opacity-80"
+                  >
+                    {t('aiConfig.taskModels.clearSecondary')}
+                  </button>
+                </div>
+              )}
               {secondaryCandidates.length === 0 ? (
                 <p className="text-[11px] text-muted-foreground">
                   {t('aiConfig.starGraph.noBackupCandidate')}
